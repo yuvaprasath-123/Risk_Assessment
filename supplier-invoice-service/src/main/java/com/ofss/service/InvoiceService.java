@@ -10,11 +10,13 @@ import com.ofss.entity.Supplier;
 import com.ofss.entity.SupplierStatus;
 
 import com.ofss.exception.BadRequestException;
+import com.ofss.exception.ConflictException;
 import com.ofss.exception.ResourceNotFoundException;
 
 import com.ofss.repository.InvoiceRepository;
 import com.ofss.repository.SupplierRepository;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,10 +122,22 @@ public class InvoiceService {
                 request.dueDate()
         );
 
-        invoice =
-                invoiceRepository.save(
-                        invoice
-                );
+        try {
+
+            invoice =
+                    invoiceRepository
+                            .saveAndFlush(
+                                    invoice
+                            );
+
+        } catch (
+                DataIntegrityViolationException ex
+        ) {
+
+            throw new ConflictException(
+                    "Duplicate invoice: Supplier ID + Invoice Number already exists"
+            );
+        }
 
         return mapToResponse(
                 invoice,

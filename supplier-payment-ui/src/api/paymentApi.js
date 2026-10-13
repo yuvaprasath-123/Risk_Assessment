@@ -2,24 +2,48 @@ import {
   apiRequest
 } from "./apiClient";
 
-const BASE =
+const BASE_URL =
   "/payment-api/api/v1/payment-requests";
 
-function authHeader(token) {
-  return {
-    Authorization:
-      `Bearer ${token}`,
-  };
-}
-
 export function getPayments(
-  token
+  token,
+  supplierId = null,
+  status = null
 ) {
+
+  const params =
+    new URLSearchParams();
+
+  if (supplierId) {
+
+    params.set(
+      "supplierId",
+      String(
+        supplierId
+      )
+    );
+  }
+
+  if (status) {
+
+    params.set(
+      "status",
+      status
+    );
+  }
+
+  const query =
+    params.toString();
+
+  const url =
+    query
+      ? `${BASE_URL}?${query}`
+      : BASE_URL;
+
   return apiRequest(
-    BASE,
+    url,
     {
-      headers:
-        authHeader(token),
+      token
     }
   );
 }
@@ -28,11 +52,11 @@ export function getPayment(
   token,
   paymentId
 ) {
+
   return apiRequest(
-    `${BASE}/${paymentId}`,
+    `${BASE_URL}/${paymentId}`,
     {
-      headers:
-        authHeader(token),
+      token
     }
   );
 }
@@ -42,21 +66,50 @@ export function createPayment(
   invoiceId,
   paymentAmount
 ) {
+
   return apiRequest(
-    BASE,
+    BASE_URL,
     {
-      method: "POST",
+      token,
 
-      headers:
-        authHeader(token),
+      method:
+        "POST",
 
-      body: JSON.stringify({
+      body: {
         invoiceId:
-          Number(invoiceId),
+          Number(
+            invoiceId
+          ),
 
         paymentAmount:
-          Number(paymentAmount),
-      }),
+          Number(
+            paymentAmount
+          )
+      }
+    }
+  );
+}
+
+export function updatePayment(
+  token,
+  paymentId,
+  paymentAmount
+) {
+
+  return apiRequest(
+    `${BASE_URL}/${paymentId}`,
+    {
+      token,
+
+      method:
+        "PUT",
+
+      body: {
+        paymentAmount:
+          Number(
+            paymentAmount
+          )
+      }
     }
   );
 }
@@ -65,13 +118,14 @@ export function submitPayment(
   token,
   paymentId
 ) {
-  return apiRequest(
-    `${BASE}/${paymentId}/submit`,
-    {
-      method: "POST",
 
-      headers:
-        authHeader(token),
+  return apiRequest(
+    `${BASE_URL}/${paymentId}/submit`,
+    {
+      token,
+
+      method:
+        "POST"
     }
   );
 }
@@ -80,11 +134,11 @@ export function getPaymentTimeline(
   token,
   paymentId
 ) {
+
   return apiRequest(
-    `${BASE}/${paymentId}/timeline`,
+    `${BASE_URL}/${paymentId}/timeline`,
     {
-      headers:
-        authHeader(token),
+      token
     }
   );
 }

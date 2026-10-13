@@ -1,32 +1,42 @@
 import {
+  fireEvent,
   render,
-  screen
+  screen,
+  waitFor
 } from "@testing-library/react";
 
 import userEvent
   from "@testing-library/user-event";
 
 import {
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi
 } from "vitest";
 
 import InvoicesPage
   from "./InvoicesPage";
 
-const {
-  mockGetInvoices,
-  mockCreateInvoice,
-  mockGetSuppliers
-} = vi.hoisted(
+import {
+  useAuth
+} from "../auth/AuthContext";
+
+import {
+  createInvoice,
+  getInvoices
+} from "../api/invoiceApi";
+
+import {
+  getSuppliers
+} from "../api/supplierApi";
+
+vi.mock(
+  "../auth/AuthContext",
   () => ({
-    mockGetInvoices:
-      vi.fn(),
-
-    mockCreateInvoice:
-      vi.fn(),
-
-    mockGetSuppliers:
-      vi.fn(),
+    useAuth:
+      vi.fn()
   })
 );
 
@@ -34,10 +44,10 @@ vi.mock(
   "../api/invoiceApi",
   () => ({
     getInvoices:
-      mockGetInvoices,
+      vi.fn(),
 
     createInvoice:
-      mockCreateInvoice,
+      vi.fn()
   })
 );
 
@@ -45,7 +55,7 @@ vi.mock(
   "../api/supplierApi",
   () => ({
     getSuppliers:
-      mockGetSuppliers,
+      vi.fn()
   })
 );
 
@@ -53,41 +63,134 @@ describe(
   "InvoicesPage",
   () => {
 
-    beforeEach(() => {
+    beforeEach(
+      () => {
 
-      mockGetInvoices
-        .mockReset();
+        vi.clearAllMocks();
 
-      mockCreateInvoice
-        .mockReset();
+        useAuth.mockReturnValue({
+          token:
+            "test-token"
+        });
 
-      mockGetSuppliers
-        .mockReset();
-    });
+        getInvoices.mockResolvedValue([
+          {
+            invoiceId:
+              1,
 
+            supplierId:
+              1,
 
-    test(
-      "creates invoice for active supplier",
+            invoiceNumber:
+              "INV-001",
+
+            invoiceAmount:
+              1000,
+
+            invoiceDate:
+              "2026-10-01",
+
+            dueDate:
+              "2026-10-20"
+          }
+        ]);
+
+        getSuppliers.mockResolvedValue([
+          {
+            supplierId:
+              1,
+
+            supplierName:
+              "Supplier One",
+
+            status:
+              "ACTIVE"
+          },
+
+          {
+            supplierId:
+              2,
+
+            supplierName:
+              "Inactive Supplier",
+
+            status:
+              "INACTIVE"
+          }
+        ]);
+      }
+    );
+
+    it(
+      "loads invoices and suppliers with JWT",
       async () => {
 
-        mockGetInvoices
-          .mockResolvedValue([]);
+        render(
+          <InvoicesPage />
+        );
 
-        mockGetSuppliers
-          .mockResolvedValue([
+        expect(
+          await screen.findByText(
+            "INV-001"
+          )
+        ).toBeInTheDocument();
+
+        expect(
+          getInvoices
+        ).toHaveBeenCalledWith(
+          "test-token"
+        );
+
+        expect(
+          getSuppliers
+        ).toHaveBeenCalledWith(
+          "test-token"
+        );
+      }
+    );
+
+    it(
+      "shows only active suppliers in dropdown",
+      async () => {
+
+        render(
+          <InvoicesPage />
+        );
+
+        await screen.findByText(
+          "INV-001"
+        );
+
+        expect(
+          screen.getByRole(
+            "option",
             {
-              supplierId: 10,
-              supplierName:
-                "Supplier A",
-              status:
-                "ACTIVE",
-            },
-          ]);
+              name:
+                "Supplier One"
+            }
+          )
+        ).toBeInTheDocument();
 
-        mockCreateInvoice
-          .mockResolvedValue({
-            invoiceId: 20,
-          });
+        expect(
+          screen.queryByRole(
+            "option",
+            {
+              name:
+                "Inactive Supplier"
+            }
+          )
+        ).not.toBeInTheDocument();
+      }
+    );
+
+    it(
+      "creates an invoice",
+      async () => {
+
+        createInvoice.mockResolvedValue({
+          invoiceId:
+            2
+        });
 
         const user =
           userEvent.setup();
@@ -97,28 +200,28 @@ describe(
         );
 
         await screen.findByText(
-          "Supplier A"
-        );
-
-        await user.type(
-          screen.getByPlaceholderText(
-            /invoice number/i
-          ),
-          "INV-TEST-001"
+          "INV-001"
         );
 
         await user.selectOptions(
           screen.getByRole(
             "combobox"
           ),
-          "10"
+          "1"
         );
 
         await user.type(
           screen.getByPlaceholderText(
-            /invoice amount/i
+            "Invoice number"
           ),
-          "60000"
+          "INV-002"
+        );
+
+        await user.type(
+          screen.getByPlaceholderText(
+            "Invoice amount"
+          ),
+          "2500"
         );
 
         const dateInputs =
@@ -126,14 +229,24 @@ describe(
             'input[type="date"]'
           );
 
-        await user.type(
+        fireEvent.change(
           dateInputs[0],
-          "2026-10-12"
+          {
+            target: {
+              value:
+                "2026-10-10"
+            }
+          }
         );
 
-        await user.type(
+        fireEvent.change(
           dateInputs[1],
-          "2026-11-12"
+          {
+            target: {
+              value:
+                "2026-10-20"
+            }
+          }
         );
 
         await user.click(
@@ -141,28 +254,138 @@ describe(
             "button",
             {
               name:
-                /create invoice/i
+                "Create Invoice"
             }
           )
         );
 
+        await waitFor(
+          () => {
+
+            expect(
+              createInvoice
+            ).toHaveBeenCalledWith(
+              "test-token",
+              {
+                supplierId:
+                  1,
+
+                invoiceNumber:
+                  "INV-002",
+
+                invoiceAmount:
+                  2500,
+
+                invoiceDate:
+                  "2026-10-10",
+
+                dueDate:
+                  "2026-10-20"
+              }
+            );
+          }
+        );
+      }
+    );
+
+    it(
+      "blocks invalid due date",
+      async () => {
+
+        const user =
+          userEvent.setup();
+
+        render(
+          <InvoicesPage />
+        );
+
+        await screen.findByText(
+          "INV-001"
+        );
+
+        await user.selectOptions(
+          screen.getByRole(
+            "combobox"
+          ),
+          "1"
+        );
+
+        await user.type(
+          screen.getByPlaceholderText(
+            "Invoice number"
+          ),
+          "INV-003"
+        );
+
+        await user.type(
+          screen.getByPlaceholderText(
+            "Invoice amount"
+          ),
+          "100"
+        );
+
+        const dateInputs =
+          document.querySelectorAll(
+            'input[type="date"]'
+          );
+
+        fireEvent.change(
+          dateInputs[0],
+          {
+            target: {
+              value:
+                "2026-10-20"
+            }
+          }
+        );
+
+        fireEvent.change(
+          dateInputs[1],
+          {
+            target: {
+              value:
+                "2026-10-10"
+            }
+          }
+        );
+
+        /*
+         * The due-date input has:
+         *
+         * min="2026-10-20"
+         *
+         * Normal browser form submission therefore
+         * stops before React's submit handler runs.
+         *
+         * fireEvent.submit deliberately exercises
+         * our application validation.
+         */
+        const form =
+          screen
+            .getByRole(
+              "button",
+              {
+                name:
+                  "Create Invoice"
+              }
+            )
+            .closest(
+              "form"
+            );
+
+        fireEvent.submit(
+          form
+        );
+
         expect(
-          mockCreateInvoice
-        ).toHaveBeenCalledWith({
-          invoiceNumber:
-            "INV-TEST-001",
+          await screen.findByText(
+            "Due date cannot be earlier than invoice date."
+          )
+        ).toBeInTheDocument();
 
-          supplierId: 10,
-
-          invoiceAmount:
-            60000,
-
-          invoiceDate:
-            "2026-10-12",
-
-          dueDate:
-            "2026-11-12",
-        });
+        expect(
+          createInvoice
+        ).not.toHaveBeenCalled();
       }
     );
   }

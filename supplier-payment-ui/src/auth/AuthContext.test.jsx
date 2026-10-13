@@ -1,6 +1,7 @@
 import {
   render,
-  screen
+  screen,
+  waitFor
 } from "@testing-library/react";
 
 import userEvent
@@ -10,7 +11,7 @@ import {
   beforeEach,
   describe,
   expect,
-  test,
+  it,
   vi
 } from "vitest";
 
@@ -19,27 +20,15 @@ import {
   useAuth
 } from "./AuthContext";
 
-const {
-  mockLoginApi,
-  mockGetCurrentUser
-} = vi.hoisted(
-  () => ({
-    mockLoginApi:
-      vi.fn(),
-
-    mockGetCurrentUser:
-      vi.fn(),
-  })
-);
+import {
+  apiRequest
+} from "../api/apiClient";
 
 vi.mock(
-  "../api/authApi",
+  "../api/apiClient",
   () => ({
-    login:
-      mockLoginApi,
-
-    getCurrentUser:
-      mockGetCurrentUser,
+    apiRequest:
+      vi.fn()
   })
 );
 
@@ -48,38 +37,76 @@ function TestComponent() {
   const {
     token,
     user,
+    loading,
+    isAuthenticated,
     login,
-    logout
+    logout,
+    hasRole
   } = useAuth();
+
+  async function handleLogin() {
+
+    await login(
+      "requester1",
+      "password"
+    );
+  }
 
   return (
     <div>
 
-      <div>
-        Token:
-        {token || "none"}
+      <div data-testid="loading">
+        {String(loading)}
       </div>
 
-      <div>
-        User:
-        {user?.username || "none"}
+      <div data-testid="token">
+        {
+          token ||
+          "no-token"
+        }
+      </div>
+
+      <div data-testid="user">
+        {
+          user?.username ||
+          "no-user"
+        }
+      </div>
+
+      <div data-testid="authenticated">
+        {
+          String(
+            isAuthenticated
+          )
+        }
+      </div>
+
+      <div data-testid="requester-role">
+        {
+          String(
+            hasRole(
+              "PAYMENT_REQUESTER"
+            )
+          )
+        }
       </div>
 
       <button
-        onClick={() =>
-          login(
-            "requester1",
-            "requester@123"
-          )
+        type="button"
+        onClick={
+          handleLogin
         }
       >
-        Test Login
+        Login
       </button>
 
       <button
-        onClick={logout}
+        type="button"
+        onClick={
+          logout
+        }
       >
-        Test Logout
+        Logout
       </button>
 
     </div>
@@ -90,55 +117,107 @@ describe(
   "AuthContext",
   () => {
 
-    beforeEach(() => {
+    beforeEach(
+      () => {
 
-      mockLoginApi.mockReset();
+        vi.clearAllMocks();
 
-      mockGetCurrentUser.mockReset();
+        sessionStorage.clear();
+      }
+    );
 
-      sessionStorage.clear();
-    });
-
-    test(
-      "stores JWT after login and removes it on logout",
+    it(
+      "starts unauthenticated",
       async () => {
 
-        mockLoginApi.mockResolvedValue({
-          accessToken:
-            "abc123",
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>
+        );
 
-          userId: 1,
+        await waitFor(
+          () => {
 
-          username:
-            "requester1",
+            expect(
+              screen.getByTestId(
+                "loading"
+              )
+            ).toHaveTextContent(
+              "false"
+            );
+          }
+        );
 
-          fullName:
-            "Requester One",
+        expect(
+          screen.getByTestId(
+            "token"
+          )
+        ).toHaveTextContent(
+          "no-token"
+        );
 
-          roles: [
-            "PAYMENT_REQUESTER"
-          ],
-        });
+        expect(
+          screen.getByTestId(
+            "user"
+          )
+        ).toHaveTextContent(
+          "no-user"
+        );
 
-        mockGetCurrentUser.mockResolvedValue({
-          userId: 1,
+        expect(
+          screen.getByTestId(
+            "authenticated"
+          )
+        ).toHaveTextContent(
+          "false"
+        );
+      }
+    );
 
-          username:
-            "requester1",
+    it(
+      "logs in and loads current user",
+      async () => {
 
-          fullName:
-            "Requester One",
+        apiRequest.mockImplementation(
+          async (
+            url
+          ) => {
 
-          email:
-            "requester1@test.com",
+            if (
+              url ===
+              "/security-api/api/v1/auth/login"
+            ) {
 
-          status:
-            "ACTIVE",
+              return {
+                accessToken:
+                  "test-jwt-token"
+              };
+            }
 
-          roles: [
-            "PAYMENT_REQUESTER"
-          ],
-        });
+            if (
+              url ===
+              "/security-api/api/v1/auth/me"
+            ) {
+
+              return {
+                userId:
+                  1,
+
+                username:
+                  "requester1",
+
+                roles: [
+                  "PAYMENT_REQUESTER"
+                ]
+              };
+            }
+
+            throw new Error(
+              `Unexpected API request: ${url}`
+            );
+          }
+        );
 
         const user =
           userEvent.setup();
@@ -149,14 +228,64 @@ describe(
           </AuthProvider>
         );
 
+        await waitFor(
+          () => {
+
+            expect(
+              screen.getByTestId(
+                "loading"
+              )
+            ).toHaveTextContent(
+              "false"
+            );
+          }
+        );
+
         await user.click(
           screen.getByRole(
             "button",
             {
               name:
-                "Test Login"
+                "Login"
             }
           )
+        );
+
+        await waitFor(
+          () => {
+
+            expect(
+              screen.getByTestId(
+                "user"
+              )
+            ).toHaveTextContent(
+              "requester1"
+            );
+          }
+        );
+
+        expect(
+          screen.getByTestId(
+            "token"
+          )
+        ).toHaveTextContent(
+          "test-jwt-token"
+        );
+
+        expect(
+          screen.getByTestId(
+            "authenticated"
+          )
+        ).toHaveTextContent(
+          "true"
+        );
+
+        expect(
+          screen.getByTestId(
+            "requester-role"
+          )
+        ).toHaveTextContent(
+          "true"
         );
 
         expect(
@@ -164,19 +293,240 @@ describe(
             "accessToken"
           )
         ).toBe(
-          "abc123"
+          "test-jwt-token"
         );
 
         expect(
-          await screen.findByText(
-            /User:\s*requester1/
-          )
-        ).toBeInTheDocument();
+          apiRequest
+        ).toHaveBeenCalledWith(
+          "/security-api/api/v1/auth/login",
+          {
+            method:
+              "POST",
+
+            body: {
+              username:
+                "requester1",
+
+              password:
+                "password"
+            }
+          }
+        );
 
         expect(
-          mockGetCurrentUser
+          apiRequest
         ).toHaveBeenCalledWith(
-          "abc123"
+          "/security-api/api/v1/auth/me",
+          {
+            token:
+              "test-jwt-token"
+          }
+        );
+      }
+    );
+
+    it(
+      "restores existing session",
+      async () => {
+
+        sessionStorage.setItem(
+          "accessToken",
+          "stored-token"
+        );
+
+        apiRequest.mockImplementation(
+          async (
+            url
+          ) => {
+
+            if (
+              url ===
+              "/security-api/api/v1/auth/me"
+            ) {
+
+              return {
+                userId:
+                  1,
+
+                username:
+                  "requester1",
+
+                roles: [
+                  "PAYMENT_REQUESTER"
+                ]
+              };
+            }
+
+            throw new Error(
+              `Unexpected API request: ${url}`
+            );
+          }
+        );
+
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>
+        );
+
+        await waitFor(
+          () => {
+
+            expect(
+              screen.getByTestId(
+                "user"
+              )
+            ).toHaveTextContent(
+              "requester1"
+            );
+          }
+        );
+
+        expect(
+          screen.getByTestId(
+            "authenticated"
+          )
+        ).toHaveTextContent(
+          "true"
+        );
+
+        expect(
+          screen.getByTestId(
+            "requester-role"
+          )
+        ).toHaveTextContent(
+          "true"
+        );
+
+        expect(
+          apiRequest
+        ).toHaveBeenCalledWith(
+          "/security-api/api/v1/auth/me",
+          {
+            token:
+              "stored-token"
+          }
+        );
+      }
+    );
+
+    it(
+      "clears invalid stored token",
+      async () => {
+
+        sessionStorage.setItem(
+          "accessToken",
+          "invalid-token"
+        );
+
+        apiRequest.mockRejectedValue(
+          new Error(
+            "Unauthorized"
+          )
+        );
+
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>
+        );
+
+        await waitFor(
+          () => {
+
+            expect(
+              screen.getByTestId(
+                "loading"
+              )
+            ).toHaveTextContent(
+              "false"
+            );
+          }
+        );
+
+        expect(
+          sessionStorage.getItem(
+            "accessToken"
+          )
+        ).toBeNull();
+
+        expect(
+          screen.getByTestId(
+            "token"
+          )
+        ).toHaveTextContent(
+          "no-token"
+        );
+
+        expect(
+          screen.getByTestId(
+            "authenticated"
+          )
+        ).toHaveTextContent(
+          "false"
+        );
+      }
+    );
+
+    it(
+      "logs out",
+      async () => {
+
+        sessionStorage.setItem(
+          "accessToken",
+          "stored-token"
+        );
+
+        apiRequest.mockImplementation(
+          async (
+            url
+          ) => {
+
+            if (
+              url ===
+              "/security-api/api/v1/auth/me"
+            ) {
+
+              return {
+                userId:
+                  1,
+
+                username:
+                  "requester1",
+
+                roles: [
+                  "PAYMENT_REQUESTER"
+                ]
+              };
+            }
+
+            throw new Error(
+              `Unexpected API request: ${url}`
+            );
+          }
+        );
+
+        const user =
+          userEvent.setup();
+
+        render(
+          <AuthProvider>
+            <TestComponent />
+          </AuthProvider>
+        );
+
+        await waitFor(
+          () => {
+
+            expect(
+              screen.getByTestId(
+                "authenticated"
+              )
+            ).toHaveTextContent(
+              "true"
+            );
+          }
         );
 
         await user.click(
@@ -184,7 +534,7 @@ describe(
             "button",
             {
               name:
-                "Test Logout"
+                "Logout"
             }
           )
         );
@@ -196,10 +546,28 @@ describe(
         ).toBeNull();
 
         expect(
-          screen.getByText(
-            /User:\s*none/
+          screen.getByTestId(
+            "token"
           )
-        ).toBeInTheDocument();
+        ).toHaveTextContent(
+          "no-token"
+        );
+
+        expect(
+          screen.getByTestId(
+            "user"
+          )
+        ).toHaveTextContent(
+          "no-user"
+        );
+
+        expect(
+          screen.getByTestId(
+            "authenticated"
+          )
+        ).toHaveTextContent(
+          "false"
+        );
       }
     );
   }

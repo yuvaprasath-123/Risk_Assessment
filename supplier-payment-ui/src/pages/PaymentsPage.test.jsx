@@ -1,6 +1,7 @@
 import {
   render,
-  screen
+  screen,
+  waitFor
 } from "@testing-library/react";
 
 import userEvent
@@ -11,36 +12,34 @@ import {
 } from "react-router";
 
 import {
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi
 } from "vitest";
 
 import PaymentsPage
   from "./PaymentsPage";
 
-const {
-  mockGetPayments,
-  mockCreatePayment,
-  mockGetInvoices
-} = vi.hoisted(
-  () => ({
-    mockGetPayments:
-      vi.fn(),
+import {
+  useAuth
+} from "../auth/AuthContext";
 
-    mockCreatePayment:
-      vi.fn(),
+import {
+  createPayment,
+  getPayments
+} from "../api/paymentApi";
 
-    mockGetInvoices:
-      vi.fn(),
-  })
-);
+import {
+  getInvoices
+} from "../api/invoiceApi";
 
 vi.mock(
   "../auth/AuthContext",
   () => ({
-    useAuth: () => ({
-      token:
-        "test-token",
-    }),
+    useAuth:
+      vi.fn()
   })
 );
 
@@ -48,10 +47,10 @@ vi.mock(
   "../api/paymentApi",
   () => ({
     getPayments:
-      mockGetPayments,
+      vi.fn(),
 
     createPayment:
-      mockCreatePayment,
+      vi.fn()
   })
 );
 
@@ -59,7 +58,7 @@ vi.mock(
   "../api/invoiceApi",
   () => ({
     getInvoices:
-      mockGetInvoices,
+      vi.fn()
   })
 );
 
@@ -67,82 +66,186 @@ describe(
   "PaymentsPage",
   () => {
 
-    beforeEach(() => {
+    beforeEach(
+      () => {
 
-      mockGetPayments
-        .mockReset();
+        vi.clearAllMocks();
 
-      mockCreatePayment
-        .mockReset();
+        useAuth.mockReturnValue({
+          token:
+            "test-token"
+        });
 
-      mockGetInvoices
-        .mockReset();
-    });
+        getPayments.mockResolvedValue([
+          {
+            paymentId:
+              1,
 
+            invoiceId:
+              1,
 
-    test(
-      "creates payment using unused invoice",
+            supplierId:
+              1,
+
+            paymentAmount:
+              1000,
+
+            status:
+              "DRAFT"
+          }
+        ]);
+
+        getInvoices.mockResolvedValue([
+          {
+            invoiceId:
+              1,
+
+            invoiceNumber:
+              "INV-001",
+
+            supplierName:
+              "Supplier One",
+
+            invoiceAmount:
+              1000
+          },
+
+          {
+            invoiceId:
+              2,
+
+            invoiceNumber:
+              "INV-002",
+
+            supplierName:
+              "Supplier Two",
+
+            invoiceAmount:
+              2500
+          }
+        ]);
+      }
+    );
+
+    function renderPage() {
+
+      return render(
+        <MemoryRouter>
+          <PaymentsPage />
+        </MemoryRouter>
+      );
+    }
+
+    it(
+      "loads payments and invoices",
       async () => {
 
-        mockGetPayments
-          .mockResolvedValue([
-            {
-              paymentId: 1,
-              invoiceId: 1,
-              supplierId: 5,
-              paymentAmount:
-                10000,
-              status:
-                "DRAFT",
-            },
-          ]);
+        renderPage();
 
-        mockGetInvoices
-          .mockResolvedValue([
-            {
-              invoiceId: 1,
-              invoiceNumber:
-                "OLD-INV",
-              supplierName:
-                "Supplier A",
-              invoiceAmount:
-                10000,
-            },
+        expect(
+          await screen.findByText(
+            "DRAFT"
+          )
+        ).toBeInTheDocument();
 
-            {
-              invoiceId: 2,
-              invoiceNumber:
-                "NEW-INV",
-              supplierName:
-                "Supplier B",
-              invoiceAmount:
-                60000,
-            },
-          ]);
+        expect(
+          getPayments
+        ).toHaveBeenCalledWith(
+          "test-token"
+        );
 
-        mockCreatePayment
-          .mockResolvedValue({
-            paymentId: 2,
-            status:
-              "DRAFT",
-          });
+        expect(
+          getInvoices
+        ).toHaveBeenCalledWith(
+          "test-token"
+        );
+      }
+    );
+
+    it(
+      "hides invoice already used by a payment",
+      async () => {
+
+        renderPage();
+
+        await screen.findByText(
+          "DRAFT"
+        );
+
+        expect(
+          screen.queryByRole(
+            "option",
+            {
+              name:
+                /INV-001/
+            }
+          )
+        ).not.toBeInTheDocument();
+
+        expect(
+          screen.getByRole(
+            "option",
+            {
+              name:
+                /INV-002/
+            }
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
+    it(
+      "fills payment amount when invoice is selected",
+      async () => {
 
         const user =
           userEvent.setup();
 
-        render(
-          <MemoryRouter>
-            <PaymentsPage />
-          </MemoryRouter>
+        renderPage();
+
+        await screen.findByText(
+          "DRAFT"
         );
 
-        const select =
-          await screen.findByRole(
+        await user.selectOptions(
+          screen.getByRole(
             "combobox"
-          );
+          ),
+          "2"
+        );
+
+        expect(
+          screen.getByRole(
+            "spinbutton"
+          )
+        ).toHaveValue(
+          2500
+        );
+      }
+    );
+
+    it(
+      "creates payment request",
+      async () => {
+
+        createPayment.mockResolvedValue({
+          paymentId:
+            2
+        });
+
+        const user =
+          userEvent.setup();
+
+        renderPage();
+
+        await screen.findByText(
+          "DRAFT"
+        );
 
         await user.selectOptions(
-          select,
+          screen.getByRole(
+            "combobox"
+          ),
           "2"
         );
 
@@ -151,18 +254,73 @@ describe(
             "button",
             {
               name:
-                /create payment/i
+                "Create Payment"
+            }
+          )
+        );
+
+        await waitFor(
+          () => {
+
+            expect(
+              createPayment
+            ).toHaveBeenCalledWith(
+              "test-token",
+              "2",
+              2500
+            );
+          }
+        );
+      }
+    );
+
+    it(
+      "shows duplicate payment conflict",
+      async () => {
+
+        const conflictError =
+          new Error(
+            "Conflict"
+          );
+
+        conflictError.status =
+          409;
+
+        createPayment.mockRejectedValue(
+          conflictError
+        );
+
+        const user =
+          userEvent.setup();
+
+        renderPage();
+
+        await screen.findByText(
+          "DRAFT"
+        );
+
+        await user.selectOptions(
+          screen.getByRole(
+            "combobox"
+          ),
+          "2"
+        );
+
+        await user.click(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Create Payment"
             }
           )
         );
 
         expect(
-          mockCreatePayment
-        ).toHaveBeenCalledWith(
-          "test-token",
-          "2",
-          60000
-        );
+          await screen.findByText(
+            "Another user has already created a payment request for this invoice."
+          )
+        ).toBeInTheDocument();
       }
     );
   }

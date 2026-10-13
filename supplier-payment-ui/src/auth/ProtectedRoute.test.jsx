@@ -10,77 +10,130 @@ import {
 } from "react-router";
 
 import {
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi
 } from "vitest";
 
 import ProtectedRoute
   from "./ProtectedRoute";
 
-const {
-  mockUseAuth
-} = vi.hoisted(
-  () => ({
-    mockUseAuth:
-      vi.fn(),
-  })
-);
+import {
+  useAuth
+} from "./AuthContext";
 
 vi.mock(
   "./AuthContext",
   () => ({
     useAuth:
-      mockUseAuth,
+      vi.fn()
   })
 );
+
+function renderProtectedRoute(
+  allowedRoles = [
+    "PAYMENT_REQUESTER"
+  ]
+) {
+
+  return render(
+    <MemoryRouter
+      initialEntries={[
+        "/protected"
+      ]}
+    >
+
+      <Routes>
+
+        <Route
+          path="/login"
+          element={
+            <div>
+              Login Page
+            </div>
+          }
+        />
+
+        <Route
+          path="/"
+          element={
+            <div>
+              Home Page
+            </div>
+          }
+        />
+
+        <Route
+          path="/protected"
+          element={
+            <ProtectedRoute
+              allowedRoles={
+                allowedRoles
+              }
+            >
+              <div>
+                Protected Content
+              </div>
+            </ProtectedRoute>
+          }
+        />
+
+      </Routes>
+
+    </MemoryRouter>
+  );
+}
 
 describe(
   "ProtectedRoute",
   () => {
 
-    test(
-      "redirects unauthenticated user to login",
+    beforeEach(
       () => {
 
-        mockUseAuth.mockReturnValue({
-          token: null,
-          loading: false,
-          hasRole:
-            () => false,
+        vi.clearAllMocks();
+      }
+    );
+
+    it(
+      "shows loading state while authentication is loading",
+      () => {
+
+        useAuth.mockReturnValue({
+          user:
+            null,
+          loading:
+            true,
+          isAuthenticated:
+            false
         });
 
-        render(
-          <MemoryRouter
-            initialEntries={[
-              "/protected"
-            ]}
-          >
+        renderProtectedRoute();
 
-            <Routes>
+        expect(
+          screen.getByText(
+            "Loading..."
+          )
+        ).toBeInTheDocument();
+      }
+    );
 
-              <Route
-                path="/login"
-                element={
-                  <div>
-                    Login Page
-                  </div>
-                }
-              />
+    it(
+      "redirects unauthenticated users to login",
+      () => {
 
-              <Route
-                path="/protected"
-                element={
-                  <ProtectedRoute>
-                    <div>
-                      Protected Page
-                    </div>
-                  </ProtectedRoute>
-                }
-              />
+        useAuth.mockReturnValue({
+          user:
+            null,
+          loading:
+            false,
+          isAuthenticated:
+            false
+        });
 
-            </Routes>
-
-          </MemoryRouter>
-        );
+        renderProtectedRoute();
 
         expect(
           screen.getByText(
@@ -90,79 +143,81 @@ describe(
       }
     );
 
-
-    test(
-      "allows authenticated requester",
+    it(
+      "allows an authenticated user with the required role",
       () => {
 
-        mockUseAuth.mockReturnValue({
-          token:
-            "valid-token",
-
-          loading: false,
-
-          hasRole:
-            (role) =>
-              role ===
-              "PAYMENT_REQUESTER",
+        useAuth.mockReturnValue({
+          user: {
+            roles: [
+              "PAYMENT_REQUESTER"
+            ]
+          },
+          loading:
+            false,
+          isAuthenticated:
+            true
         });
 
-        render(
-          <MemoryRouter>
-
-            <ProtectedRoute
-              requiredRole=
-                "PAYMENT_REQUESTER"
-            >
-              <div>
-                Protected Page
-              </div>
-            </ProtectedRoute>
-
-          </MemoryRouter>
-        );
+        renderProtectedRoute();
 
         expect(
           screen.getByText(
-            "Protected Page"
+            "Protected Content"
           )
         ).toBeInTheDocument();
       }
     );
 
-
-    test(
-      "blocks user without required role",
+    it(
+      "redirects authenticated users with the wrong role",
       () => {
 
-        mockUseAuth.mockReturnValue({
-          token:
-            "valid-token",
-
-          loading: false,
-
-          hasRole:
-            () => false,
+        useAuth.mockReturnValue({
+          user: {
+            roles: [
+              "FINANCE_APPROVER"
+            ]
+          },
+          loading:
+            false,
+          isAuthenticated:
+            true
         });
 
-        render(
-          <MemoryRouter>
+        renderProtectedRoute();
 
-            <ProtectedRoute
-              requiredRole=
-                "PAYMENT_REQUESTER"
-            >
-              <div>
-                Protected Page
-              </div>
-            </ProtectedRoute>
+        expect(
+          screen.getByText(
+            "Home Page"
+          )
+        ).toBeInTheDocument();
+      }
+    );
 
-          </MemoryRouter>
+    it(
+      "allows authenticated users when no role restriction exists",
+      () => {
+
+        useAuth.mockReturnValue({
+          user: {
+            roles: [
+              "FINANCE_APPROVER"
+            ]
+          },
+          loading:
+            false,
+          isAuthenticated:
+            true
+        });
+
+        renderProtectedRoute(
+          []
         );
 
         expect(
           screen.getByText(
-            /access denied/i
+            "Protected Content"
           )
         ).toBeInTheDocument();
       }

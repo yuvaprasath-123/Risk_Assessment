@@ -21,6 +21,9 @@ test(
       }
     );
 
+
+    // LOGIN
+
     await page.goto(
       "/login"
     );
@@ -52,24 +55,58 @@ test(
       .click();
 
     await expect(
+      page
+    ).toHaveURL(
+      /\/$/,
+      {
+        timeout:
+          10000
+      }
+    );
+
+    await expect(
       page.getByRole(
         "heading",
         {
           name:
-            "Requester Dashboard"
+            /dashboard/i
         }
       )
     ).toBeVisible();
+
+
+    // OPEN SUPPLIERS
 
     await page
       .getByRole(
         "link",
         {
           name:
-            "Suppliers"
+            "Suppliers",
+          exact:
+            true
         }
       )
       .click();
+
+    await expect(
+      page
+    ).toHaveURL(
+      /\/suppliers/
+    );
+
+    await expect(
+      page.getByRole(
+        "heading",
+        {
+          name:
+            "Suppliers"
+        }
+      )
+    ).toBeVisible();
+
+
+    // XSS PAYLOAD
 
     const payload =
       `<script>alert("xss-${Date.now()}")</script>`;
@@ -92,43 +129,37 @@ test(
       )
       .click();
 
-    await page
-  .getByPlaceholder(
-    "Supplier name"
-  )
-  .fill(
-    payload
-  );
 
-await page
-  .getByRole(
-    "button",
-    {
-      name:
-        "Create Supplier"
-    }
-  )
-  .click();
+    // VERIFY PAYLOAD IS RENDERED AS TEXT
 
-const createdSupplier =
-  page.getByRole(
-    "cell",
-    {
-      name: payload,
-      exact: true
-    }
-  );
+    const createdSupplier =
+      page.getByRole(
+        "cell",
+        {
+          name:
+            payload,
+          exact:
+            true
+        }
+      );
 
-await expect(
-  createdSupplier
-).toHaveCount(1);
+    await expect(
+      createdSupplier
+    ).toHaveCount(
+      1
+    );
 
-await expect(
-  createdSupplier
-).toBeVisible();
+    await expect(
+      createdSupplier
+    ).toBeVisible();
 
-expect(
-  dialogOpened
-).toBe(false);
+
+    // VERIFY SCRIPT DID NOT EXECUTE
+
+    expect(
+      dialogOpened
+    ).toBe(
+      false
+    );
   }
 );

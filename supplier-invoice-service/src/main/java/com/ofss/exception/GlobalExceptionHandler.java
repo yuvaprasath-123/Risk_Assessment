@@ -4,10 +4,12 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import jakarta.persistence.OptimisticLockException;
 
 import java.util.List;
 
@@ -124,4 +126,51 @@ public class GlobalExceptionHandler {
                 )
                 .body(apiError);
     }
+    
+    @ExceptionHandler(
+            ConflictException.class
+    )
+    public ResponseEntity<ApiError>
+    handleConflictException(
+            ConflictException ex
+    ) {
+
+        ApiError apiError =
+                new ApiError(
+                        HttpStatus.CONFLICT,
+                        ex.getMessage()
+                );
+
+        return ResponseEntity
+                .status(
+                        HttpStatus.CONFLICT
+                )
+                .body(
+                        apiError
+                );
+    }
+    
+    @ExceptionHandler({
+        ObjectOptimisticLockingFailureException.class,
+        OptimisticLockException.class
+})
+public ResponseEntity<ApiError>
+handleOptimisticLockException(
+        Exception ex
+) {
+
+    ApiError apiError =
+            new ApiError(
+                    HttpStatus.CONFLICT,
+                    "This record was modified by another user. Refresh and try again."
+            );
+
+    return ResponseEntity
+            .status(
+                    HttpStatus.CONFLICT
+            )
+            .body(
+                    apiError
+            );
+}
 }

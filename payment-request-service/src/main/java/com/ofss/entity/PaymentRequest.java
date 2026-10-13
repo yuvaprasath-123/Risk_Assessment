@@ -7,13 +7,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "PAY_PAYMENT_REQUESTS",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "UK_PAY_INVOICE",
-                        columnNames = "INVOICE_ID"
-                )
-        }
+    name = "PAY_PAYMENT_REQUESTS",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "UK_PAY_PAYMENT_INVOICE",
+            columnNames = {
+                "INVOICE_ID"
+            }
+        )
+    }
 )
 public class PaymentRequest {
 
@@ -91,6 +93,13 @@ public class PaymentRequest {
             nullable = false
     )
     private LocalDateTime updatedAt;
+    
+    @Version
+    @Column(
+        name = "VERSION",
+        nullable = false
+    )
+    private Long version;
 
     public PaymentRequest() {
     }

@@ -2,68 +2,95 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState
 } from "react";
 
 import {
-  login as loginApi,
-  getCurrentUser
-} from "../api/authApi";
+  apiRequest
+} from "../api/apiClient";
 
 const AuthContext =
   createContext(null);
+
+const SECURITY_BASE_URL =
+  "/security-api/api/v1/auth";
+
+const TOKEN_KEY =
+  "accessToken";
 
 export function AuthProvider({
   children
 }) {
 
-  const [token, setToken] =
-    useState(
+  const [
+    token,
+    setToken
+  ] = useState(
+    () =>
       sessionStorage.getItem(
-        "accessToken"
+        TOKEN_KEY
       )
-    );
+  );
 
-  const [user, setUser] =
-    useState(null);
+  const [
+    user,
+    setUser
+  ] = useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
+
+  async function loadCurrentUser(
+    currentToken
+  ) {
+
+    if (!currentToken) {
+
+      setUser(null);
+      setLoading(false);
+
+      return;
+    }
+
+    try {
+
+      const currentUser =
+        await apiRequest(
+          `${SECURITY_BASE_URL}/me`,
+          {
+            token:
+              currentToken
+          }
+        );
+
+      setUser(
+        currentUser
+      );
+
+    } catch (error) {
+
+      sessionStorage.removeItem(
+        TOKEN_KEY
+      );
+
+      setToken(null);
+      setUser(null);
+
+    } finally {
+
+      setLoading(false);
+    }
+  }
 
   useEffect(
     () => {
 
-      async function loadUser() {
-
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-
-        try {
-
-          const currentUser =
-            await getCurrentUser(
-              token
-            );
-
-          setUser(currentUser);
-
-        } catch {
-
-          sessionStorage.removeItem(
-            "accessToken"
-          );
-
-          setToken(null);
-          setUser(null);
-
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      loadUser();
+      loadCurrentUser(
+        token
+      );
 
     },
     [token]
@@ -75,66 +102,124 @@ export function AuthProvider({
   ) {
 
     const response =
-      await loginApi(
-        username,
-        password
+      await apiRequest(
+        `${SECURITY_BASE_URL}/login`,
+        {
+          method:
+            "POST",
+
+          body: {
+            username,
+            password
+          }
+        }
       );
 
+    const accessToken =
+      response.accessToken;
+
+    if (!accessToken) {
+
+      throw new Error(
+        "Authentication token was not returned by the server."
+      );
+    }
+
     sessionStorage.setItem(
-      "accessToken",
-      response.accessToken
+      TOKEN_KEY,
+      accessToken
     );
 
     setToken(
-      response.accessToken
+      accessToken
     );
 
-    setUser({
-      userId:
-        response.userId,
+    try {
 
-      username:
-        response.username,
+      const currentUser =
+        await apiRequest(
+          `${SECURITY_BASE_URL}/me`,
+          {
+            token:
+              accessToken
+          }
+        );
 
-      fullName:
-        response.fullName,
+      setUser(
+        currentUser
+      );
 
-      roles:
-        response.roles,
-    });
+      return currentUser;
 
-    return response;
+    } catch (error) {
+
+      sessionStorage.removeItem(
+        TOKEN_KEY
+      );
+
+      setToken(null);
+      setUser(null);
+
+      throw error;
+    }
   }
 
   function logout() {
 
     sessionStorage.removeItem(
-      "accessToken"
+      TOKEN_KEY
     );
 
     setToken(null);
     setUser(null);
   }
 
-  function hasRole(role) {
+  function hasRole(
+    role
+  ) {
 
-    return (
-      user?.roles?.includes(
-        role
-      ) ?? false
+    if (
+      !user ||
+      !Array.isArray(
+        user.roles
+      )
+    ) {
+
+      return false;
+    }
+
+    return user.roles.includes(
+      role
     );
   }
 
-  return (
-    <AuthContext.Provider
-      value={{
+  const value =
+    useMemo(
+      () => ({
         token,
         user,
         loading,
         login,
         logout,
         hasRole,
-      }}
+        isAuthenticated:
+          Boolean(
+            token &&
+            user
+          )
+      }),
+      [
+        token,
+        user,
+        loading
+      ]
+    );
+
+  return (
+    <AuthContext.Provider
+      value={
+        value
+      }
     >
       {children}
     </AuthContext.Provider>
@@ -142,7 +227,18 @@ export function AuthProvider({
 }
 
 export function useAuth() {
-  return useContext(
-    AuthContext
-  );
+
+  const context =
+    useContext(
+      AuthContext
+    );
+
+  if (!context) {
+
+    throw new Error(
+      "useAuth must be used inside AuthProvider"
+    );
+  }
+
+  return context;
 }

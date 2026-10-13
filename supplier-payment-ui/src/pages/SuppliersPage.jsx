@@ -5,13 +5,22 @@ import {
 
 import {
   createSupplier,
-  getSuppliers
+  getSuppliers,
+  updateSupplierStatus
 } from "../api/supplierApi";
+
+import {
+  useAuth
+} from "../auth/AuthContext";
 
 import ErrorMessage
   from "../components/ErrorMessage";
 
 export default function SuppliersPage() {
+
+  const {
+    token
+  } = useAuth();
 
   const [
     suppliers,
@@ -28,14 +37,30 @@ export default function SuppliersPage() {
     setError
   ] = useState("");
 
+  const [
+    submitting,
+    setSubmitting
+  ] = useState(false);
+
+  const [
+    updatingSupplierId,
+    setUpdatingSupplierId
+  ] = useState(null);
+
   async function loadSuppliers() {
 
     try {
 
-      const data =
-        await getSuppliers();
+      setError("");
 
-      setSuppliers(data);
+      const data =
+        await getSuppliers(
+          token
+        );
+
+      setSuppliers(
+        data
+      );
 
     } catch (error) {
 
@@ -47,9 +72,14 @@ export default function SuppliersPage() {
 
   useEffect(
     () => {
-      loadSuppliers();
+
+      if (token) {
+
+        loadSuppliers();
+      }
+
     },
-    []
+    [token]
   );
 
   async function handleCreate(
@@ -58,11 +88,20 @@ export default function SuppliersPage() {
 
     event.preventDefault();
 
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(
+      true
+    );
+
     setError("");
 
     try {
 
       await createSupplier(
+        token,
         supplierName,
         "ACTIVE"
       );
@@ -73,8 +112,83 @@ export default function SuppliersPage() {
 
     } catch (error) {
 
-      setError(
-        error.message
+      if (
+        error.status === 409
+      ) {
+
+        setError(
+          "Another user has already created or modified this supplier."
+        );
+
+      } else {
+
+        setError(
+          error.message
+        );
+      }
+
+    } finally {
+
+      setSubmitting(
+        false
+      );
+    }
+  }
+
+  async function handleStatusChange(
+    supplier
+  ) {
+
+    if (
+      updatingSupplierId !== null
+    ) {
+      return;
+    }
+
+    const newStatus =
+      supplier.status === "ACTIVE"
+        ? "INACTIVE"
+        : "ACTIVE";
+
+    setUpdatingSupplierId(
+      supplier.supplierId
+    );
+
+    setError("");
+
+    try {
+
+      await updateSupplierStatus(
+        token,
+        supplier.supplierId,
+        newStatus
+      );
+
+      await loadSuppliers();
+
+    } catch (error) {
+
+      if (
+        error.status === 409
+      ) {
+
+        setError(
+          "This supplier was modified by another user. Refresh and try again."
+        );
+
+        await loadSuppliers();
+
+      } else {
+
+        setError(
+          error.message
+        );
+      }
+
+    } finally {
+
+      setUpdatingSupplierId(
+        null
       );
     }
   }
@@ -87,7 +201,9 @@ export default function SuppliersPage() {
       </h1>
 
       <ErrorMessage
-        message={error}
+        message={
+          error
+        }
       />
 
       <form
@@ -98,19 +214,34 @@ export default function SuppliersPage() {
       >
 
         <input
+          type="text"
           placeholder="Supplier name"
-          value={supplierName}
+          value={
+            supplierName
+          }
           onChange={
-            (event) =>
+            event =>
               setSupplierName(
                 event.target.value
               )
           }
           required
+          disabled={
+            submitting
+          }
         />
 
-        <button type="submit">
-          Create Supplier
+        <button
+          type="submit"
+          disabled={
+            submitting
+          }
+        >
+          {
+            submitting
+              ? "Creating..."
+              : "Create Supplier"
+          }
         </button>
 
       </form>
@@ -120,44 +251,92 @@ export default function SuppliersPage() {
         <table>
 
           <thead>
+
             <tr>
               <th>ID</th>
               <th>Name</th>
               <th>Status</th>
+              <th>Action</th>
             </tr>
+
           </thead>
 
           <tbody>
 
-            {suppliers.map(
-              (supplier) => (
+            {
+              suppliers.length === 0
+                ? (
+                  <tr>
 
-                <tr
-                  key={
-                    supplier.supplierId
-                  }
-                >
-                  <td>
-                    {
-                      supplier.supplierId
-                    }
-                  </td>
+                    <td
+                      colSpan="4"
+                    >
+                      No suppliers available.
+                    </td>
 
-                  <td>
-                    {
-                      supplier.supplierName
-                    }
-                  </td>
+                  </tr>
+                )
+                : (
+                  suppliers.map(
+                    supplier => (
 
-                  <td>
-                    {
-                      supplier.status
-                    }
-                  </td>
-                </tr>
+                      <tr
+                        key={
+                          supplier.supplierId
+                        }
+                      >
 
-              )
-            )}
+                        <td>
+                          {
+                            supplier.supplierId
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            supplier.supplierName
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            supplier.status
+                          }
+                        </td>
+
+                        <td>
+
+                          <button
+                            type="button"
+                            onClick={
+                              () =>
+                                handleStatusChange(
+                                  supplier
+                                )
+                            }
+                            disabled={
+                              updatingSupplierId ===
+                              supplier.supplierId
+                            }
+                          >
+                            {
+                              updatingSupplierId ===
+                              supplier.supplierId
+                                ? "Updating..."
+                                : supplier.status ===
+                                  "ACTIVE"
+                                  ? "Deactivate"
+                                  : "Activate"
+                            }
+                          </button>
+
+                        </td>
+
+                      </tr>
+                    )
+                  )
+                )
+            }
 
           </tbody>
 

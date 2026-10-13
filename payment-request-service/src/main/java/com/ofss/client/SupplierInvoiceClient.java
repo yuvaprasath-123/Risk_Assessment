@@ -2,6 +2,7 @@ package com.ofss.client;
 
 import com.ofss.exception.BadRequestException;
 import com.ofss.exception.ResourceNotFoundException;
+import com.ofss.security.CurrentRequestTokenProvider;
 
 import org.springframework.beans.factory.annotation.Value;
 
@@ -16,6 +17,9 @@ public class SupplierInvoiceClient {
     private final RestClient restClient;
 
     private final String baseUrl;
+    
+    private final CurrentRequestTokenProvider
+    tokenProvider;
 
     public SupplierInvoiceClient(
             RestClient restClient,
@@ -23,7 +27,9 @@ public class SupplierInvoiceClient {
             @Value(
                     "${services.supplier-invoice.base-url}"
             )
-            String baseUrl
+            String baseUrl,
+
+            CurrentRequestTokenProvider tokenProvider
     ) {
 
         this.restClient =
@@ -31,6 +37,9 @@ public class SupplierInvoiceClient {
 
         this.baseUrl =
                 baseUrl;
+
+        this.tokenProvider =
+                tokenProvider;
     }
 
     public InvoiceClientResponse getInvoice(
@@ -39,17 +48,22 @@ public class SupplierInvoiceClient {
 
         try {
 
-            return restClient
-                    .get()
-                    .uri(
-                            baseUrl
-                                    + "/api/v1/invoices/"
-                                    + invoiceId
-                    )
-                    .retrieve()
-                    .body(
-                            InvoiceClientResponse.class
-                    );
+        	return restClient
+        	        .get()
+        	        .uri(
+        	                baseUrl
+        	                        + "/api/v1/invoices/"
+        	                        + invoiceId
+        	        )
+        	        .header(
+        	                "Authorization",
+        	                tokenProvider
+        	                        .getAuthorizationHeader()
+        	        )
+        	        .retrieve()
+        	        .body(
+        	                InvoiceClientResponse.class
+        	        );
 
         } catch (
                 RestClientResponseException ex
@@ -80,17 +94,22 @@ public class SupplierInvoiceClient {
 
         try {
 
-            return restClient
-                    .get()
-                    .uri(
-                            baseUrl
-                                    + "/api/v1/suppliers/"
-                                    + supplierId
-                    )
-                    .retrieve()
-                    .body(
-                            SupplierClientResponse.class
-                    );
+        	return restClient
+        	        .get()
+        	        .uri(
+        	                baseUrl
+        	                        + "/api/v1/suppliers/"
+        	                        + supplierId
+        	        )
+        	        .header(
+        	                "Authorization",
+        	                tokenProvider
+        	                        .getAuthorizationHeader()
+        	        )
+        	        .retrieve()
+        	        .body(
+        	                SupplierClientResponse.class
+        	        );
 
         } catch (
                 RestClientResponseException ex

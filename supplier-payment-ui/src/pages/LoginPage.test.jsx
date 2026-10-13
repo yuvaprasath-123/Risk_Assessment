@@ -1,6 +1,7 @@
 import {
   render,
-  screen
+  screen,
+  waitFor
 } from "@testing-library/react";
 
 import userEvent
@@ -13,26 +14,90 @@ import {
 } from "react-router";
 
 import {
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi
 } from "vitest";
 
 import LoginPage
   from "./LoginPage";
 
-const {
-  mockLogin
-} = vi.hoisted(
-  () => ({
-    mockLogin: vi.fn(),
-  })
-);
+import {
+  useAuth
+} from "../auth/AuthContext";
+
+import {
+  useTheme
+} from "../theme/ThemeContext";
 
 vi.mock(
   "../auth/AuthContext",
   () => ({
-    useAuth: () => ({
-      login: mockLogin,
-    }),
+    useAuth:
+      vi.fn()
+  })
+);
+
+vi.mock(
+  "../theme/ThemeContext",
+  () => ({
+    useTheme:
+      vi.fn()
+  })
+);
+
+vi.mock(
+  "react-i18next",
+  () => ({
+    useTranslation:
+      () => ({
+        t: (
+          key
+        ) => {
+
+          const translations = {
+            appName:
+              "Supplier Payment Control",
+            "login.subtitle":
+              "Sign in to continue",
+            "login.username":
+              "Username",
+            "login.password":
+              "Password",
+            "login.button":
+              "Login",
+            "login.loggingIn":
+              "Logging in...",
+            "login.error":
+              "Login failed"
+          };
+
+          return (
+            translations[
+              key
+            ] ||
+            key
+          );
+        }
+      })
+  })
+);
+
+vi.mock(
+  "../components/LanguageSelector",
+  () => ({
+    default:
+      () => (
+        <select
+          aria-label="Language"
+        >
+          <option>
+            English
+          </option>
+        </select>
+      )
   })
 );
 
@@ -40,130 +105,183 @@ describe(
   "LoginPage",
   () => {
 
-    beforeEach(() => {
-      mockLogin.mockReset();
-    });
+    const loginMock =
+      vi.fn();
 
-    test(
-      "logs requester in and redirects to dashboard",
+    const toggleThemeMock =
+      vi.fn();
+
+    beforeEach(
+      () => {
+
+        vi.clearAllMocks();
+
+        useAuth.mockReturnValue({
+          login:
+            loginMock
+        });
+
+        useTheme.mockReturnValue({
+          theme:
+            "dark",
+          toggleTheme:
+            toggleThemeMock
+        });
+      }
+    );
+
+    function renderPage() {
+
+      return render(
+        <MemoryRouter
+          initialEntries={[
+            "/login"
+          ]}
+        >
+
+          <Routes>
+
+            <Route
+              path="/login"
+              element={
+                <LoginPage />
+              }
+            />
+
+            <Route
+              path="/"
+              element={
+                <div>
+                  Dashboard
+                </div>
+              }
+            />
+
+          </Routes>
+
+        </MemoryRouter>
+      );
+    }
+
+    it(
+      "renders login form",
+      () => {
+
+        renderPage();
+
+        expect(
+          screen.getByText(
+            "Supplier Payment Control"
+          )
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByLabelText(
+            "Username"
+          )
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByLabelText(
+            "Password"
+          )
+        ).toBeInTheDocument();
+
+        expect(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Login"
+            }
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
+    it(
+      "logs in and navigates to dashboard",
       async () => {
 
-        mockLogin.mockResolvedValue({
-          userId: 1,
+        loginMock.mockResolvedValue({
           username:
-            "requester1",
-          fullName:
-            "Requester One",
-          roles: [
-            "PAYMENT_REQUESTER"
-          ],
-          accessToken:
-            "test-token",
+            "requester1"
         });
 
         const user =
           userEvent.setup();
 
-        render(
-          <MemoryRouter
-            initialEntries={[
-              "/login"
-            ]}
-          >
-
-            <Routes>
-
-              <Route
-                path="/login"
-                element={
-                  <LoginPage />
-                }
-              />
-
-              <Route
-                path="/"
-                element={
-                  <div>
-                    Dashboard reached
-                  </div>
-                }
-              />
-
-            </Routes>
-
-          </MemoryRouter>
-        );
+        renderPage();
 
         await user.type(
           screen.getByLabelText(
-            /username/i
+            "Username"
           ),
           "requester1"
         );
 
         await user.type(
           screen.getByLabelText(
-            /password/i
+            "Password"
           ),
-          "requester@123"
+          "password"
         );
 
         await user.click(
           screen.getByRole(
             "button",
             {
-              name: /login/i
+              name:
+                "Login"
             }
           )
         );
 
-        expect(
-          mockLogin
-        ).toHaveBeenCalledWith(
-          "requester1",
-          "requester@123"
+        await waitFor(
+          () => {
+
+            expect(
+              loginMock
+            ).toHaveBeenCalledWith(
+              "requester1",
+              "password"
+            );
+          }
         );
 
         expect(
           await screen.findByText(
-            "Dashboard reached"
+            "Dashboard"
           )
         ).toBeInTheDocument();
       }
     );
 
-
-    test(
+    it(
       "shows login error",
       async () => {
 
-        mockLogin.mockRejectedValue(
+        loginMock.mockRejectedValue(
           new Error(
-            "Invalid username or password"
+            "Invalid credentials"
           )
         );
 
         const user =
           userEvent.setup();
 
-        render(
-          <MemoryRouter>
-
-            <LoginPage />
-
-          </MemoryRouter>
-        );
+        renderPage();
 
         await user.type(
           screen.getByLabelText(
-            /username/i
+            "Username"
           ),
           "wrong"
         );
 
         await user.type(
           screen.getByLabelText(
-            /password/i
+            "Password"
           ),
           "wrong"
         );
@@ -172,16 +290,44 @@ describe(
           screen.getByRole(
             "button",
             {
-              name: /login/i
+              name:
+                "Login"
             }
           )
         );
 
         expect(
           await screen.findByText(
-            "Invalid username or password"
+            "Invalid credentials"
           )
         ).toBeInTheDocument();
+      }
+    );
+
+    it(
+      "allows user to switch theme",
+      async () => {
+
+        const user =
+          userEvent.setup();
+
+        renderPage();
+
+        await user.click(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Switch to light mode"
+            }
+          )
+        );
+
+        expect(
+          toggleThemeMock
+        ).toHaveBeenCalledTimes(
+          1
+        );
       }
     );
   }

@@ -7,144 +7,235 @@ import {
 } from "react-router";
 
 import {
+  useTranslation
+} from "react-i18next";
+
+import {
   useAuth
 } from "../auth/AuthContext";
 
-import ErrorMessage
-  from "../components/ErrorMessage";
+import {
+  useTheme
+} from "../theme/ThemeContext";
+
+import LanguageSelector
+  from "../components/LanguageSelector";
 
 export default function LoginPage() {
 
-  const [username, setUsername] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [error, setError] =
-    useState("");
-
-  const [submitting, setSubmitting] =
-    useState(false);
+  const {
+    t
+  } = useTranslation();
 
   const {
     login
   } = useAuth();
 
+  const {
+    theme,
+    toggleTheme
+  } = useTheme();
+
   const navigate =
     useNavigate();
 
-  async function handleSubmit(event) {
+  const [
+    username,
+    setUsername
+  ] = useState("");
+
+  const [
+    password,
+    setPassword
+  ] = useState("");
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+  const [
+    loading,
+    setLoading
+  ] = useState(false);
+
+  async function handleSubmit(
+    event
+  ) {
 
     event.preventDefault();
 
     setError("");
-    setSubmitting(true);
+    setLoading(true);
 
     try {
 
-      const response =
-        await login(
-          username,
-          password
-        );
+      await login(
+        username,
+        password
+      );
 
-      if (
-        response.roles.includes(
-          "PAYMENT_REQUESTER"
-        )
-      ) {
+      navigate("/");
 
-        navigate(
-          "/"
-        );
-
-      } else {
-
-        setError(
-          "Frontend currently supports the requester workflow only."
-        );
-      }
-
-    } catch (error) {
+    } catch (err) {
 
       setError(
-        error.message
+        err.message ||
+        t(
+          "login.error"
+        )
       );
 
     } finally {
 
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
   return (
     <div className="login-page">
 
-      <form
-        className="card login-card"
-        onSubmit={
-          handleSubmit
-        }
-      >
+      <div className="login-card">
+
+        <div className="login-toolbar">
+
+          <LanguageSelector />
+
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={
+              toggleTheme
+            }
+            aria-label={
+              theme === "dark"
+                ? "Switch to light mode"
+                : "Switch to dark mode"
+            }
+            title={
+              theme === "dark"
+                ? "Switch to light mode"
+                : "Switch to dark mode"
+            }
+          >
+            {
+              theme === "dark"
+                ? "☀ Light"
+                : "🌙 Dark"
+            }
+          </button>
+
+        </div>
 
         <h1>
-          Supplier Payment Control
+          {
+            t(
+              "appName"
+            )
+          }
         </h1>
 
         <p>
-          Sign in to continue
+          {
+            t(
+              "login.subtitle"
+            )
+          }
         </p>
 
-        <ErrorMessage
-          message={error}
-        />
+        {
+          error &&
+          (
+            <div className="error-message">
 
-        <label htmlFor="username">
-  Username
-</label>
+              {error}
 
-<input
-  id="username"
-  value={username}
-  onChange={
-    (event) =>
-      setUsername(
-        event.target.value
-      )
-  }
-  required
-/>
+            </div>
+          )
+        }
 
-<label htmlFor="password">
-  Password
-</label>
-
-<input
-  id="password"
-  type="password"
-  value={password}
-  onChange={
-    (event) =>
-      setPassword(
-        event.target.value
-      )
-  }
-  required
-/>
-
-        <button
-          type="submit"
-          disabled={submitting}
-        >
-          {
-            submitting
-              ? "Signing in..."
-              : "Login"
+        <form
+          onSubmit={
+            handleSubmit
           }
-        </button>
+        >
 
-      </form>
+          <label
+            htmlFor="username"
+          >
+            {
+              t(
+                "login.username"
+              )
+            }
+          </label>
+
+          <input
+            id="username"
+            type="text"
+            value={
+              username
+            }
+            onChange={
+              event =>
+                setUsername(
+                  event.target.value
+                )
+            }
+            required
+            disabled={
+              loading
+            }
+          />
+
+          <label
+            htmlFor="password"
+          >
+            {
+              t(
+                "login.password"
+              )
+            }
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            value={
+              password
+            }
+            onChange={
+              event =>
+                setPassword(
+                  event.target.value
+                )
+            }
+            required
+            disabled={
+              loading
+            }
+          />
+
+          <button
+            type="submit"
+            disabled={
+              loading
+            }
+          >
+            {
+              loading
+                ? t(
+                    "login.loggingIn"
+                  )
+                : t(
+                    "login.button"
+                  )
+            }
+          </button>
+
+        </form>
+
+      </div>
 
     </div>
   );

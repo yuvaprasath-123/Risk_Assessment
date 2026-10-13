@@ -18,7 +18,7 @@ export default defineConfig({
   use: {
 
     baseURL:
-      "http://localhost:5173",
+      "http://localhost:4173",
 
     headless:
       true,
@@ -33,10 +33,10 @@ export default defineConfig({
   webServer: {
 
     command:
-      "npm run dev -- --host localhost",
+      "npm run dev -- --host localhost --port 4173",
 
     url:
-      "http://localhost:5173",
+      "http://localhost:4173",
 
     reuseExistingServer:
       true,

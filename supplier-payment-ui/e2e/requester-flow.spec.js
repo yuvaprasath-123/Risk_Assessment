@@ -20,7 +20,9 @@ test(
       "54321.67";
 
 
+    // =========================================================
     // LOGIN
+    // =========================================================
 
     await page.goto(
       "/login"
@@ -61,7 +63,8 @@ test(
       .getByRole(
         "button",
         {
-          name: "Login"
+          name:
+            "Login"
         }
       )
       .click();
@@ -69,22 +72,14 @@ test(
     const loginResponse =
       await loginResponsePromise;
 
-    console.log(
-      "Login status:",
-      loginResponse.status()
-    );
-
     expect(
       loginResponse.status()
-    ).toBe(200);
+    ).toBe(
+      200
+    );
 
     const loginBody =
       await loginResponse.json();
-
-    console.log(
-      "Login response:",
-      loginBody
-    );
 
     expect(
       loginBody.accessToken
@@ -99,9 +94,10 @@ test(
     await expect(
       page
     ).toHaveURL(
-      "http://localhost:5173/",
+      /\/$/,
       {
-        timeout: 10000
+        timeout:
+          10000
       }
     );
 
@@ -110,22 +106,43 @@ test(
         "heading",
         {
           name:
-            "Requester Dashboard"
+            /dashboard/i
         }
       )
     ).toBeVisible();
 
 
+    // =========================================================
     // CREATE SUPPLIER
+    // =========================================================
 
     await page
       .getByRole(
         "link",
         {
-          name: "Suppliers"
+          name:
+            "Suppliers",
+          exact:
+            true
         }
       )
       .click();
+
+    await expect(
+      page
+    ).toHaveURL(
+      /\/suppliers/
+    );
+
+    await expect(
+      page.getByRole(
+        "heading",
+        {
+          name:
+            "Suppliers"
+        }
+      )
+    ).toBeVisible();
 
     await page
       .getByPlaceholder(
@@ -147,21 +164,83 @@ test(
 
     await expect(
       page.getByText(
-        supplierName
+        supplierName,
+        {
+          exact:
+            true
+        }
       )
-    ).toBeVisible();
+    ).toBeVisible({
+      timeout:
+        10000
+    });
 
 
+    // =========================================================
     // CREATE INVOICE
+    // =========================================================
 
     await page
       .getByRole(
         "link",
         {
-          name: "Invoices"
+          name:
+            "Invoices",
+          exact:
+            true
         }
       )
       .click();
+
+    await expect(
+      page
+    ).toHaveURL(
+      /\/invoices/
+    );
+
+    await expect(
+      page.getByRole(
+        "heading",
+        {
+          name:
+            "Invoices"
+        }
+      )
+    ).toBeVisible();
+
+    /*
+     * IMPORTANT:
+     *
+     * There is now also a LanguageSelector <select>
+     * in the navbar.
+     *
+     * Therefore:
+     *
+     *   page.locator("select")
+     *
+     * is no longer safe.
+     *
+     * Restrict the selector to the page form.
+     */
+    const invoiceForm =
+      page.locator(
+        "form.form-row"
+      );
+
+    const supplierSelect =
+      invoiceForm.locator(
+        "select"
+      );
+
+    await expect(
+      supplierSelect
+    ).toBeVisible();
+
+    await supplierSelect
+      .selectOption({
+        label:
+          supplierName
+      });
 
     await page
       .getByPlaceholder(
@@ -172,15 +251,6 @@ test(
       );
 
     await page
-      .locator(
-        "select"
-      )
-      .selectOption({
-        label:
-          supplierName
-      });
-
-    await page
       .getByPlaceholder(
         "Invoice amount"
       )
@@ -189,9 +259,15 @@ test(
       );
 
     const dateInputs =
-      page.locator(
+      invoiceForm.locator(
         'input[type="date"]'
       );
+
+    await expect(
+      dateInputs
+    ).toHaveCount(
+      2
+    );
 
     await dateInputs
       .nth(0)
@@ -217,30 +293,89 @@ test(
 
     await expect(
       page.getByText(
-        invoiceNumber
+        invoiceNumber,
+        {
+          exact:
+            true
+        }
       )
-    ).toBeVisible();
+    ).toBeVisible({
+      timeout:
+        10000
+    });
 
 
+    // =========================================================
     // CREATE PAYMENT
+    // =========================================================
 
     await page
       .getByRole(
         "link",
         {
-          name: "Payments"
+          name:
+            "Payments",
+          exact:
+            true
         }
       )
       .click();
 
-    await page
-      .locator(
-        "select"
+    await expect(
+      page
+    ).toHaveURL(
+      /\/payments/
+    );
+
+    await expect(
+      page.getByRole(
+        "heading",
+        {
+          name:
+            "Payment Requests"
+        }
       )
+    ).toBeVisible();
+
+    /*
+     * Again, restrict the select to the payment form.
+     * This prevents Playwright from choosing the
+     * navbar language dropdown.
+     */
+    const paymentForm =
+      page.locator(
+        "form.form-row"
+      );
+
+    const invoiceSelect =
+      paymentForm.locator(
+        "select"
+      );
+
+    await expect(
+      invoiceSelect
+    ).toBeVisible();
+
+    await invoiceSelect
       .selectOption({
         label:
           `${invoiceNumber} - ${supplierName}`
       });
+
+    /*
+     * Payment amount should automatically come
+     * from the selected invoice.
+     */
+    const paymentAmountInput =
+      paymentForm.locator(
+        'input[type="number"]'
+      );
+
+    await expect(
+      paymentAmountInput
+    ).toHaveValue(
+      amount
+    );
 
     await page
       .getByRole(
@@ -252,39 +387,71 @@ test(
       )
       .click();
 
+    /*
+     * Find the exact payment row created by this test.
+     */
     const paymentRow =
-  page
-    .locator(
-      "tbody tr"
-    )
-    .filter({
-      hasText:
-        amount
-    })
-    .filter({
-      hasText:
-        "DRAFT"
-    });
+      page
+        .locator(
+          "tbody tr"
+        )
+        .filter({
+          hasText:
+            amount
+        })
+        .filter({
+          hasText:
+            "DRAFT"
+        });
 
-await expect(
-  paymentRow
-).toHaveCount(1);
+    await expect(
+      paymentRow
+    ).toHaveCount(
+      1
+    );
 
-await expect(
-  paymentRow
-).toContainText(
-  "DRAFT"
-);
+    await expect(
+      paymentRow
+    ).toContainText(
+      amount
+    );
 
-await paymentRow
-  .getByRole(
-    "link",
-    {
-      name:
-        "View"
-    }
-  )
-  .click();
+    await expect(
+      paymentRow
+    ).toContainText(
+      "DRAFT"
+    );
+
+    await paymentRow
+      .getByRole(
+        "link",
+        {
+          name:
+            "View"
+        }
+      )
+      .click();
+
+
+    // =========================================================
+    // PAYMENT DETAILS
+    // =========================================================
+
+    await expect(
+      page
+    ).toHaveURL(
+      /\/payments\/\d+/
+    );
+
+    await expect(
+      page.getByRole(
+        "heading",
+        {
+          name:
+            "Payment Details"
+        }
+      )
+    ).toBeVisible();
 
     await expect(
       page
@@ -295,14 +462,16 @@ await paymentRow
     ).toBeVisible();
 
 
+    // =========================================================
     // SUBMIT PAYMENT
+    // =========================================================
 
     await page
       .getByRole(
         "button",
         {
           name:
-            "Submit for Validation"
+            "Submit Payment"
         }
       )
       .click();
@@ -313,16 +482,22 @@ await paymentRow
           "PENDING_VALIDATION"
         )
         .first()
-    ).toBeVisible();
+    ).toBeVisible({
+      timeout:
+        10000
+    });
 
 
+    // =========================================================
     // LOGOUT
+    // =========================================================
 
     await page
       .getByRole(
         "button",
         {
-          name: "Logout"
+          name:
+            "Logout"
         }
       )
       .click();
@@ -332,5 +507,15 @@ await paymentRow
     ).toHaveURL(
       /\/login/
     );
+
+    await expect(
+      page.getByRole(
+        "button",
+        {
+          name:
+            "Login"
+        }
+      )
+    ).toBeVisible();
   }
 );
