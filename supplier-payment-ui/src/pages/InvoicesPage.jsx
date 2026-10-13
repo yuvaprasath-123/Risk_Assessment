@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
 
@@ -75,6 +76,11 @@ export default function InvoicesPage() {
     setSubmitting
   ] = useState(false);
 
+  const [
+    sortDirection,
+    setSortDirection
+  ] = useState("asc");
+
   async function loadData() {
 
     try {
@@ -126,6 +132,59 @@ export default function InvoicesPage() {
     },
     [token]
   );
+
+  const sortedInvoices =
+    useMemo(
+      () => {
+
+        return [
+          ...invoices
+        ].sort(
+          (invoiceA, invoiceB) => {
+
+            const invoiceIdA =
+              Number(
+                invoiceA.invoiceId
+              );
+
+            const invoiceIdB =
+              Number(
+                invoiceB.invoiceId
+              );
+
+            if (
+              sortDirection === "asc"
+            ) {
+
+              return (
+                invoiceIdA -
+                invoiceIdB
+              );
+            }
+
+            return (
+              invoiceIdB -
+              invoiceIdA
+            );
+          }
+        );
+
+      },
+      [
+        invoices,
+        sortDirection
+      ]
+    );
+
+  function handleSortById() {
+
+    setSortDirection(
+      currentDirection =>
+        currentDirection === "asc"
+          ? "desc"
+          : "asc"
+    );
+  }
 
   async function handleCreate(
     event
@@ -406,12 +465,50 @@ export default function InvoicesPage() {
           <thead>
 
             <tr>
-              <th>ID</th>
-              <th>Invoice Number</th>
-              <th>Supplier</th>
-              <th>Amount</th>
-              <th>Invoice Date</th>
-              <th>Due Date</th>
+
+              <th>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSortById
+                  }
+                  aria-label={
+                    sortDirection === "asc"
+                      ? "Sort invoice ID descending"
+                      : "Sort invoice ID ascending"
+                  }
+                  className="table-sort-button"
+                >
+                  ID {
+                    sortDirection === "asc"
+                      ? "↑"
+                      : "↓"
+                  }
+                </button>
+
+              </th>
+
+              <th>
+                Invoice Number
+              </th>
+
+              <th>
+                Supplier
+              </th>
+
+              <th>
+                Amount
+              </th>
+
+              <th>
+                Invoice Date
+              </th>
+
+              <th>
+                Due Date
+              </th>
+
             </tr>
 
           </thead>
@@ -419,7 +516,7 @@ export default function InvoicesPage() {
           <tbody>
 
             {
-              invoices.length === 0
+              sortedInvoices.length === 0
                 ? (
                   <tr>
 
@@ -432,7 +529,7 @@ export default function InvoicesPage() {
                   </tr>
                 )
                 : (
-                  invoices.map(
+                  sortedInvoices.map(
                     invoice => {
 
                       const supplier =
