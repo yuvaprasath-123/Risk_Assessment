@@ -111,9 +111,7 @@ export default function InvoicesPage() {
 
     } finally {
 
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   }
 
@@ -167,9 +165,7 @@ export default function InvoicesPage() {
       return;
     }
 
-    setSubmitting(
-      true
-    );
+    setSubmitting(true);
 
     try {
 
@@ -212,24 +208,22 @@ export default function InvoicesPage() {
         error.status === 409
       ) {
 
+        await loadData();
+
         setError(
           "An invoice with this invoice number already exists for the selected supplier."
         );
 
-        await loadData();
-
-      } else {
-
-        setError(
-          error.message
-        );
+        return;
       }
+
+      setError(
+        error.message
+      );
 
     } finally {
 
-      setSubmitting(
-        false
-      );
+      setSubmitting(false);
     }
   }
 

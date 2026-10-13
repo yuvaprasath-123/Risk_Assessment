@@ -22,9 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-coverage/
-test-results/
-playwright-report/
-coverage/
-test-results/
-playwright-report/

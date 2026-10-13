@@ -108,9 +108,7 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   }
 
@@ -142,10 +140,7 @@ export default function PaymentDetailsPage() {
       return;
     }
 
-    setUpdating(
-      true
-    );
-
+    setUpdating(true);
     setError("");
 
     try {
@@ -168,8 +163,6 @@ export default function PaymentDetailsPage() {
           "This payment request was modified by another user. Refresh and try again."
         );
 
-        await loadPayment();
-
         return;
       }
 
@@ -179,9 +172,7 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setUpdating(
-        false
-      );
+      setUpdating(false);
     }
   }
 
@@ -191,10 +182,7 @@ export default function PaymentDetailsPage() {
       return;
     }
 
-    setSubmitting(
-      true
-    );
-
+    setSubmitting(true);
     setError("");
 
     try {
@@ -216,8 +204,6 @@ export default function PaymentDetailsPage() {
           "This payment request was already modified or submitted by another user."
         );
 
-        await loadPayment();
-
         return;
       }
 
@@ -227,9 +213,7 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setSubmitting(
-        false
-      );
+      setSubmitting(false);
     }
   }
 
@@ -346,6 +330,7 @@ export default function PaymentDetailsPage() {
           payment.riskScore !== undefined &&
           (
             <p>
+
               <strong>
                 Risk Score:
               </strong>
@@ -355,6 +340,7 @@ export default function PaymentDetailsPage() {
               {
                 payment.riskScore
               }
+
             </p>
           )
         }
@@ -363,6 +349,7 @@ export default function PaymentDetailsPage() {
           payment.riskBand &&
           (
             <p>
+
               <strong>
                 Risk Band:
               </strong>
@@ -372,6 +359,7 @@ export default function PaymentDetailsPage() {
               {
                 payment.riskBand
               }
+
             </p>
           )
         }
@@ -380,6 +368,7 @@ export default function PaymentDetailsPage() {
           payment.requiredApprovalLevel &&
           (
             <p>
+
               <strong>
                 Required Approval Level:
               </strong>
@@ -389,6 +378,7 @@ export default function PaymentDetailsPage() {
               {
                 payment.requiredApprovalLevel
               }
+
             </p>
           )
         }
@@ -480,6 +470,7 @@ export default function PaymentDetailsPage() {
                 <thead>
 
                   <tr>
+
                     <th>
                       Previous Status
                     </th>
@@ -499,6 +490,7 @@ export default function PaymentDetailsPage() {
                     <th>
                       Reason
                     </th>
+
                   </tr>
 
                 </thead>
@@ -542,7 +534,8 @@ export default function PaymentDetailsPage() {
 
                           <td>
                             {
-                              history.reason
+                              history.reason ||
+                              "-"
                             }
                           </td>
 

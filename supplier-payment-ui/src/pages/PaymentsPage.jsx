@@ -190,8 +190,6 @@ export default function PaymentsPage() {
           "Another user has already created a payment request for this invoice."
         );
 
-        await loadData();
-
         return;
       }
 

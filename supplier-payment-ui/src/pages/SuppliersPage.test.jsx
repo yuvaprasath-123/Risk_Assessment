@@ -1,28 +1,38 @@
 import {
   render,
-  screen
+  screen,
+  waitFor
 } from "@testing-library/react";
 
 import userEvent
   from "@testing-library/user-event";
 
 import {
+  beforeEach,
+  describe,
+  expect,
+  it,
   vi
 } from "vitest";
 
 import SuppliersPage
   from "./SuppliersPage";
 
-const {
-  mockGetSuppliers,
-  mockCreateSupplier
-} = vi.hoisted(
-  () => ({
-    mockGetSuppliers:
-      vi.fn(),
+import {
+  useAuth
+} from "../auth/AuthContext";
 
-    mockCreateSupplier:
-      vi.fn(),
+import {
+  createSupplier,
+  getSuppliers,
+  updateSupplierStatus
+} from "../api/supplierApi";
+
+vi.mock(
+  "../auth/AuthContext",
+  () => ({
+    useAuth:
+      vi.fn()
   })
 );
 
@@ -30,10 +40,11 @@ vi.mock(
   "../api/supplierApi",
   () => ({
     getSuppliers:
-      mockGetSuppliers,
-
+      vi.fn(),
     createSupplier:
-      mockCreateSupplier,
+      vi.fn(),
+    updateSupplierStatus:
+      vi.fn()
   })
 );
 
@@ -41,30 +52,32 @@ describe(
   "SuppliersPage",
   () => {
 
-    beforeEach(() => {
+    beforeEach(
+      () => {
 
-      mockGetSuppliers
-        .mockReset();
+        vi.clearAllMocks();
 
-      mockCreateSupplier
-        .mockReset();
-    });
+        useAuth.mockReturnValue({
+          token:
+            "test-token"
+        });
 
+        getSuppliers.mockResolvedValue([
+          {
+            supplierId:
+              1,
+            supplierName:
+              "Supplier One",
+            status:
+              "ACTIVE"
+          }
+        ]);
+      }
+    );
 
-    test(
-      "loads suppliers",
+    it(
+      "loads suppliers using JWT token",
       async () => {
-
-        mockGetSuppliers
-          .mockResolvedValue([
-            {
-              supplierId: 1,
-              supplierName:
-                "Test Supplier",
-              status:
-                "ACTIVE",
-            },
-          ]);
 
         render(
           <SuppliersPage />
@@ -72,42 +85,86 @@ describe(
 
         expect(
           await screen.findByText(
-            "Test Supplier"
+            "Supplier One"
           )
         ).toBeInTheDocument();
 
         expect(
-          screen.getByText(
-            "ACTIVE"
-          )
-        ).toBeInTheDocument();
+          getSuppliers
+        ).toHaveBeenCalledWith(
+          "test-token"
+        );
       }
     );
 
-
-    test(
-      "creates supplier",
+    it(
+      "creates a supplier",
       async () => {
 
-        mockGetSuppliers
-          .mockResolvedValueOnce([])
-          .mockResolvedValueOnce([
-            {
-              supplierId: 2,
-              supplierName:
-                "New Supplier",
-              status:
-                "ACTIVE",
-            },
-          ]);
+        createSupplier.mockResolvedValue({
+          supplierId:
+            2,
+          supplierName:
+            "New Supplier",
+          status:
+            "ACTIVE"
+        });
 
-        mockCreateSupplier
-          .mockResolvedValue({
-            supplierId: 2,
-            supplierName:
+        const user =
+          userEvent.setup();
+
+        render(
+          <SuppliersPage />
+        );
+
+        await screen.findByText(
+          "Supplier One"
+        );
+
+        await user.type(
+          screen.getByPlaceholderText(
+            "Supplier name"
+          ),
+          "New Supplier"
+        );
+
+        await user.click(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Create Supplier"
+            }
+          )
+        );
+
+        await waitFor(
+          () => {
+
+            expect(
+              createSupplier
+            ).toHaveBeenCalledWith(
+              "test-token",
               "New Supplier",
+              "ACTIVE"
+            );
+          }
+        );
+      }
+    );
+
+    it(
+      "changes supplier status",
+      async () => {
+
+        updateSupplierStatus
+          .mockResolvedValue({
+            supplierId:
+              1,
+            supplierName:
+              "Supplier One",
             status:
-              "ACTIVE",
+              "INACTIVE"
           });
 
         const user =
@@ -117,14 +174,8 @@ describe(
           <SuppliersPage />
         );
 
-        const input =
-          await screen.findByPlaceholderText(
-            /supplier name/i
-          );
-
-        await user.type(
-          input,
-          "New Supplier"
+        await screen.findByText(
+          "Supplier One"
         );
 
         await user.click(
@@ -132,21 +183,68 @@ describe(
             "button",
             {
               name:
-                /create supplier/i
+                "Deactivate"
             }
           )
         );
 
         expect(
-          mockCreateSupplier
+          updateSupplierStatus
         ).toHaveBeenCalledWith(
-          "New Supplier",
-          "ACTIVE"
+          "test-token",
+          1,
+          "INACTIVE"
+        );
+      }
+    );
+
+    it(
+      "shows conflict error",
+      async () => {
+
+        const error =
+          new Error(
+            "Conflict"
+          );
+
+        error.status =
+          409;
+
+        createSupplier.mockRejectedValue(
+          error
+        );
+
+        const user =
+          userEvent.setup();
+
+        render(
+          <SuppliersPage />
+        );
+
+        await screen.findByText(
+          "Supplier One"
+        );
+
+        await user.type(
+          screen.getByPlaceholderText(
+            "Supplier name"
+          ),
+          "Supplier One"
+        );
+
+        await user.click(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Create Supplier"
+            }
+          )
         );
 
         expect(
           await screen.findByText(
-            "New Supplier"
+            /already created or modified/i
           )
         ).toBeInTheDocument();
       }
