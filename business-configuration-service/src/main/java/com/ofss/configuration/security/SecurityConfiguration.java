@@ -33,6 +33,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, ConfigurationVersionController.PATH)
                         .hasRole("FINANCE_MANAGER")
+                        .requestMatchers(HttpMethod.POST, ConfigurationVersionController.PATH)
+                        .hasRole("FINANCE_MANAGER")
                         .anyRequest().denyAll())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) -> errors.unauthorized(

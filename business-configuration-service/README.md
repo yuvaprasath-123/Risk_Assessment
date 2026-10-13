@@ -1,12 +1,12 @@
-# Business configuration service M2a
+# Business configuration service M2a and M2b
 
-This service implements only the read-only configuration-version list. It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the empty read against Oracle 26ai Free on 13 October 2026; populated-row conversion remains unverified. No Maven Wrapper was created or repaired.
+This service implements the configuration-version list (M2a) and draft-version creation (M2b). It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the authenticated empty read against Oracle 26ai Free on 13 October 2026. M2b verification is mocked only; no local Oracle writes were executed. No Maven Wrapper was created or repaired.
 
 ## API contract
 
 `GET http://localhost:8086/api/v1/configuration/versions`
 
-Supply an `Authorization: Bearer <access-token>` header. FINANCE_MANAGER-only access is an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. There are no write, publication, activation, or login endpoints. Other methods/paths are denied.
+Supply an `Authorization: Bearer <access-token>` header. Both GET and POST at this path require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST creates a draft only. Editing, publication, activation and login endpoints are absent; other methods/paths are denied.
 
 Successful requests return HTTP 200 and a JSON array ordered by VERSION_NUMBER ascending, then VERSION_ID ascending. An empty table returns `[]`; it does not create defaults or activate configuration.
 
@@ -24,6 +24,48 @@ Errors consistently contain `status` (integer HTTP status), `code`, `message`, `
 
 401 responses include a `WWW-Authenticate` Bearer challenge with realm `business-configuration-service`. Missing/empty credentials and unsupported schemes receive no OAuth token-error attribute. Invalid or expired tokens receive `error="invalid_token"`; no token/exception details are reflected. FINANCE_MANAGER-only access and 403 responses for insufficient roles are preserved.
 
+## Create a draft version (M2b)
+
+`POST http://localhost:8086/api/v1/configuration/versions`, with `Content-Type: application/json` and the same Bearer authentication.
+
+| Request field | Validation |
+|---|---|
+| versionLabel | Required JSON string, nonblank, at most 100 Unicode code points. Stored as supplied. |
+| description | Optional/null JSON string, at most 1000 Unicode code points. Oracle stores an empty string as null. |
+| isDemonstration | Required JSON boolean; strings, numbers and null are rejected. |
+| scorePolicyCode | Required exact string `SUM` or `CAP_AT_MAX`. |
+| maxFinalScore | Absent/null for SUM. For CAP_AT_MAX, a JSON integer from 1 through 2147483647, matching the reviewed table constraint. Decimal representations, strings and booleans are rejected. |
+
+Unknown fields are rejected, including client-supplied versionId, versionNumber, createdByUserId and publication metadata. Only the verified JWT supplies the actor. Invalid/malformed bodies return sanitized HTTP 400 with code `INVALID_REQUEST`; authentication and role checks precede database access.
+
+Example request body for a future separately authorized live check (this example has not been submitted):
+
+```json
+{
+  "versionLabel": "Evaluation draft",
+  "description": "Configuration under review",
+  "isDemonstration": true,
+  "scorePolicyCode": "CAP_AT_MAX",
+  "maxFinalScore": 100
+}
+```
+
+The example score is request data, not a seed, active configuration or approved business default. Successful creation returns **HTTP 201** with the same seven-field DTO shown above: string versionId, integer versionNumber, versionLabel, `DRAFT`, isDemonstration, UTC createdAt and null publishedAt. Description and score policy are persisted but not added to this minimal response. GET subsequently reads the committed version in its existing deterministic order.
+
+### Allocation and transaction behavior
+
+Within one write transaction, read `COALESCE(MAX(VERSION_NUMBER), 0)` across all versions and attempt to insert the next integer. The existing reviewed `UK_CFG_VERSION_NUMBER` unique constraint is the concurrency guard, including when the table is empty. Two concurrent requests may choose the same number; Oracle permits only one committed version with that number. Only an INSERT executeUpdate failure with underlying Oracle vendor code 1 and the exact qualified constraint D2_CONFIGURATION.UK_CFG_VERSION_NUMBER returns sanitized HTTP 409 / `VERSION_ALLOCATION_CONFLICT`. The classifier follows SQLException causes/next exceptions and strictly parses the first qualified identity in the ORA-00001 diagnostic, supporting quoted names and localized surrounding text. Missing, ambiguous or unrecognized identities fail closed. Diagnostics are never returned/logged by this handling. Primary-key collisions, unknown constraints, number exhaustion and key-retrieval/readback failures use sanitized 503 without allocation retry advice. There is no upsert, overwriting, in-memory lock or automatic retry. After a recognized allocation conflict, refresh and explicitly retry if appropriate. This is not an idempotent POST; retrying after a lost response can create another draft.
+
+The strategy depends on the deployed unique constraint; its live definition/enforcement and real concurrent writes still require verification. Other database/integrity/transaction failures return sanitized 503, and unexpected failures return sanitized 500. No Oracle messages, SQL or request credentials enter API errors.
+
+### Controller-to-database flow for evaluation
+
+1. The existing JWT filter verifies signature, expiry and identity claims. Security permits POST only for FINANCE_MANAGER.
+2. The controller validates JSON types, field lengths and the policy/score combination, and reads the user ID from the verified principal.
+3. The service opens a writable transaction, allocates the next version number and generates a UTC timestamp at microsecond precision.
+4. The repository binds parameters into one INSERT in D2_CONFIGURATION.CONFIGURATION_VERSIONS. It omits VERSION_ID so Oracle identity generates it, fixes publicationState to DRAFT and omits publication metadata/content hash so they remain null. ROW_VERSION retains its table default. No child configuration rows or current pointer are created.
+5. JDBC requests the generated `VERSION_ID` by column name, checks its exact positive Java Long value and reads the row back inside the transaction. The service converts it to the existing DTO. Transaction commit completes before the controller returns 201; any insert/readback/commit failure prevents a successful response.
+
 ## JWT contract
 
 The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses the same **raw UTF-8 bytes** as the existing payment service, not a newly invented or automatically generated application secret. Obtain the matching verification configuration privately from Developer 1. The key must meet JJWT's algorithm/key-strength requirements (at least 32 UTF-8 bytes for HMAC-SHA-256); do not pad/change an existing key just to pass a size check.
@@ -38,7 +80,7 @@ The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses 
 
 ## Database safety and current evidence
 
-The only application query selects the seven response fields from D2_CONFIGURATION.CONFIGURATION_VERSIONS. Hikari and the service transaction request read-only connections/transactions. These are hints, not a substitute for database privilege separation: the existing schema owner still has broader rights. A separate limited runtime identity remains a future decision.
+Application SQL is confined to D2_CONFIGURATION.CONFIGURATION_VERSIONS: deterministic list reads, maximum-number reads, a parameterized draft INSERT and generated-ID readback. Hikari now permits writes for M2b; GET retains its read-only service transaction and POST uses a write transaction. Read-only hints are not a substitute for database privilege separation: the existing schema owner still has broader rights. A separate limited runtime identity remains a future decision.
 
 SQL initialization, automatic ORM DDL, Flyway and Liquibase are disabled. No ORM/migration dependency, SQL startup script, business seeds, or mock fallback is included. Existing objects are not recreated. Missing JWT configuration prevents startup; missing database configuration cannot produce a functioning read endpoint. An unreachable database causes startup/connection failure or a sanitized 503 on an authenticated read, depending on connection-pool initialization timing.
 
@@ -51,6 +93,10 @@ Subsequently, the user ran `OracleReadOnlyVerificationTest` on **13 October 2026
 User-run live verification: security-service issued a token for a local FINANCE_MANAGER test account. The running configuration service accepted that token and returned **HTTP 200 with `[]`** from `GET /api/v1/configuration/versions`. This verifies the live issuer-to-configuration-service authenticated empty-list path for that local account and supplied signing configuration; it does not establish every authentication/error case or issuer/audience policy. Both services were stopped afterward. Temporary PowerShell database credentials, signing key, token and request variables were cleared. No secret values are recorded, and this documentation update does not rerun the check.
 
 **Still unverified:** mapping and timestamp conversion with populated Oracle rows, and constraint/write behavior. Full deployed type/constraint-definition comparison, publication immutability and activation concurrency are also not proven by the empty-list checks. Issuer/audience alignment remains pending.
+
+M2b automated verification on **13 October 2026**: installed Maven compiled the service and ran the explicitly selected mocked API, repository and transaction tests: **90 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS**. Breakdown: 40 existing GET/authentication regressions, 43 creation API cases, 5 repository cases and 2 transaction cases. Coverage includes draft creation, strict field combinations/boundaries, 401 challenges/403 denial, JWT actor attribution and rejected spoofed fields, string IDs/UTC timestamps, named identity-key retrieval and parameter binding, GET visibility fixtures, allocation conflict/exhaustion, sanitized database failures and transaction commit/rollback/read-only attributes. Repository/transaction collaborators are mocked; these tests do not prove Oracle identity retrieval, persisted-row mapping, concurrent constraint enforcement or actual database rollback. Mockito/JVM agent warnings and a deprecated transaction-test helper constructor were reported, without failures. The Oracle test was excluded explicitly, rather than counted as skipped.
+
+After the two M2b review fixes on **13 October 2026**, compilation and the expanded explicitly selected suite passed: **116 tests, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS** (40 existing API, 45 creation API, 5 repository, 2 service transaction, 20 JDBC transaction and 4 Oracle-error classifier tests). The JDBC transaction tests use real JdbcTemplate, repository/service/controller flow and Spring JdbcTransactionManager over mocked DataSource/Connection/Statement/ResultSet objects. They verify one transaction-bound connection, INSERT invocation, rollback/no commit/no 201 after missing, nonnumeric, nonpositive, fractional or overflowing identity values and readback SQL/mapping/no-row failures. Regression cases distinguish version-number/primary-key/unknown constraints, wrong owners/codes, quoted/localized identities, ambiguous/cyclic exception chains and errors outside executeUpdate. These are explicitly mocked transaction tests, not live Oracle integration; their actor resolver bypasses JWT solely in that class, with authentication covered separately by API tests. The optional Oracle test was excluded. A callback-overload compilation error introduced while narrowing the catch scope was fixed before the passing run; only non-failing Mockito/JVM agent and unchecked test-generic warnings remain.
 
 ## Beginner startup instructions
 
@@ -91,10 +137,10 @@ From this service folder, use installed Maven:
 
 ```powershell
 mvn '-Dmaven.test.skip=true' compile
-mvn test
+mvn '-Dtest=ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
 ```
 
-Default tests use random throwaway signing material only in the test JVM and mocked database access. They cover manager access, requester/approver/prefixed-role denial, missing/malformed/wrong-signature/expired/no-expiry tokens, invalid identity/subject claims, large-ID and timestamp serialization, empty lists, sanitized data failures and write-method denial.
+The selected tests use random throwaway signing material only in the test JVM and mocked database access. They cover GET and POST behavior and denied editing methods. This explicit selection excludes the optional live Oracle test even if an opt-in variable exists in the terminal.
 
 The optional Oracle test is deliberately disabled by default. With the database password already supplied securely in the current session, opt in explicitly:
 
@@ -106,6 +152,6 @@ Remove-Item Env:CONFIG_VERIFY_ORACLE
 
 That test reads as D2_CONFIGURATION at the fixed approved endpoint, checks FREEPDB1/session identity, six table names, expected version column names and IX_CFG_CURRENT_VERSION, then reads version IDs/timestamps. It never inserts, updates, deletes or executes DDL. An empty table cannot verify Oracle timestamp conversion using real rows. Full deployed type/constraint-definition comparison and constraint rejection tests are separate pending checks; this test does not claim those behaviors or immutability are verified.
 
-## Remaining work outside M2a
+## Remaining verification and work outside M2a/M2b
 
-The user verified the live FINANCE_MANAGER empty-list HTTP/JWT path and compatibility of the locally supplied signing configuration. Confirm populated-row mapping/Oracle timestamp conversion, full deployed type/constraint definitions, issuer/audience alignment and runtime privilege policy. Constraint/write behavior remains unverified. Frontend contracts/pages remain a separate integration task. Publication, activation, configuration editing, audit delivery, and validation/risk services are not implemented here.
+The user verified the live FINANCE_MANAGER empty-list HTTP/JWT path and compatibility of the locally supplied signing configuration before M2b. Live draft creation is pending and must not be run against local Oracle without separate authorization. Verify identity-key retrieval, all persisted draft fields and trusted actor, null publication fields, UTC timestamp round trips, subsequent GET, deployed unique constraint and simultaneous creates under an agreed data policy. Full type/constraint definitions, write/rollback behavior, issuer/audience alignment and runtime privilege policy remain pending. Frontend contracts/pages remain a separate integration task. Publication, activation, configuration editing, audit delivery, and validation/risk services are not implemented here.

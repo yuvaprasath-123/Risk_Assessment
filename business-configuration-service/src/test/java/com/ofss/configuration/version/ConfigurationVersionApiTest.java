@@ -34,7 +34,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ConfigurationVersionController.class)
@@ -253,7 +253,7 @@ class ConfigurationVersionApiTest {
 
     @Test
     void writeMethodsAreDeniedEvenForManagers() throws Exception {
-        mvc.perform(post(ConfigurationVersionController.PATH).header("Authorization", "Bearer " + managerToken()))
+        mvc.perform(put(ConfigurationVersionController.PATH).header("Authorization", "Bearer " + managerToken()))
                 .andExpect(status().isForbidden());
         verifyNoInteractions(repository);
     }
