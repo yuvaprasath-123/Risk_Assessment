@@ -3,6 +3,9 @@ package com.ofss.configuration.error;
 import jakarta.servlet.http.HttpServletRequest;
 import com.ofss.configuration.version.InvalidDraftRequestException;
 import com.ofss.configuration.version.VersionAllocationConflictException;
+import com.ofss.configuration.rule.InvalidConfigurationRequestException;
+import com.ofss.configuration.rule.ConfigurationVersionNotFoundException;
+import com.ofss.configuration.rule.DraftRuleConflictException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +15,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(InvalidConfigurationRequestException.class)
+    public ResponseEntity<ApiError> invalidConfiguration(HttpServletRequest request) {
+        return ResponseEntity.badRequest().body(ApiError.of(400, "INVALID_REQUEST",
+                "Invalid configuration request", request.getRequestURI()));
+    }
+    @ExceptionHandler(ConfigurationVersionNotFoundException.class)
+    public ResponseEntity<ApiError> versionNotFound(HttpServletRequest request) {
+        return ResponseEntity.status(404).body(ApiError.of(404, "VERSION_NOT_FOUND",
+                "Configuration version was not found", request.getRequestURI()));
+    }
+    @ExceptionHandler(DraftRuleConflictException.class)
+    public ResponseEntity<ApiError> ruleConflict(DraftRuleConflictException exception, HttpServletRequest request) {
+        return ResponseEntity.status(409).body(ApiError.of(409, exception.reason().name(),
+                exception.reason().message(), request.getRequestURI()));
+    }
     @ExceptionHandler({InvalidDraftRequestException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ApiError> invalidDraft(HttpServletRequest request) {
         return ResponseEntity.badRequest().body(ApiError.of(400, "INVALID_REQUEST",

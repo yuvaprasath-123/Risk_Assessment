@@ -10,13 +10,19 @@ Oracle AI Database 26ai Free reports version 23.26.2.0.0, at localhost:1521, ser
 
 ## Readable design summary
 
-| Schema | Tables proposed | Main relationship |
-|---|---|---|
-| D2_CONFIGURATION | CONFIGURATION_VERSIONS, RISK_RULE_CONFIGS, RISK_BAND_CONFIGS, APPROVAL_THRESHOLD_CONFIGS, SLA_CONFIGS, CURRENT_CONFIGURATION | A version owns complete configuration; a single current-version pointer selects the active published version. The pointer table is an additional design proposal. |
-| D2_VALIDATION | VALIDATION_RESULTS, VALIDATION_CHECKS | One logical validation result per agreed submission identity, with individually explained checks. |
-| D2_RISK | RISK_ASSESSMENTS, RISK_ASSESSMENT_FACTORS, RISK_CONFIGURATION_SNAPSHOTS, RISK_INPUT_EVIDENCE | One logical assessment per agreed submission identity, with a private configuration copy, frozen payment/history evidence, and explained rule contributions. Input evidence is an additional table required by this design request. |
+User-approved ownership correction supersedes the blueprint's original assignment: **Developer 1 owns payment-validation-service, its VALIDATION_RESULTS/VALIDATION_CHECKS tables, and validation implementation tasks**. Developer 2 retains business-configuration-service and risk-assessment-service. The validation table design below remains handoff/reference material for Developer 1 review, not Developer 2 implementation work. All other detailed design/progress updates remain deferred.
 
-Developer 1 retains supplier/invoice masters and payment lifecycle/status history. Developer 3 retains approval routes/tasks/decisions, escalation/backup mappings, processing, and business audit. Developer 2 stores external IDs and decision evidence, not authoritative copies of those services' lifecycle records. All foreign keys below stay within one service schema. References to payment, supplier, invoice, user, validation, configuration version, and audit/event records owned elsewhere have **no database foreign keys**.
+| Schema / service owner | Tables proposed | Main relationship |
+|---|---|---|
+| D2_CONFIGURATION / Developer 2 — business-configuration-service | CONFIGURATION_VERSIONS, RISK_RULE_CONFIGS, RISK_BAND_CONFIGS, APPROVAL_THRESHOLD_CONFIGS, SLA_CONFIGS, CURRENT_CONFIGURATION | A version owns complete configuration; a single current-version pointer selects the active published version. The pointer table is an additional design proposal. |
+| Existing D2_VALIDATION account, preserved / Developer 1 — payment-validation-service | VALIDATION_RESULTS, VALIDATION_CHECKS — Developer 1-owned | One logical validation result per agreed submission identity, with individually explained checks. Final schema use and implementation are Developer 1 decisions. |
+| D2_RISK / Developer 2 — risk-assessment-service | RISK_ASSESSMENTS, RISK_ASSESSMENT_FACTORS, RISK_CONFIGURATION_SNAPSHOTS, RISK_INPUT_EVIDENCE | One logical assessment per agreed submission identity, with a private configuration copy, frozen payment/history evidence, and explained rule contributions. Input evidence is an additional table required by this design request. |
+
+Developer 1 retains supplier/invoice masters, payment lifecycle/status history, and validation results/checks. Developer 3 retains approval routes/tasks/decisions, escalation/backup mappings, processing, and business audit. Developer 2 stores external IDs and risk decision evidence, not authoritative copies of those services' lifecycle or validation records. All foreign keys below stay within one service schema. References to payment, supplier, invoice, user, validation, configuration version, and audit/event records owned elsewhere have **no database foreign keys**.
+
+Preserve the already-created D2_VALIDATION account, quota and grants. Its historical name does not imply Developer 2 ownership; references to D2_VALIDATION below denote the Developer 1-owned validation dependency. No account is dropped, renamed, altered or migrated, and no SQL is executed by this documentation change.
+
+Developer 2 risk assessment depends on agreed Developer 1 validation-result and input contracts: validation ID, payment/submission identity, eligibility/outcome and reasons, authoritative input snapshot/reference/revision, evaluation cutoff and correlation metadata. Developer 1 owns validation calculation, persistence and implementation verification. API/event shapes, access and retry behavior remain to be agreed; Developer 2 consumes contracts rather than reading or writing validation tables directly.
 
 Internal relationships: configuration version -> rules/bands/thresholds/SLAs; validation result -> checks; assessment -> factors/snapshot/evidence. The risk configuration version is an external reference even though D2_CONFIGURATION and D2_RISK share one database. The services exchange data through agreed APIs/events.
 
@@ -137,7 +143,9 @@ Purpose: one atomic current-version pointer; avoids multiple ACTIVE version rows
 
 Keys/constraints: PK POINTER_ID with value 1; FK VERSION_ID. No pointer is allowed before a valid first activation; at least one row after initial activation is a service invariant. A FK establishes version existence, not PUBLISHED status: activation must verify that state within its transaction. Indexes: PK and VERSION_ID for the FK. Activation history remains Developer 3 business audit; this pointer is not its substitute. Future scheduling is not assumed.
 
-## D2_VALIDATION tables
+## D2_VALIDATION tables — Developer 1-owned handoff design
+
+The following table definitions are retained without detailed redesign for Developer 1 review. Developer 1 owns their final design, table creation, validation-service implementation and tests; Developer 2 only depends on agreed result/input contracts. The existing D2_VALIDATION account remains preserved.
 
 ### VALIDATION_RESULTS
 

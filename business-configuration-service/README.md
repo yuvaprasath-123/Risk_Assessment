@@ -1,12 +1,12 @@
-# Business configuration service M2a and M2b
+# Business configuration service M2a, M2b and M2c
 
-This service implements the configuration-version list (M2a) and draft-version creation (M2b). It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the authenticated empty read against Oracle 26ai Free on 13 October 2026. M2b verification is mocked only; no local Oracle writes were executed. No Maven Wrapper was created or repaired.
+This service implements the configuration-version list (M2a), draft-version creation (M2b), and version details/draft risk-rule management (M2c). It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the authenticated empty read against Oracle 26ai Free on 13 October 2026. M2b/M2c verification is mocked only; no local Oracle writes were executed. No Maven Wrapper was created or repaired.
 
 ## API contract
 
 `GET http://localhost:8086/api/v1/configuration/versions`
 
-Supply an `Authorization: Bearer <access-token>` header. Both GET and POST at this path require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST creates a draft only. Editing, publication, activation and login endpoints are absent; other methods/paths are denied.
+Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST creates a draft only; M2c PUT manages one draft risk rule. General version editing, publication, activation and login endpoints are absent; other methods/paths are denied.
 
 Successful requests return HTTP 200 and a JSON array ordered by VERSION_NUMBER ascending, then VERSION_ID ascending. An empty table returns `[]`; it does not create defaults or activate configuration.
 
@@ -66,6 +66,38 @@ The strategy depends on the deployed unique constraint; its live definition/enfo
 4. The repository binds parameters into one INSERT in D2_CONFIGURATION.CONFIGURATION_VERSIONS. It omits VERSION_ID so Oracle identity generates it, fixes publicationState to DRAFT and omits publication metadata/content hash so they remain null. ROW_VERSION retains its table default. No child configuration rows or current pointer are created.
 5. JDBC requests the generated `VERSION_ID` by column name, checks its exact positive Java Long value and reads the row back inside the transaction. The service converts it to the existing DTO. Transaction commit completes before the controller returns 201; any insert/readback/commit failure prevents a successful response.
 
+## Version details and draft risk rules (M2c)
+
+Use port 8086 and the same Bearer header. These endpoints use existing tables; no DDL or seed data is run.
+
+| Endpoint | Response |
+|---|---|
+| GET /api/v1/configuration/versions/{versionId} | HTTP 200: existing seven version fields plus description, scorePolicyCode, nullable maxFinalScore and string rowVersion. Missing version: 404 / VERSION_NOT_FOUND. |
+| GET /api/v1/configuration/versions/{versionId}/risk-rules | HTTP 200: rule array ordered by evaluationOrder, then ruleCode; `[]` for an existing version without rules. Missing version: 404. |
+| PUT /api/v1/configuration/versions/{versionId}/risk-rules/{ruleCode} | HTTP 200 for create or replacement: `{ "rule": <saved rule>, "rowVersion": "<updated parent value>" }`. Existing rule identity is retained. |
+
+Allowed rule codes are STRUCTURING, UNUSUAL_FREQUENCY, UNUSUAL_AMOUNT, RECENTLY_REACTIVATED_SUPPLIER and PREVIOUS_RISK_FLAGS. These represent the five explicit scope factors; their parameter semantics still need agreement. Other codes, including near-duplicate and new-supplier rules, are rejected. No weights, thresholds or rules are seeded.
+
+PUT requires exactly these fields:
+
+| Field | Structural validation |
+|---|---|
+| displayName | Nonblank string, at most 120 Unicode code points. |
+| enabled | JSON boolean. |
+| weight | JSON integer, 0 through 2147483647. |
+| parameterSchemaVersion | Nonblank string, at most 32 Unicode code points. |
+| parameters | JSON object, including an empty object; nested JSON values are serialized safely into a bound CLOB parameter. |
+| evaluationOrder | JSON integer, 1 through 99999, matching NUMBER(5,0). Unique within a version. |
+| expectedRowVersion | Required nonnegative Java Long value, supplied as a decimal digit string (recommended) or JSON integer. Floating-point values/overflow are rejected. |
+
+The rule response contains string ruleConfigId/versionId, ruleCode, displayName, enabled, weight, parameterSchemaVersion, object parameters and evaluationOrder. Path versionId must be a positive Java Long. Unknown request fields are rejected.
+
+Parameter decimals use BigDecimal and integers use BigInteger during M2c HTTP decoding and CLOB readback. Serialization preserves their numeric values as JSON numbers, including nested arrays/objects and scientific notation; textual formatting may change. Standard browser JavaScript numbers can lose precision before transmission or while parsing a response. The backend cannot recover values already rounded by a client; client-side exact numeric handling remains a separate integration concern.
+
+Read version details to obtain rowVersion before PUT. The write transaction locks the parent with SELECT FOR UPDATE, checks DRAFT and the expected rowVersion, creates or replaces the child, increments the parent's rowVersion once, then reads back the saved rule. Stale edits return 409 / STALE_VERSION; published or other nondraft states return 409 / VERSION_NOT_DRAFT. Known rule-code/order uniqueness violations return 409 / RULE_CODE_CONFLICT or RULE_ORDER_CONFLICT; primary-key/unknown database errors remain sanitized 503. Parent/child failures roll back together. No automatic conflict retry is performed. Repeating an old expectedRowVersion is a stale edit, including after a lost successful response.
+
+Draft parameters may be incomplete: M2c validates JSON shape and column limits, **not complete business-rule semantics**. Publication remains unavailable. Actual Oracle CLOB/identity mapping, parent-lock concurrency, constraints and rollback require separately authorized live verification; do not run PUT against local Oracle as part of this implementation task. Startup environment instructions below are unchanged. Detailed progress-report updates are deferred.
+
 ## JWT contract
 
 The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses the same **raw UTF-8 bytes** as the existing payment service, not a newly invented or automatically generated application secret. Obtain the matching verification configuration privately from Developer 1. The key must meet JJWT's algorithm/key-strength requirements (at least 32 UTF-8 bytes for HMAC-SHA-256); do not pad/change an existing key just to pass a size check.
@@ -80,7 +112,7 @@ The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses 
 
 ## Database safety and current evidence
 
-Application SQL is confined to D2_CONFIGURATION.CONFIGURATION_VERSIONS: deterministic list reads, maximum-number reads, a parameterized draft INSERT and generated-ID readback. Hikari now permits writes for M2b; GET retains its read-only service transaction and POST uses a write transaction. Read-only hints are not a substitute for database privilege separation: the existing schema owner still has broader rights. A separate limited runtime identity remains a future decision.
+Application SQL is confined to D2_CONFIGURATION.CONFIGURATION_VERSIONS and RISK_RULE_CONFIGS. M2c adds parent locking, parameterized rule INSERT/UPDATE, parent rowVersion increment and readback. Hikari permits writes; GET retains read-only service transactions and POST/PUT use write transactions. Read-only hints are not a substitute for database privilege separation: the existing schema owner still has broader rights. A separate limited runtime identity remains a future decision.
 
 SQL initialization, automatic ORM DDL, Flyway and Liquibase are disabled. No ORM/migration dependency, SQL startup script, business seeds, or mock fallback is included. Existing objects are not recreated. Missing JWT configuration prevents startup; missing database configuration cannot produce a functioning read endpoint. An unreachable database causes startup/connection failure or a sanitized 503 on an authenticated read, depending on connection-pool initialization timing.
 
@@ -137,10 +169,10 @@ From this service folder, use installed Maven:
 
 ```powershell
 mvn '-Dmaven.test.skip=true' compile
-mvn '-Dtest=ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
+mvn '-Dtest=DraftRiskRuleApiTest,DraftRiskRuleRepositoryTest,DraftRiskRuleJdbcTransactionTest,ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
 ```
 
-The selected tests use random throwaway signing material only in the test JVM and mocked database access. They cover GET and POST behavior and denied editing methods. This explicit selection excludes the optional live Oracle test even if an opt-in variable exists in the terminal.
+The selected tests use random throwaway signing material only in the test JVM and mocked database access. They cover supported GET/POST/PUT behavior and denied methods. This explicit selection excludes the optional live Oracle test even if an opt-in variable exists in the terminal.
 
 The optional Oracle test is deliberately disabled by default. With the database password already supplied securely in the current session, opt in explicitly:
 
@@ -154,4 +186,4 @@ That test reads as D2_CONFIGURATION at the fixed approved endpoint, checks FREEP
 
 ## Remaining verification and work outside M2a/M2b
 
-The user verified the live FINANCE_MANAGER empty-list HTTP/JWT path and compatibility of the locally supplied signing configuration before M2b. Live draft creation is pending and must not be run against local Oracle without separate authorization. Verify identity-key retrieval, all persisted draft fields and trusted actor, null publication fields, UTC timestamp round trips, subsequent GET, deployed unique constraint and simultaneous creates under an agreed data policy. Full type/constraint definitions, write/rollback behavior, issuer/audience alignment and runtime privilege policy remain pending. Frontend contracts/pages remain a separate integration task. Publication, activation, configuration editing, audit delivery, and validation/risk services are not implemented here.
+The user verified the live FINANCE_MANAGER empty-list HTTP/JWT path and compatibility of the locally supplied signing configuration before M2b. Live draft creation and M2c rule writes are pending and must not be run against local Oracle without separate authorization. Verify identity-key retrieval, all persisted draft fields and trusted actor, null publication fields, UTC timestamp round trips, subsequent GET, deployed unique constraints, simultaneous writes and CLOB round trips under an agreed data policy. Full type/constraint definitions, write/rollback behavior, issuer/audience alignment and runtime privilege policy remain pending. Frontend contracts/pages remain a separate integration task. Publication, activation, general version editing, audit delivery, and validation/risk services are not implemented here.
