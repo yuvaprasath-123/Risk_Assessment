@@ -48,7 +48,9 @@ After the two authentication fixes, `mvn '-Dtest=ConfigurationVersionApiTest' te
 
 Subsequently, the user ran `OracleReadOnlyVerificationTest` on **13 October 2026**: **1 test, 0 failures, 0 errors, 0 skipped, BUILD SUCCESS**. It verified JDBC access as D2_CONFIGURATION in FREEPDB1, the six configuration tables, expected version columns, IX_CFG_CURRENT_VERSION and a successful empty version query. Temporary password/test variables were cleared. This result is user-reported; no test was rerun for this documentation update and no secret values are recorded.
 
-**Still unverified:** live HTTP/JWT integration, timestamp conversion with populated Oracle rows, and constraint/write behavior. Full deployed type/constraint-definition comparison, publication immutability and activation concurrency are also not proven by this read-only test. Successful direct JDBC access does not prove the Spring service's complete authenticated HTTP path.
+User-run live verification: security-service issued a token for a local FINANCE_MANAGER test account. The running configuration service accepted that token and returned **HTTP 200 with `[]`** from `GET /api/v1/configuration/versions`. This verifies the live issuer-to-configuration-service authenticated empty-list path for that local account and supplied signing configuration; it does not establish every authentication/error case or issuer/audience policy. Both services were stopped afterward. Temporary PowerShell database credentials, signing key, token and request variables were cleared. No secret values are recorded, and this documentation update does not rerun the check.
+
+**Still unverified:** mapping and timestamp conversion with populated Oracle rows, and constraint/write behavior. Full deployed type/constraint-definition comparison, publication immutability and activation concurrency are also not proven by the empty-list checks. Issuer/audience alignment remains pending.
 
 ## Beginner startup instructions
 
@@ -106,4 +108,4 @@ That test reads as D2_CONFIGURATION at the fixed approved endpoint, checks FREEP
 
 ## Remaining work outside M2a
 
-Confirm live HTTP/JWT integration, populated-row Oracle timestamp conversion, full deployed type/constraint definitions, issuer/audience alignment, privately supplied key compatibility with Developer 1, and runtime privilege policy. Constraint/write behavior remains unverified. Frontend contracts/pages remain a separate integration task. Publication, activation, configuration editing, audit delivery, and validation/risk services are not implemented here.
+The user verified the live FINANCE_MANAGER empty-list HTTP/JWT path and compatibility of the locally supplied signing configuration. Confirm populated-row mapping/Oracle timestamp conversion, full deployed type/constraint definitions, issuer/audience alignment and runtime privilege policy. Constraint/write behavior remains unverified. Frontend contracts/pages remain a separate integration task. Publication, activation, configuration editing, audit delivery, and validation/risk services are not implemented here.
