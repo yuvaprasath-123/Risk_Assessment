@@ -1,11 +1,11 @@
 import {
+  Link
+} from "react-router";
+
+import {
   useEffect,
   useState
 } from "react";
-
-import {
-  Link
-} from "react-router";
 
 import {
   createPayment,
@@ -54,25 +54,53 @@ export default function PaymentsPage() {
     setError
   ] = useState("");
 
+  const [
+    submitting,
+    setSubmitting
+  ] = useState(false);
+
   async function loadData() {
 
     try {
+
+      setError("");
 
       const [
         paymentData,
         invoiceData
       ] =
         await Promise.all([
-          getPayments(token),
-          getInvoices(),
+          getPayments(
+            token
+          ),
+
+          getInvoices(
+            token
+          )
         ]);
 
       setPayments(
         paymentData
       );
 
+      const usedInvoiceIds =
+        new Set(
+          paymentData.map(
+            payment =>
+              payment.invoiceId
+          )
+        );
+
+      const availableInvoices =
+        invoiceData.filter(
+          invoice =>
+            !usedInvoiceIds.has(
+              invoice.invoiceId
+            )
+        );
+
       setInvoices(
-        invoiceData
+        availableInvoices
       );
 
     } catch (error) {
@@ -85,9 +113,14 @@ export default function PaymentsPage() {
 
   useEffect(
     () => {
-      loadData();
+
+      if (token) {
+
+        loadData();
+      }
+
     },
-    []
+    [token]
   );
 
   function handleInvoiceChange(
@@ -114,6 +147,10 @@ export default function PaymentsPage() {
       setPaymentAmount(
         selectedInvoice.invoiceAmount
       );
+
+    } else {
+
+      setPaymentAmount("");
     }
   }
 
@@ -123,6 +160,11 @@ export default function PaymentsPage() {
 
     event.preventDefault();
 
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(true);
     setError("");
 
     try {
@@ -140,9 +182,26 @@ export default function PaymentsPage() {
 
     } catch (error) {
 
+      if (
+        error.status === 409
+      ) {
+
+        setError(
+          "Another user has already created a payment request for this invoice."
+        );
+
+        await loadData();
+
+        return;
+      }
+
       setError(
         error.message
       );
+
+    } finally {
+
+      setSubmitting(false);
     }
   }
 
@@ -154,7 +213,9 @@ export default function PaymentsPage() {
       </h1>
 
       <ErrorMessage
-        message={error}
+        message={
+          error
+        }
       />
 
       <form
@@ -165,36 +226,48 @@ export default function PaymentsPage() {
       >
 
         <select
-          value={invoiceId}
+          value={
+            invoiceId
+          }
           onChange={
             handleInvoiceChange
           }
           required
+          disabled={
+            submitting
+          }
         >
+
           <option value="">
             Select invoice
           </option>
 
-          {invoices.map(
-            invoice => (
-              <option
-                key={
-                  invoice.invoiceId
-                }
-                value={
-                  invoice.invoiceId
-                }
-              >
-                {
-                  invoice.invoiceNumber
-                }
-                {" - "}
-                {
-                  invoice.supplierName
-                }
-              </option>
+          {
+            invoices.map(
+              invoice => (
+
+                <option
+                  key={
+                    invoice.invoiceId
+                  }
+                  value={
+                    invoice.invoiceId
+                  }
+                >
+                  {
+                    invoice.invoiceNumber
+                  }
+
+                  {" - "}
+
+                  {
+                    invoice.supplierName
+                  }
+                </option>
+              )
             )
-          )}
+          }
+
         </select>
 
         <input
@@ -211,10 +284,22 @@ export default function PaymentsPage() {
               )
           }
           required
+          disabled={
+            submitting
+          }
         />
 
-        <button type="submit">
-          Create Payment
+        <button
+          type="submit"
+          disabled={
+            submitting
+          }
+        >
+          {
+            submitting
+              ? "Creating..."
+              : "Create Payment"
+          }
         </button>
 
       </form>
@@ -224,6 +309,7 @@ export default function PaymentsPage() {
         <table>
 
           <thead>
+
             <tr>
               <th>ID</th>
               <th>Invoice</th>
@@ -232,63 +318,73 @@ export default function PaymentsPage() {
               <th>Status</th>
               <th>Action</th>
             </tr>
+
           </thead>
 
           <tbody>
 
-            {payments.map(
-              payment => (
-                <tr
-                  key={
-                    payment.paymentId
-                  }
-                >
-                  <td>
-                    {
+            {
+              payments.map(
+                payment => (
+
+                  <tr
+                    key={
                       payment.paymentId
                     }
-                  </td>
+                  >
 
-                  <td>
-                    {
-                      payment.invoiceId
-                    }
-                  </td>
-
-                  <td>
-                    {
-                      payment.supplierId
-                    }
-                  </td>
-
-                  <td>
-                    {
-                      payment.paymentAmount
-                    }
-                  </td>
-
-                  <td>
-                    <span
-                      className="status"
-                    >
+                    <td>
                       {
-                        payment.status
+                        payment.paymentId
                       }
-                    </span>
-                  </td>
+                    </td>
 
-                  <td>
-                    <Link
-                      to={
-                        `/payments/${payment.paymentId}`
+                    <td>
+                      {
+                        payment.invoiceId
                       }
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
+                    </td>
+
+                    <td>
+                      {
+                        payment.supplierId
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        payment.paymentAmount
+                      }
+                    </td>
+
+                    <td>
+
+                      <span
+                        className="status"
+                      >
+                        {
+                          payment.status
+                        }
+                      </span>
+
+                    </td>
+
+                    <td>
+
+                      <Link
+                        to={
+                          `/payments/${payment.paymentId}`
+                        }
+                      >
+                        View
+                      </Link>
+
+                    </td>
+
+                  </tr>
+                )
               )
-            )}
+            }
 
           </tbody>
 

@@ -12,10 +12,18 @@ import {
   getSuppliers
 } from "../api/supplierApi";
 
+import {
+  useAuth
+} from "../auth/AuthContext";
+
 import ErrorMessage
   from "../components/ErrorMessage";
 
 export default function InvoicesPage() {
+
+  const {
+    token
+  } = useAuth();
 
   const [
     invoices,
@@ -28,32 +36,63 @@ export default function InvoicesPage() {
   ] = useState([]);
 
   const [
-    form,
-    setForm
-  ] = useState({
-    invoiceNumber: "",
-    supplierId: "",
-    invoiceAmount: "",
-    invoiceDate: "",
-    dueDate: "",
-  });
+    supplierId,
+    setSupplierId
+  ] = useState("");
+
+  const [
+    invoiceNumber,
+    setInvoiceNumber
+  ] = useState("");
+
+  const [
+    invoiceAmount,
+    setInvoiceAmount
+  ] = useState("");
+
+  const [
+    invoiceDate,
+    setInvoiceDate
+  ] = useState("");
+
+  const [
+    dueDate,
+    setDueDate
+  ] = useState("");
 
   const [
     error,
     setError
   ] = useState("");
 
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
+
+  const [
+    submitting,
+    setSubmitting
+  ] = useState(false);
+
   async function loadData() {
 
     try {
+
+      setError("");
 
       const [
         invoiceData,
         supplierData
       ] =
         await Promise.all([
-          getInvoices(),
-          getSuppliers(),
+          getInvoices(
+            token
+          ),
+
+          getSuppliers(
+            token
+          )
         ]);
 
       setInvoices(
@@ -61,86 +100,150 @@ export default function InvoicesPage() {
       );
 
       setSuppliers(
-        supplierData.filter(
-          supplier =>
-            supplier.status
-            === "ACTIVE"
-        )
+        supplierData
       );
 
     } catch (error) {
 
       setError(
         error.message
+      );
+
+    } finally {
+
+      setLoading(
+        false
       );
     }
   }
 
   useEffect(
     () => {
-      loadData();
+
+      if (token) {
+
+        loadData();
+      }
+
     },
-    []
+    [token]
   );
 
-  function handleChange(
-    event
-  ) {
-
-    setForm({
-      ...form,
-      [event.target.name]:
-        event.target.value,
-    });
-  }
-
-  async function handleSubmit(
+  async function handleCreate(
     event
   ) {
 
     event.preventDefault();
 
+    if (submitting) {
+      return;
+    }
+
     setError("");
+
+    if (
+      dueDate &&
+      invoiceDate &&
+      dueDate < invoiceDate
+    ) {
+
+      setError(
+        "Due date cannot be earlier than invoice date."
+      );
+
+      return;
+    }
+
+    if (
+      Number(
+        invoiceAmount
+      ) <= 0
+    ) {
+
+      setError(
+        "Invoice amount must be greater than zero."
+      );
+
+      return;
+    }
+
+    setSubmitting(
+      true
+    );
 
     try {
 
-      await createInvoice({
-        invoiceNumber:
-          form.invoiceNumber,
+      const request = {
 
         supplierId:
           Number(
-            form.supplierId
+            supplierId
           ),
+
+        invoiceNumber:
+          invoiceNumber.trim(),
 
         invoiceAmount:
           Number(
-            form.invoiceAmount
+            invoiceAmount
           ),
 
-        invoiceDate:
-          form.invoiceDate,
+        invoiceDate,
 
-        dueDate:
-          form.dueDate,
-      });
+        dueDate
+      };
 
-      setForm({
-        invoiceNumber: "",
-        supplierId: "",
-        invoiceAmount: "",
-        invoiceDate: "",
-        dueDate: "",
-      });
+      await createInvoice(
+        token,
+        request
+      );
+
+      setSupplierId("");
+      setInvoiceNumber("");
+      setInvoiceAmount("");
+      setInvoiceDate("");
+      setDueDate("");
 
       await loadData();
 
     } catch (error) {
 
-      setError(
-        error.message
+      if (
+        error.status === 409
+      ) {
+
+        setError(
+          "An invoice with this invoice number already exists for the selected supplier."
+        );
+
+        await loadData();
+
+      } else {
+
+        setError(
+          error.message
+        );
+      }
+
+    } finally {
+
+      setSubmitting(
+        false
       );
     }
+  }
+
+  if (loading) {
+
+    return (
+      <div className="page">
+
+        <p>
+          Loading invoices...
+        </p>
+
+      </div>
+    );
   }
 
   return (
@@ -151,101 +254,153 @@ export default function InvoicesPage() {
       </h1>
 
       <ErrorMessage
-        message={error}
+        message={
+          error
+        }
       />
 
       <form
-        className="card form-grid"
+        className="card form-row"
         onSubmit={
-          handleSubmit
+          handleCreate
         }
       >
 
-        <input
-          name="invoiceNumber"
-          placeholder="Invoice number"
-          value={
-            form.invoiceNumber
-          }
-          onChange={
-            handleChange
-          }
-          required
-        />
-
         <select
-          name="supplierId"
           value={
-            form.supplierId
+            supplierId
           }
           onChange={
-            handleChange
+            event =>
+              setSupplierId(
+                event.target.value
+              )
           }
           required
+          disabled={
+            submitting
+          }
         >
+
           <option value="">
             Select supplier
           </option>
 
-          {suppliers.map(
-            supplier => (
-              <option
-                key={
-                  supplier.supplierId
-                }
-                value={
-                  supplier.supplierId
-                }
-              >
-                {
-                  supplier.supplierName
-                }
-              </option>
-            )
-          )}
+          {
+            suppliers
+              .filter(
+                supplier =>
+                  supplier.status ===
+                  "ACTIVE"
+              )
+              .map(
+                supplier => (
+
+                  <option
+                    key={
+                      supplier.supplierId
+                    }
+                    value={
+                      supplier.supplierId
+                    }
+                  >
+                    {
+                      supplier.supplierName
+                    }
+                  </option>
+                )
+              )
+          }
+
         </select>
 
         <input
-          name="invoiceAmount"
+          type="text"
+          placeholder="Invoice number"
+          value={
+            invoiceNumber
+          }
+          onChange={
+            event =>
+              setInvoiceNumber(
+                event.target.value
+              )
+          }
+          required
+          disabled={
+            submitting
+          }
+        />
+
+        <input
           type="number"
+          placeholder="Invoice amount"
           min="0.01"
           step="0.01"
-          placeholder="Invoice amount"
           value={
-            form.invoiceAmount
+            invoiceAmount
           }
           onChange={
-            handleChange
+            event =>
+              setInvoiceAmount(
+                event.target.value
+              )
           }
           required
+          disabled={
+            submitting
+          }
         />
 
         <input
-          name="invoiceDate"
           type="date"
           value={
-            form.invoiceDate
+            invoiceDate
           }
           onChange={
-            handleChange
+            event =>
+              setInvoiceDate(
+                event.target.value
+              )
           }
           required
+          disabled={
+            submitting
+          }
         />
 
         <input
-          name="dueDate"
           type="date"
+          min={
+            invoiceDate ||
+            undefined
+          }
           value={
-            form.dueDate
+            dueDate
           }
           onChange={
-            handleChange
+            event =>
+              setDueDate(
+                event.target.value
+              )
           }
           required
+          disabled={
+            submitting
+          }
         />
 
-        <button type="submit">
-          Create Invoice
+        <button
+          type="submit"
+          disabled={
+            submitting
+          }
+        >
+          {
+            submitting
+              ? "Creating..."
+              : "Create Invoice"
+          }
         </button>
 
       </form>
@@ -253,57 +408,97 @@ export default function InvoicesPage() {
       <div className="card">
 
         <table>
+
           <thead>
+
             <tr>
               <th>ID</th>
-              <th>Invoice</th>
+              <th>Invoice Number</th>
               <th>Supplier</th>
               <th>Amount</th>
+              <th>Invoice Date</th>
               <th>Due Date</th>
             </tr>
+
           </thead>
 
           <tbody>
 
-            {invoices.map(
-              invoice => (
-                <tr
-                  key={
-                    invoice.invoiceId
-                  }
-                >
-                  <td>
-                    {
-                      invoice.invoiceId
-                    }
-                  </td>
+            {
+              invoices.length === 0
+                ? (
+                  <tr>
 
-                  <td>
-                    {
-                      invoice.invoiceNumber
-                    }
-                  </td>
+                    <td
+                      colSpan="6"
+                    >
+                      No invoices available.
+                    </td>
 
-                  <td>
-                    {
-                      invoice.supplierName
-                    }
-                  </td>
+                  </tr>
+                )
+                : (
+                  invoices.map(
+                    invoice => {
 
-                  <td>
-                    {
-                      invoice.invoiceAmount
-                    }
-                  </td>
+                      const supplier =
+                        suppliers.find(
+                          item =>
+                            item.supplierId ===
+                            invoice.supplierId
+                        );
 
-                  <td>
-                    {
-                      invoice.dueDate
+                      return (
+                        <tr
+                          key={
+                            invoice.invoiceId
+                          }
+                        >
+
+                          <td>
+                            {
+                              invoice.invoiceId
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              invoice.invoiceNumber
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              invoice.supplierName ||
+                              supplier?.supplierName ||
+                              invoice.supplierId
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              invoice.invoiceAmount
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              invoice.invoiceDate
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              invoice.dueDate
+                            }
+                          </td>
+
+                        </tr>
+                      );
                     }
-                  </td>
-                </tr>
-              )
-            )}
+                  )
+                )
+            }
 
           </tbody>
 

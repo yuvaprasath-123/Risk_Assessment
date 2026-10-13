@@ -4,28 +4,34 @@ import {
 
 import {
   useAuth
-} from "./AuthContext";
+} from "../auth/AuthContext";
 
 export default function ProtectedRoute({
   children,
-  requiredRole
+  allowedRoles = []
 }) {
 
   const {
-    token,
+    user,
     loading,
-    hasRole
+    isAuthenticated
   } = useAuth();
 
   if (loading) {
+
     return (
-      <div className="center">
-        Loading...
+      <div className="page">
+
+        <p>
+          Loading...
+        </p>
+
       </div>
     );
   }
 
-  if (!token) {
+  if (!isAuthenticated) {
+
     return (
       <Navigate
         to="/login"
@@ -35,21 +41,33 @@ export default function ProtectedRoute({
   }
 
   if (
-    requiredRole &&
-    !hasRole(requiredRole)
+    allowedRoles.length > 0
   ) {
-    return (
-      <div className="page">
-        <h2>
-          Access denied
-        </h2>
 
-        <p>
-          You do not have permission
-          to access this page.
-        </p>
-      </div>
-    );
+    const userRoles =
+      Array.isArray(
+        user?.roles
+      )
+        ? user.roles
+        : [];
+
+    const hasAllowedRole =
+      allowedRoles.some(
+        role =>
+          userRoles.includes(
+            role
+          )
+      );
+
+    if (!hasAllowedRole) {
+
+      return (
+        <Navigate
+          to="/"
+          replace
+        />
+      );
+    }
   }
 
   return children;

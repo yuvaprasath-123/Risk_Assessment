@@ -4,19 +4,50 @@ import {
 } from "react-router";
 
 import {
+  useTranslation
+} from "react-i18next";
+
+import {
   useAuth
 } from "../auth/AuthContext";
+
+import {
+  useTheme
+} from "../theme/ThemeContext";
+
+import LanguageSelector
+  from "./LanguageSelector";
 
 export default function Navbar() {
 
   const {
+    t
+  } = useTranslation();
+
+  const {
     user,
     logout,
-    hasRole
+    hasRole,
+    isAuthenticated
   } = useAuth();
+
+  const {
+    theme,
+    toggleTheme
+  } = useTheme();
 
   const navigate =
     useNavigate();
+
+  if (!isAuthenticated) {
+
+    return null;
+  }
+
+  const isRequester =
+    hasRole(
+      "PAYMENT_REQUESTER"
+    );
 
   function handleLogout() {
 
@@ -28,55 +59,135 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="navbar">
+    <header className="navbar">
 
-      <div className="navbar-brand">
-        Supplier Payment Control
-      </div>
+      <div className="navbar-left">
 
-      <div className="navbar-links">
-
-        <Link to="/">
-          Dashboard
+        <Link
+          to="/"
+          className="navbar-brand"
+        >
+          {
+            t(
+              "appName"
+            )
+          }
         </Link>
 
-        {hasRole(
-          "PAYMENT_REQUESTER"
-        ) && (
-          <>
-            <Link to="/suppliers">
-              Suppliers
-            </Link>
+        <nav className="navbar-links">
 
-            <Link to="/invoices">
-              Invoices
-            </Link>
+          <Link
+            to="/"
+            className="nav-link"
+          >
+            {
+              t(
+                "nav.dashboard"
+              )
+            }
+          </Link>
 
-            <Link to="/payments">
-              Payments
-            </Link>
-          </>
-        )}
+          {
+            isRequester &&
+            (
+              <>
+                <Link
+                  to="/suppliers"
+                  className="nav-link"
+                >
+                  {
+                    t(
+                      "nav.suppliers"
+                    )
+                  }
+                </Link>
+
+                <Link
+                  to="/invoices"
+                  className="nav-link"
+                >
+                  {
+                    t(
+                      "nav.invoices"
+                    )
+                  }
+                </Link>
+
+                <Link
+                  to="/payments"
+                  className="nav-link"
+                >
+                  {
+                    t(
+                      "nav.payments"
+                    )
+                  }
+                </Link>
+              </>
+            )
+          }
+
+        </nav>
 
       </div>
 
-      <div className="navbar-user">
+      <div className="navbar-right">
 
-        <span>
-          {user?.fullName ||
-            user?.username}
-        </span>
+        <div className="navbar-user">
+
+          {
+            user?.displayName ||
+            user?.username ||
+            user?.userId ||
+            ""
+          }
+
+        </div>
+
+        <LanguageSelector />
 
         <button
+          type="button"
+          className="theme-toggle"
+          onClick={
+            toggleTheme
+          }
+          aria-label={
+            theme === "dark"
+              ? "Switch to light mode"
+              : "Switch to dark mode"
+          }
+          title={
+            theme === "dark"
+              ? "Switch to light mode"
+              : "Switch to dark mode"
+          }
+        >
+
+          {
+            theme === "dark"
+              ? "☀ Light"
+              : "🌙 Dark"
+          }
+
+        </button>
+
+        <button
+          type="button"
+          className="logout-button"
           onClick={
             handleLogout
           }
         >
-          Logout
+          {
+            t(
+              "nav.logout"
+            )
+          }
         </button>
 
       </div>
 
-    </nav>
+    </header>
   );
 }

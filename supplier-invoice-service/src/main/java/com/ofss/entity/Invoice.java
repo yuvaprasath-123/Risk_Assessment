@@ -9,6 +9,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,16 +17,16 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "SUP_INVOICES",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "UK_SUPPLIER_INVOICE_NUMBER",
-                        columnNames = {
-                                "SUPPLIER_ID",
-                                "INVOICE_NUMBER"
-                        }
-                )
-        }
+    name = "SUP_INVOICES",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "UK_SUP_INVOICE_NUMBER",
+            columnNames = {
+                "SUPPLIER_ID",
+                "INVOICE_NUMBER"
+            }
+        )
+    }
 )
 public class Invoice {
 
@@ -78,6 +79,13 @@ public class Invoice {
             nullable = false
     )
     private LocalDateTime updatedAt;
+    
+    @Version
+    @Column(
+        name = "VERSION",
+        nullable = false
+    )
+    private Long version;
 
     public Invoice() {
     }

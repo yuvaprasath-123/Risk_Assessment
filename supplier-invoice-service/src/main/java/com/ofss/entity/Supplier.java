@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
 
@@ -48,6 +49,13 @@ public class Supplier {
             nullable = false
     )
     private LocalDateTime updatedAt;
+    
+    @Version
+    @Column(
+        name = "VERSION",
+        nullable = false
+    )
+    private Long version;
 
     public Supplier() {
     }

@@ -15,6 +15,7 @@ import com.ofss.exception.ResourceNotFoundException;
 
 import com.ofss.repository.SupplierRepository;
 import com.ofss.repository.SupplierStatusHistoryRepository;
+import com.ofss.security.AuthUtil;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,19 +27,26 @@ public class SupplierService {
 
     private final SupplierRepository
             supplierRepository;
+    
+    private final AuthUtil authUtil;
 
     private final SupplierStatusHistoryRepository
             supplierStatusHistoryRepository;
 
     public SupplierService(
             SupplierRepository supplierRepository,
-            SupplierStatusHistoryRepository supplierStatusHistoryRepository
+            SupplierStatusHistoryRepository supplierStatusHistoryRepository,
+            AuthUtil authUtil
     ) {
+
         this.supplierRepository =
                 supplierRepository;
 
         this.supplierStatusHistoryRepository =
                 supplierStatusHistoryRepository;
+
+        this.authUtil =
+                authUtil;
     }
 
     @Transactional
@@ -78,7 +86,7 @@ public class SupplierService {
         );
 
         history.setChangedBy(
-                null
+                authUtil.getCurrentUserId()
         );
 
         supplierStatusHistoryRepository

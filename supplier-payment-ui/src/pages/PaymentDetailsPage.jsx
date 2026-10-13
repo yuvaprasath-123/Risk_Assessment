@@ -10,7 +10,8 @@ import {
 import {
   getPayment,
   getPaymentTimeline,
-  submitPayment
+  submitPayment,
+  updatePayment
 } from "../api/paymentApi";
 
 import {
@@ -41,15 +42,35 @@ export default function PaymentDetailsPage() {
   ] = useState([]);
 
   const [
+    paymentAmount,
+    setPaymentAmount
+  ] = useState("");
+
+  const [
     error,
     setError
   ] = useState("");
 
-  async function loadData() {
+  const [
+    loading,
+    setLoading
+  ] = useState(true);
 
-    setError("");
+  const [
+    updating,
+    setUpdating
+  ] = useState(false);
+
+  const [
+    submitting,
+    setSubmitting
+  ] = useState(false);
+
+  async function loadPayment() {
 
     try {
+
+      setError("");
 
       const [
         paymentData,
@@ -64,7 +85,7 @@ export default function PaymentDetailsPage() {
           getPaymentTimeline(
             token,
             paymentId
-          ),
+          )
         ]);
 
       setPayment(
@@ -75,22 +96,104 @@ export default function PaymentDetailsPage() {
         timelineData
       );
 
+      setPaymentAmount(
+        paymentData.paymentAmount
+      );
+
     } catch (error) {
 
       setError(
         error.message
+      );
+
+    } finally {
+
+      setLoading(
+        false
       );
     }
   }
 
   useEffect(
     () => {
-      loadData();
+
+      if (
+        token &&
+        paymentId
+      ) {
+
+        loadPayment();
+      }
+
     },
-    [paymentId]
+    [
+      token,
+      paymentId
+    ]
   );
 
+  async function handleUpdate(
+    event
+  ) {
+
+    event.preventDefault();
+
+    if (updating) {
+      return;
+    }
+
+    setUpdating(
+      true
+    );
+
+    setError("");
+
+    try {
+
+      await updatePayment(
+        token,
+        paymentId,
+        paymentAmount
+      );
+
+      await loadPayment();
+
+    } catch (error) {
+
+      if (
+        error.status === 409
+      ) {
+
+        setError(
+          "This payment request was modified by another user. Refresh and try again."
+        );
+
+        await loadPayment();
+
+        return;
+      }
+
+      setError(
+        error.message
+      );
+
+    } finally {
+
+      setUpdating(
+        false
+      );
+    }
+  }
+
   async function handleSubmitPayment() {
+
+    if (submitting) {
+      return;
+    }
+
+    setSubmitting(
+      true
+    );
 
     setError("");
 
@@ -101,26 +204,60 @@ export default function PaymentDetailsPage() {
         paymentId
       );
 
-      await loadData();
+      await loadPayment();
 
     } catch (error) {
+
+      if (
+        error.status === 409
+      ) {
+
+        setError(
+          "This payment request was already modified or submitted by another user."
+        );
+
+        await loadPayment();
+
+        return;
+      }
 
       setError(
         error.message
       );
+
+    } finally {
+
+      setSubmitting(
+        false
+      );
     }
+  }
+
+  if (loading) {
+
+    return (
+      <div className="page">
+
+        <p>
+          Loading payment...
+        </p>
+
+      </div>
+    );
   }
 
   if (!payment) {
 
     return (
       <div className="page">
+
         <ErrorMessage
-          message={error}
+          message={
+            error ||
+            "Payment request not found"
+          }
         />
 
-        {!error &&
-          "Loading..."}
       </div>
     );
   }
@@ -129,100 +266,296 @@ export default function PaymentDetailsPage() {
     <div className="page">
 
       <h1>
-        Payment #{payment.paymentId}
+        Payment Details
       </h1>
 
       <ErrorMessage
-        message={error}
+        message={
+          error
+        }
       />
 
-      <div className="card details">
+      <div className="card">
 
         <p>
           <strong>
-            Invoice:
+            Payment ID:
           </strong>
+
           {" "}
-          {payment.invoiceId}
+
+          {
+            payment.paymentId
+          }
         </p>
 
         <p>
           <strong>
-            Supplier:
+            Invoice ID:
           </strong>
+
           {" "}
-          {payment.supplierId}
+
+          {
+            payment.invoiceId
+          }
         </p>
 
         <p>
           <strong>
-            Amount:
+            Supplier ID:
           </strong>
+
           {" "}
-          {payment.paymentAmount}
+
+          {
+            payment.supplierId
+          }
+        </p>
+
+        <p>
+          <strong>
+            Requester ID:
+          </strong>
+
+          {" "}
+
+          {
+            payment.requesterId
+          }
         </p>
 
         <p>
           <strong>
             Status:
           </strong>
+
           {" "}
-          {payment.status}
+
+          <span className="status">
+
+            {
+              payment.status
+            }
+
+          </span>
         </p>
 
         {
-          payment.status
-          === "DRAFT"
-          && (
-            <button
-              onClick={
-                handleSubmitPayment
+          payment.riskScore !== null &&
+          payment.riskScore !== undefined &&
+          (
+            <p>
+              <strong>
+                Risk Score:
+              </strong>
+
+              {" "}
+
+              {
+                payment.riskScore
               }
-            >
-              Submit for Validation
-            </button>
+            </p>
+          )
+        }
+
+        {
+          payment.riskBand &&
+          (
+            <p>
+              <strong>
+                Risk Band:
+              </strong>
+
+              {" "}
+
+              {
+                payment.riskBand
+              }
+            </p>
+          )
+        }
+
+        {
+          payment.requiredApprovalLevel &&
+          (
+            <p>
+              <strong>
+                Required Approval Level:
+              </strong>
+
+              {" "}
+
+              {
+                payment.requiredApprovalLevel
+              }
+            </p>
           )
         }
 
       </div>
 
-      <h2>
-        Status Timeline
-      </h2>
+      {
+        payment.status ===
+        "DRAFT" &&
+        (
+          <form
+            className="card form-row"
+            onSubmit={
+              handleUpdate
+            }
+          >
+
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={
+                paymentAmount
+              }
+              onChange={
+                event =>
+                  setPaymentAmount(
+                    event.target.value
+                  )
+              }
+              required
+              disabled={
+                updating ||
+                submitting
+              }
+            />
+
+            <button
+              type="submit"
+              disabled={
+                updating ||
+                submitting
+              }
+            >
+              {
+                updating
+                  ? "Updating..."
+                  : "Update Payment"
+              }
+            </button>
+
+            <button
+              type="button"
+              onClick={
+                handleSubmitPayment
+              }
+              disabled={
+                updating ||
+                submitting
+              }
+            >
+              {
+                submitting
+                  ? "Submitting..."
+                  : "Submit Payment"
+              }
+            </button>
+
+          </form>
+        )
+      }
 
       <div className="card">
 
-        {timeline.length === 0 && (
-          <p>
-            No timeline entries.
-          </p>
-        )}
+        <h2>
+          Timeline
+        </h2>
 
-        {timeline.map(
-          item => (
-            <div
-              className="timeline-item"
-              key={
-                item.historyId ||
-                `${item.newStatus}-${item.changedAt}`
-              }
-            >
+        {
+          timeline.length === 0
+            ? (
+              <p>
+                No status history available.
+              </p>
+            )
+            : (
+              <table>
 
-              <strong>
-                {item.newStatus}
-              </strong>
+                <thead>
 
-              <div>
-                {item.reason}
-              </div>
+                  <tr>
+                    <th>
+                      Previous Status
+                    </th>
 
-              <small>
-                {item.changedAt}
-              </small>
+                    <th>
+                      New Status
+                    </th>
 
-            </div>
-          )
-        )}
+                    <th>
+                      Changed By
+                    </th>
+
+                    <th>
+                      Changed At
+                    </th>
+
+                    <th>
+                      Reason
+                    </th>
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  {
+                    timeline.map(
+                      history => (
+
+                        <tr
+                          key={
+                            history.id
+                          }
+                        >
+
+                          <td>
+                            {
+                              history.previousStatus ||
+                              "-"
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              history.newStatus
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              history.changedBy
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              history.changedAt
+                            }
+                          </td>
+
+                          <td>
+                            {
+                              history.reason
+                            }
+                          </td>
+
+                        </tr>
+                      )
+                    )
+                  }
+
+                </tbody>
+
+              </table>
+            )
+        }
 
       </div>
 

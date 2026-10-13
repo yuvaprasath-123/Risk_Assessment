@@ -18,3 +18,5 @@ spring:
     properties:
       hibernate:
         format_sql: true
+jwt:
+  secret-key: "this-is-a-very-long-secret-key-for-jwt-signing-123456789"
