@@ -1,0 +1,301 @@
+import {
+  useEffect,
+  useState
+} from "react";
+
+import {
+  Link
+} from "react-router";
+
+import {
+  createPayment,
+  getPayments
+} from "../api/paymentApi";
+
+import {
+  getInvoices
+} from "../api/invoiceApi";
+
+import {
+  useAuth
+} from "../auth/AuthContext";
+
+import ErrorMessage
+  from "../components/ErrorMessage";
+
+export default function PaymentsPage() {
+
+  const {
+    token
+  } = useAuth();
+
+  const [
+    payments,
+    setPayments
+  ] = useState([]);
+
+  const [
+    invoices,
+    setInvoices
+  ] = useState([]);
+
+  const [
+    invoiceId,
+    setInvoiceId
+  ] = useState("");
+
+  const [
+    paymentAmount,
+    setPaymentAmount
+  ] = useState("");
+
+  const [
+    error,
+    setError
+  ] = useState("");
+
+  async function loadData() {
+
+    try {
+
+      const [
+        paymentData,
+        invoiceData
+      ] =
+        await Promise.all([
+          getPayments(token),
+          getInvoices(),
+        ]);
+
+      setPayments(
+        paymentData
+      );
+
+      setInvoices(
+        invoiceData
+      );
+
+    } catch (error) {
+
+      setError(
+        error.message
+      );
+    }
+  }
+
+  useEffect(
+    () => {
+      loadData();
+    },
+    []
+  );
+
+  function handleInvoiceChange(
+    event
+  ) {
+
+    const selectedId =
+      event.target.value;
+
+    setInvoiceId(
+      selectedId
+    );
+
+    const selectedInvoice =
+      invoices.find(
+        invoice =>
+          String(
+            invoice.invoiceId
+          ) === selectedId
+      );
+
+    if (selectedInvoice) {
+
+      setPaymentAmount(
+        selectedInvoice.invoiceAmount
+      );
+    }
+  }
+
+  async function handleSubmit(
+    event
+  ) {
+
+    event.preventDefault();
+
+    setError("");
+
+    try {
+
+      await createPayment(
+        token,
+        invoiceId,
+        paymentAmount
+      );
+
+      setInvoiceId("");
+      setPaymentAmount("");
+
+      await loadData();
+
+    } catch (error) {
+
+      setError(
+        error.message
+      );
+    }
+  }
+
+  return (
+    <div className="page">
+
+      <h1>
+        Payment Requests
+      </h1>
+
+      <ErrorMessage
+        message={error}
+      />
+
+      <form
+        className="card form-row"
+        onSubmit={
+          handleSubmit
+        }
+      >
+
+        <select
+          value={invoiceId}
+          onChange={
+            handleInvoiceChange
+          }
+          required
+        >
+          <option value="">
+            Select invoice
+          </option>
+
+          {invoices.map(
+            invoice => (
+              <option
+                key={
+                  invoice.invoiceId
+                }
+                value={
+                  invoice.invoiceId
+                }
+              >
+                {
+                  invoice.invoiceNumber
+                }
+                {" - "}
+                {
+                  invoice.supplierName
+                }
+              </option>
+            )
+          )}
+        </select>
+
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={
+            paymentAmount
+          }
+          onChange={
+            event =>
+              setPaymentAmount(
+                event.target.value
+              )
+          }
+          required
+        />
+
+        <button type="submit">
+          Create Payment
+        </button>
+
+      </form>
+
+      <div className="card">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Invoice</th>
+              <th>Supplier</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {payments.map(
+              payment => (
+                <tr
+                  key={
+                    payment.paymentId
+                  }
+                >
+                  <td>
+                    {
+                      payment.paymentId
+                    }
+                  </td>
+
+                  <td>
+                    {
+                      payment.invoiceId
+                    }
+                  </td>
+
+                  <td>
+                    {
+                      payment.supplierId
+                    }
+                  </td>
+
+                  <td>
+                    {
+                      payment.paymentAmount
+                    }
+                  </td>
+
+                  <td>
+                    <span
+                      className="status"
+                    >
+                      {
+                        payment.status
+                      }
+                    </span>
+                  </td>
+
+                  <td>
+                    <Link
+                      to={
+                        `/payments/${payment.paymentId}`
+                      }
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              )
+            )}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+  );
+}
