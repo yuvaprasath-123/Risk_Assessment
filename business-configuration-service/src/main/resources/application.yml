@@ -1,0 +1,34 @@
+server:
+  port: 8086
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+spring:
+  application:
+    name: business-configuration-service
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: ${CONFIG_DB_USERNAME}
+    password: ${CONFIG_DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 3
+      connection-timeout: 5000
+      read-only: true
+  sql:
+    init:
+      mode: never
+  jpa:
+    hibernate:
+      ddl-auto: none
+    generate-ddl: false
+  flyway:
+    enabled: false
+  liquibase:
+    enabled: false
+
+security:
+  jwt:
+    secret: ${CONFIG_JWT_SECRET}
