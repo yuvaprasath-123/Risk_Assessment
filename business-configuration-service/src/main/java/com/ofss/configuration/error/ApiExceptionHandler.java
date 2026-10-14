@@ -8,6 +8,7 @@ import com.ofss.configuration.rule.ConfigurationVersionNotFoundException;
 import com.ofss.configuration.rule.DraftRuleConflictException;
 import com.ofss.configuration.band.DraftBandConflictException;
 import com.ofss.configuration.threshold.DraftThresholdConflictException;
+import com.ofss.configuration.sla.DraftSlaConflictException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(DraftSlaConflictException.class)
+    public ResponseEntity<ApiError> slaConflict(HttpServletRequest request) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "SLA_LEVEL_CONFLICT",
+                "A conflicting approval SLA already exists in this version", request.getRequestURI()));
+    }
     @ExceptionHandler(DraftThresholdConflictException.class)
     public ResponseEntity<ApiError> thresholdConflict(HttpServletRequest request) {
         return ResponseEntity.status(409).body(ApiError.of(409, "THRESHOLD_LEVEL_CONFLICT",
