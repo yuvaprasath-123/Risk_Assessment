@@ -1,0 +1,22 @@
+spring:
+  main:
+    web-application-type: none
+  datasource:
+    url: ${RISK_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    username: ${RISK_DB_USERNAME}
+    password: ${RISK_DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 3
+      connection-timeout: 5000
+  sql:
+    init:
+      mode: never
+  jpa:
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: false
+  liquibase:
+    enabled: false
