@@ -70,6 +70,17 @@ class DraftRiskRuleApiTest {
         return new RiskRule(id, 7, code, "Under review", enabled, weight, "draft-v1", Map.of(), order);
     }
 
+    @ParameterizedTest @ValueSource(strings = {"NEW_SUPPLIER", "NEAR_DUPLICATE_INVOICE"})
+    void newlySupportedRulesStillAllowIncompleteDraftParameters(String code) throws Exception {
+        when(repository.findVersion(7, true)).thenReturn(Optional.of(parent("DRAFT", 0)));
+        when(repository.findRule(7, code)).thenReturn(Optional.empty(), Optional.of(rule(99, code, false, 0, 1)));
+        when(repository.saveRule(eq(7L), eq(code), any(), isNull())).thenReturn(99L);
+        mvc.perform(write(BASE + "/risk-rules/" + code, BODY)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.rule.ruleCode").value(code)).andExpect(jsonPath("$.rule.parameters").isEmpty())
+                .andExpect(jsonPath("$.rowVersion").value("1"));
+        verify(repository).incrementParent(7, 0);
+    }
+
     @Test void detailsIncludePolicyNullableMaximumAndStringConcurrencyValue() throws Exception {
         when(repository.findVersion(7, false)).thenReturn(Optional.of(parent("DRAFT", Long.MAX_VALUE)));
         mvc.perform(get(BASE).header("Authorization", "Bearer " + manager())).andExpect(status().isOk())
@@ -205,7 +216,7 @@ class DraftRiskRuleApiTest {
         mvc.perform(write(RULE, body)).andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
         verifyNoInteractions(repository);
     }
-    @ParameterizedTest @ValueSource(strings = {"NEAR_DUPLICATE", "NEW_SUPPLIER", "structuring", "UNKNOWN"})
+    @ParameterizedTest @ValueSource(strings = {"NEAR_DUPLICATE", "structuring", "UNKNOWN"})
     void unapprovedCodesAreRejected(String code) throws Exception {
         mvc.perform(write(BASE + "/risk-rules/" + code, BODY)).andExpect(status().isBadRequest());
         verifyNoInteractions(repository);

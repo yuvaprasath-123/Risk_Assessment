@@ -6,6 +6,8 @@ import com.ofss.configuration.rule.DraftRiskRuleRequest;
 import com.ofss.configuration.rule.RiskRule;
 import com.ofss.configuration.sla.ApprovalSla;
 import com.ofss.configuration.threshold.ApprovalThreshold;
+import com.ofss.risk.contract.RuleCode;
+import com.ofss.risk.contract.RuleParameterContracts;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -26,16 +28,10 @@ public class PublicationReadinessValidator {
         bands(bands, maximum, issues);
         thresholds(thresholds, issues);
         slas(slas, issues);
-        // No approved/versioned semantic validators currently exist. These blockers
-        // cannot be cleared by arbitrary JSON keys, policy strings or the demo flag.
-        blocker(issues, "RULE_PARAMETER_CONTRACTS_UNRESOLVED", "/risk-rules",
-                "Agree trigger definitions, parameter meanings and units for the five supported rules");
         blocker(issues, "HISTORY_POLICY_UNRESOLVED", "/risk-rules/history",
-                "Agree eligible history, windows, minimum observations and insufficient-history behavior");
-        blocker(issues, "SCORING_CONTRACT_UNRESOLVED", "/score-policy",
-                "Agree rule contribution models and whether supported rules may be disabled at publication");
+                "Agree Developer 1 history eligibility certification, resubmission identity and as-of evidence contracts");
         blocker(issues, "APPROVAL_POLICY_UNRESOLVED", "/approval-thresholds",
-                "Agree amount currency/unit, risk-band authority mappings and level-one approval behavior");
+                "Agree risk-band authority mappings and level-one approval behavior; demonstration currency is INR");
         blocker(issues, "SLA_POLICY_SEMANTICS_UNRESOLVED", "/approval-slas",
                 "Agree supported start events, escalation/backup order and terminal-level behavior");
         issues.sort(Comparator.comparing((PublicationReadiness.Issue issue) -> issue.category().ordinal())
@@ -62,6 +58,17 @@ public class PublicationReadinessValidator {
                 error(issues, "INVALID_RULE_STRUCTURE", path, "Rule name or parameter schema is invalid");
             }
             if (rule.parameters() == null) error(issues, "INVALID_RULE_PARAMETER_OBJECT", path + "/parameters", "Rule parameters must be a JSON object");
+            if (DraftRiskRuleRequest.RULE_CODES.contains(rule.ruleCode()) && rule.parameters() != null) {
+                try {
+                    var typed = RuleParameterContracts.parse(RuleCode.valueOf(rule.ruleCode()), rule.parameterSchemaVersion(), rule.parameters());
+                    if (rule.enabled()) {
+                        var unresolved = RuleParameterContracts.unresolved(typed);
+                        if (!unresolved.isEmpty()) blocker(issues, "RULE_POLICY_UNRESOLVED", path + "/parameters", String.join("; ", unresolved));
+                    }
+                } catch (IllegalArgumentException exception) {
+                    error(issues, "INVALID_RULE_PARAMETER_CONTRACT", path + "/parameters", exception.getMessage());
+                }
+            }
             if (rule.weight() < 0 || rule.evaluationOrder() < 1 || rule.evaluationOrder() > 99999) {
                 error(issues, "INVALID_RULE_LIMITS", path, "Rule weight or evaluation order is outside the supported limits");
             }

@@ -65,7 +65,7 @@ class PublicationReadinessApiTest {
                 .andExpect(jsonPath("$.isDemonstration").value(true))
                 .andExpect(jsonPath("$.structurallyValid").value(true))
                 .andExpect(jsonPath("$.ready").value(false))
-                .andExpect(jsonPath("$.issues", hasSize(5)))
+                .andExpect(jsonPath("$.issues", hasSize(3)))
                 .andExpect(jsonPath("$.issues[*].category", everyItem(is("POLICY_BLOCKER"))))
                 .andExpect(jsonPath("$.issues[0].code").value("SLA_POLICY_SEMANTICS_UNRESOLVED"));
         var order = inOrder(versionsAndRules, rules, bands, thresholds, slas);
@@ -81,7 +81,7 @@ class PublicationReadinessApiTest {
         mvc.perform(get(PATH).header("Authorization", "Bearer " + manager())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.structurallyValid").value(false)).andExpect(jsonPath("$.ready").value(false))
                 .andExpect(jsonPath("$.issues[?(@.code=='SECTION_MISSING')]", hasSize(4)))
-                .andExpect(jsonPath("$.issues[?(@.category=='POLICY_BLOCKER')]", hasSize(5)))
+                .andExpect(jsonPath("$.issues[?(@.category=='POLICY_BLOCKER')]", hasSize(3)))
                 .andExpect(jsonPath("$.issues[0].category").value("CONFIGURATION_ERROR"));
     }
     @Test void absentVersionIs404WithoutChildReads() throws Exception {

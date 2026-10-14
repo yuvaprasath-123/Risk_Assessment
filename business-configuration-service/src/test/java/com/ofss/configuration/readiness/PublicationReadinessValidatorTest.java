@@ -29,9 +29,9 @@ class PublicationReadinessValidatorTest {
         assertThat(result.structurallyValid()).isTrue();
         assertThat(result.ready()).isFalse();
         assertThat(result.isDemonstration()).isEqualTo(demo);
-        assertThat(result.issues()).hasSize(5).allMatch(issue -> issue.category() == POLICY_BLOCKER);
+        assertThat(result.issues()).hasSize(3).allMatch(issue -> issue.category() == POLICY_BLOCKER);
         assertThat(result.issues()).extracting(PublicationReadiness.Issue::code).containsExactlyInAnyOrder(
-                "RULE_PARAMETER_CONTRACTS_UNRESOLVED", "HISTORY_POLICY_UNRESOLVED", "SCORING_CONTRACT_UNRESOLVED",
+                "HISTORY_POLICY_UNRESOLVED",
                 "APPROVAL_POLICY_UNRESOLVED", "SLA_POLICY_SEMANTICS_UNRESOLVED");
     }
     @ParameterizedTest @ValueSource(strings = {"RULES", "BANDS", "THRESHOLDS", "SLAS"})
@@ -42,14 +42,13 @@ class PublicationReadinessValidatorTest {
         error(result, "SECTION_MISSING");
         error(result, "REQUIRED_" + switch (section) { case "RULES" -> "RULE"; case "BANDS" -> "BAND"; case "THRESHOLDS" -> "THRESHOLD"; default -> "SLA"; } + "_MISSING");
     }
-    @ParameterizedTest @ValueSource(strings = {"STRUCTURING", "UNUSUAL_FREQUENCY", "UNUSUAL_AMOUNT", "RECENTLY_REACTIVATED_SUPPLIER", "PREVIOUS_RISK_FLAGS"})
+    @ParameterizedTest @ValueSource(strings = {"STRUCTURING", "UNUSUAL_FREQUENCY", "UNUSUAL_AMOUNT", "RECENTLY_REACTIVATED_SUPPLIER", "PREVIOUS_RISK_FLAGS", "NEW_SUPPLIER", "NEAR_DUPLICATE_INVOICE"})
     void everySupportedFactorRequiresAnEntry(String code) {
         error(check(parent("SUM", null, true), rules().stream().filter(rule -> !rule.ruleCode().equals(code)).toList(),
                 bands(), thresholds(), slas()), "REQUIRED_RULE_MISSING");
     }
-    @Test void optionalUnapprovedRulesAreNotAcceptedAsRequiredScopeRules() {
+    @Test void oldAmbiguousNearDuplicateCodeIsStillUnsupported() {
         var rules = new ArrayList<>(rules());
-        rules.add(rule("NEW_SUPPLIER", 6, 1, false));
         rules.add(rule("NEAR_DUPLICATE", 7, 1, false));
         error(check(parent("SUM", null, true), rules, bands(), thresholds(), slas()), "UNSUPPORTED_RULE_CODE");
     }
@@ -64,9 +63,9 @@ class PublicationReadinessValidatorTest {
         var rules = rules().stream().map(rule -> new RiskRule(rule.ruleConfigId(), 7, rule.ruleCode(), "Test", rule.evaluationOrder() == 1,
                 rule.evaluationOrder() == 1 ? 5 : Integer.MAX_VALUE, "made-up-approved", Map.of("approved", true), rule.evaluationOrder())).toList();
         var result = check(parent("SUM", null, false), rules, bands(), thresholds(), slas());
-        assertThat(result.structurallyValid()).isTrue();
+        assertThat(result.structurallyValid()).isFalse();
         assertThat(result.ready()).isFalse();
-        assertThat(result.issues()).anyMatch(issue -> issue.code().equals("RULE_PARAMETER_CONTRACTS_UNRESOLVED"));
+        assertThat(result.issues()).anyMatch(issue -> issue.code().equals("INVALID_RULE_PARAMETER_CONTRACT"));
     }
     @ParameterizedTest @ValueSource(strings = {"UNKNOWN", "SUM_WITH_CAP", "CAP_NULL", "CAP_ZERO", "CAP_NEGATIVE"})
     void invalidScorePolicyIsAnError(String scenario) {
@@ -96,9 +95,9 @@ class PublicationReadinessValidatorTest {
     }
     @Test void capRatherThanRawSumDeterminesRequiredBandCoverage() {
         var finite = new ArrayList<>(bands());
-        finite.set(2, new RiskBand(3, 7, "HIGH", 2, 5, 3));
+        finite.set(2, new RiskBand(3, 7, "HIGH", 2, 7, 3));
         assertThat(check(parent("SUM", null, true), rules(), finite, thresholds(), slas()).structurallyValid()).isTrue();
-        error(check(parent("CAP_AT_MAX", 6, true), rules(), finite, thresholds(), slas()), "BAND_COVERAGE_INCOMPLETE");
+        error(check(parent("CAP_AT_MAX", 8, true), rules(), finite, thresholds(), slas()), "BAND_COVERAGE_INCOMPLETE");
     }
     @ParameterizedTest @ValueSource(strings = {"SUM_ZERO", "SUM_SMALL", "CAP_SMALL"})
     void coverageDoesNotRequireEveryBandToBeReachable(String scenario) {

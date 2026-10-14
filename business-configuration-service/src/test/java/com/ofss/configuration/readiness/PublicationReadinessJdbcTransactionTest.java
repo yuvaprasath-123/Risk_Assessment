@@ -60,7 +60,7 @@ class PublicationReadinessJdbcTransactionTest {
         var ruleRows = new ArrayList<Map<String, Object>>();
         for (var rule : ReadinessFixtures.rules()) ruleRows.add(row("RULE_CONFIG_ID", rule.ruleConfigId(), "VERSION_ID", 7L,
                 "RULE_CODE", rule.ruleCode(), "DISPLAY_NAME", rule.displayName(), "ENABLED", 1, "WEIGHT", 1,
-                "PARAMETER_SCHEMA_VERSION", "draft-test", "PARAMETERS_JSON", "{}", "EVALUATION_ORDER", rule.evaluationOrder()));
+                "PARAMETER_SCHEMA_VERSION", rule.parameterSchemaVersion(), "PARAMETERS_JSON", JsonMapper.builder().build().writeValueAsString(rule.parameters()), "EVALUATION_ORDER", rule.evaluationOrder()));
         ruleResult = rows(ruleRows);
         doReturn(ruleResult).when(rules).executeQuery();
         var bandRows = new ArrayList<Map<String, Object>>();
@@ -167,7 +167,7 @@ class PublicationReadinessJdbcTransactionTest {
         doReturn(json).when(ruleResult).getString("PARAMETERS_JSON");
         mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(jsonPath("$.structurallyValid").value(false))
                 .andExpect(jsonPath("$.ready").value(false))
-                .andExpect(jsonPath("$.issues[?(@.code=='INVALID_RULE_PARAMETER_OBJECT')]", hasSize(5)));
+                .andExpect(jsonPath("$.issues[?(@.code=='INVALID_RULE_PARAMETER_OBJECT')]", hasSize(7)));
         verify(connection).commit(); verify(connection, never()).rollback(); noWrites();
     }
 }

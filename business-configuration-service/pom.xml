@@ -17,6 +17,9 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>com.ofss</groupId><artifactId>risk-rule-contracts</artifactId><version>1</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>

@@ -76,7 +76,7 @@ Use port 8086 and the same Bearer header. These endpoints use existing tables; n
 | GET /api/v1/configuration/versions/{versionId}/risk-rules | HTTP 200: rule array ordered by evaluationOrder, then ruleCode; `[]` for an existing version without rules. Missing version: 404. |
 | PUT /api/v1/configuration/versions/{versionId}/risk-rules/{ruleCode} | HTTP 200 for create or replacement: `{ "rule": <saved rule>, "rowVersion": "<updated parent value>" }`. Existing rule identity is retained. |
 
-Allowed rule codes are STRUCTURING, UNUSUAL_FREQUENCY, UNUSUAL_AMOUNT, RECENTLY_REACTIVATED_SUPPLIER and PREVIOUS_RISK_FLAGS. These represent the five explicit scope factors; their parameter semantics still need agreement. Other codes, including near-duplicate and new-supplier rules, are rejected. No weights, thresholds or rules are seeded.
+Allowed rule codes are STRUCTURING, UNUSUAL_FREQUENCY, UNUSUAL_AMOUNT, RECENTLY_REACTIVATED_SUPPLIER, PREVIOUS_RISK_FLAGS, NEW_SUPPLIER and NEAR_DUPLICATE_INVOICE. The last two are user-approved demonstration additions, not requirements attributed to the scope PDF. No weights, thresholds or rules are seeded. Draft PUT continues accepting incomplete object-shaped parameters; readiness applies the typed contracts below.
 
 PUT requires exactly these fields:
 
@@ -186,23 +186,45 @@ M2f verification: the unchanged implementation passed 499 automated tests (0 fai
 | ready | True only when the issue list is empty, including semantic blockers. Currently always false because approved semantic validators/contracts do not exist. |
 | issues | Array of `{ "category": "CONFIGURATION_ERROR" or "POLICY_BLOCKER", "code": "stable code", "path": "/configuration-section/entry", "message": "safe explanation" }`. Sorted by category (configuration errors first), then path and code. |
 
-Structural checks require the five M2c supported rule entries (presence, not an invented requirement to enable every rule), valid rule fields and unique evaluation order. Unsupported new-supplier/near-duplicate codes are configuration errors. Stored parameter arrays/scalars or invalid JSON are reported as INVALID_RULE_PARAMETER_OBJECT configuration errors; JDBC read failures remain sanitized 503. Existing risk-rule read/write contracts are unchanged. Enabled weights are added exactly; SUM must have no cap and its total must fit the nonnegative Java Integer final-score range. CAP_AT_MAX requires its existing positive Integer cap. Large raw totals are accumulated exactly rather than wrapped or silently clamped; business contribution/enablement semantics remain blocked below.
+Structural checks require all seven supported rule entries (presence, not enablement), valid rule fields and unique evaluation order. Each entry, including disabled entries, must have a valid versioned parameter contract. Missing/invalid contracts are INVALID_RULE_PARAMETER_CONTRACT errors. Stored parameter arrays/scalars or invalid JSON are INVALID_RULE_PARAMETER_OBJECT errors; JDBC read failures remain sanitized 503. Draft editing remains permissive. SUM must have no cap and its enabled weight total must fit Java Integer; CAP_AT_MAX requires a positive Integer cap. Exact arithmetic and configuration storage contracts remain unchanged.
 
 LOW, MEDIUM and HIGH must be ordered, adjacent inclusive integer ranges starting at zero: each successor minimum equals the preceding maximum plus one. Only HIGH may have a null maximum. A finite HIGH maximum must cover the configured score upper bound. Coverage does not require every band to be reachable with the current weights/cap; no such business requirement is established. The structural bound is the enabled weight sum for SUM, or the declared maxFinalScore for CAP_AT_MAX. These are storage/configuration checks, not proof of complete rule semantics or approval of weights/boundaries. Band approval levels must be in 1–3; no fixed LOW/MEDIUM/HIGH-to-authority mapping is invented.
 
 Amount levels 1–3 must form contiguous `[minimum inclusive, maximum exclusive)` tiers starting at zero, using exact NUMBER(15,2) BigDecimal arithmetic. Level 3 must be unbounded and preceding levels bounded. SLA levels 1–3 must exist and meet M2f duration/string/null constraints. Missing sections/entries, gaps, overlaps and invalid bounds are configuration errors; no monetary or SLA defaults are created.
 
-Every report includes these POLICY_BLOCKER groups until agreed, versioned semantic validation is implemented:
+Every report retains these POLICY_BLOCKER groups; rule-specific unresolved choices also produce RULE_POLICY_UNRESOLVED when enabled:
 
 | Code | Decision needed |
 |---|---|
-| RULE_PARAMETER_CONTRACTS_UNRESOLVED | Business trigger definitions, parameter meanings and units for each supported factor. Version identifiers and serialization mechanics are implementation choices. |
-| HISTORY_POLICY_UNRESOLVED | Eligible historical records/statuses, windows/current-request inclusion, minimum observations and insufficient-history outcomes. |
-| SCORING_CONTRACT_UNRESOLVED | Business contribution models and whether supported rules may be disabled at publication. Exact arithmetic and the existing approved SUM/CAP_AT_MAX behavior are implementation work, not new approval questions. |
-| APPROVAL_POLICY_UNRESOLVED | Amount currency/unit, risk-band authority mapping and level-one automatic/human handling with Developer 3. The scope's MAX routing rule is already established. |
+| HISTORY_POLICY_UNRESOLVED | Developer 1 history eligibility certification, resubmission identity and coherent as-of evidence contracts. |
+| APPROVAL_POLICY_UNRESOLVED | Risk-band authority mapping and level-one automatic/human handling with Developer 3. Demonstration currency INR and the scope's MAX routing rule are established. |
 | SLA_POLICY_SEMANTICS_UNRESOLVED | Start-event meanings, escalation/backup priority and terminal-level behavior with Developer 3. Arbitrary stored strings cannot clear this blocker. |
 
-Demonstration values and arbitrary JSON flags are never semantic approval. Readiness is advisory: future publication must revalidate the same version/content atomically with its state transition, hash/immutability and agreed audit delivery; none is implemented here.
+The user-approved demonstration risk policy does not approve production thresholds or SLA meanings. Arbitrary JSON flags cannot clear blockers. Readiness is advisory: future publication must revalidate the same version/content atomically with its state transition, hash/immutability and agreed audit delivery; none is implemented here.
+
+### Typed risk parameters
+
+Use parameterSchemaVersion `risk-policy-v1`. Each parameters object must contain exactly the fields listed below at readiness; no defaults are supplied. `weight`, `enabled`, `evaluationOrder` and `expectedRowVersion` remain outside parameters in the existing PUT envelope.
+
+| Rule | Parameter fields |
+|---|---|
+| STRUCTURING | windowSeconds, minimumPayments (at least 2), approvalBoundaryLevels (distinct 2/3), historyEligibility |
+| UNUSUAL_FREQUENCY | windowSeconds, maximumSubmissions, historyEligibility |
+| UNUSUAL_AMOUNT | windowSeconds, minimumObservations, meanMultiplier (positive decimal string), zeroBaselinePolicy |
+| RECENTLY_REACTIVATED_SUPPLIER | windowSeconds |
+| PREVIOUS_RISK_FLAGS | windowSeconds, minimumFlaggedPayments, qualifyingRuleCodes (nonempty, distinct supported codes; excludes itself) |
+| NEW_SUPPLIER | windowSeconds |
+| NEAR_DUPLICATE_INVOICE | windowSeconds, historyEligibility, invoiceNumberNormalization |
+
+Windows are exact positive JSON integers bounded to 3155760000 seconds (100 years, an implementation limit); counts are positive Java Integer values. meanMultiplier permits up to 13 integer and 16 fractional digits. History eligibility choices are UNRESOLVED/VALIDATED_SUBMISSIONS/COMPLETED_PAYMENTS; zero baseline choices UNRESOLVED/INSUFFICIENT_HISTORY/COMPARE_TO_ZERO; invoice normalization choices UNRESOLVED/EXACT/TRIM_UPPERCASE. Explicit alternative choices are supported contract options, not an assertion of business agreement. Incomplete drafts can store missing fields; enabled unresolved choices block readiness. See [engine contracts](../risk-assessment-service/README.md) for evidence and unresolved semantics.
+
+The shared `risk-rule-contracts` library prevents drift between readiness and scoring. From the repository root, run all Developer 2 tests without Oracle:
+
+```powershell
+mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+```
+
+Before using the existing service-local Maven compile/test/run commands, install the shared library once from the repository root (repeat after changing it): `mvn -f risk-rule-contracts/pom.xml install`. This command builds a library; it does not start a service or access Oracle.
 
 All five SELECTs run on one Spring read-only SERIALIZABLE transaction. Oracle [transaction-level read consistency](https://docs.oracle.com/en/database/oracle/oracle-database/26/cncpt/data-concurrency-and-consistency.html) supplies a single committed snapshot across parent/rules/bands/thresholds/SLAs. A JDBC read-only hint alone would not provide this guarantee. No SELECT FOR UPDATE is used; repositories are called only for reads, and connection isolation/read-only settings are restored afterward. A readiness-specific rule reader distinguishes invalid stored configuration from SQL failures. Live Oracle concurrent-read/snapshot behavior remains unverified; transaction tests use mocked JDBC, including a MOCK-web Boot test of automatic transaction proxy wiring with no server socket or Oracle connection. Detailed progress documentation remains deferred.
 

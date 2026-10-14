@@ -3,12 +3,15 @@ package com.ofss.configuration.rule;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+import com.ofss.risk.contract.RuleCode;
 
 public record DraftRiskRuleRequest(String displayName, boolean enabled, int weight,
         String parameterSchemaVersion, Map<String, Object> parameters,
         int evaluationOrder, long expectedRowVersion) {
-    public static final Set<String> RULE_CODES = Set.of("STRUCTURING", "UNUSUAL_FREQUENCY",
-            "UNUSUAL_AMOUNT", "RECENTLY_REACTIVATED_SUPPLIER", "PREVIOUS_RISK_FLAGS");
+    public static final Set<String> RULE_CODES = Arrays.stream(RuleCode.values())
+            .map(Enum::name).collect(Collectors.toUnmodifiableSet());
     private static final Set<String> FIELDS = Set.of("displayName", "enabled", "weight",
             "parameterSchemaVersion", "parameters", "evaluationOrder", "expectedRowVersion");
 
