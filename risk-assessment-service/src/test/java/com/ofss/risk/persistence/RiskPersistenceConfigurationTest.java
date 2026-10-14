@@ -29,6 +29,7 @@ class RiskPersistenceConfigurationTest {
                 "RISK_DB_URL","jdbc:oracle:thin:@//invalid.test:1521/FREEPDB1","RISK_LEASE_DURATION","PT30S")));
             context.register(RiskPersistenceConfiguration.class); context.refresh();
             assertNotNull(context.getBean(RiskWorkService.class));
+            assertNotNull(context.getBean(RiskEvidenceService.class));
             assertInstanceOf(OracleLeaseClock.class,context.getBean("riskLeaseClock"));
             var ds=context.getBean(com.zaxxer.hikari.HikariDataSource.class);
             assertSame(ds,context.getBean(org.springframework.jdbc.support.JdbcTransactionManager.class).getDataSource());

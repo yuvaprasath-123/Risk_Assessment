@@ -83,7 +83,7 @@ public final class RiskWorkService {
         try { var expiry=now.plus(duration); PersistenceValues.timestamp(expiry); return expiry; }
         catch(RuntimeException e) { throw failure(WorkFailure.Code.WORK_COUNTER_EXHAUSTED); }
     }
-    private static void fence(RiskWorkRepository.Row row,WorkLease lease,Instant now) {
+    static void fence(RiskWorkRepository.Row row,WorkLease lease,Instant now) {
         if(!row.state().equals("IN_PROGRESS") || !Objects.equals(row.token(),lease.token())
             || row.epoch()!=lease.epoch() || row.attempt()!=lease.attempt()
             || row.revision()!=WorkLease.revision(lease.rowVersion()) || !Objects.equals(row.expiry(),lease.expiresAt())

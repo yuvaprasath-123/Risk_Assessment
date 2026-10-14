@@ -38,6 +38,14 @@ public class RiskPersistenceConfiguration {
     @Bean public Clock riskLeaseClock(@Qualifier("riskDataSource") DataSource ds) {
         return new OracleLeaseClock(new JdbcTemplate(ds));
     }
+    @Bean public RiskEvidenceRepository riskEvidenceRepository(@Qualifier("riskDataSource") DataSource ds) {
+        return new RiskEvidenceRepository(new JdbcTemplate(ds));
+    }
+    @Bean public RiskEvidenceService riskEvidenceService(RiskWorkRepository work,RiskAcceptanceRepository acceptance,
+            RiskEvidenceRepository evidence,@Qualifier("riskTransactionManager") JdbcTransactionManager manager,
+            @Qualifier("riskLeaseClock") Clock clock) {
+        return new RiskEvidenceService(work,acceptance,evidence,manager,clock);
+    }
     @Bean public RiskWorkService riskWorkService(RiskWorkRepository repository,
             @Qualifier("riskTransactionManager") JdbcTransactionManager manager,
             @Qualifier("riskLeaseClock") Clock clock,
