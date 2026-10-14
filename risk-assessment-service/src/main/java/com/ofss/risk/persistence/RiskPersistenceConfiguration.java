@@ -2,6 +2,7 @@ package com.ofss.risk.persistence;
 
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.Clock;
+import java.time.Duration;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,5 +31,17 @@ public class RiskPersistenceConfiguration {
     @Bean public RiskAcceptanceService riskAcceptanceService(RiskAcceptanceRepository repository,
             @Qualifier("riskTransactionManager") JdbcTransactionManager manager) {
         return new RiskAcceptanceService(repository, new CanonicalAcceptance(), manager, Clock.systemUTC());
+    }
+    @Bean public RiskWorkRepository riskWorkRepository(@Qualifier("riskDataSource") DataSource ds) {
+        return new RiskWorkRepository(new JdbcTemplate(ds));
+    }
+    @Bean public Clock riskLeaseClock(@Qualifier("riskDataSource") DataSource ds) {
+        return new OracleLeaseClock(new JdbcTemplate(ds));
+    }
+    @Bean public RiskWorkService riskWorkService(RiskWorkRepository repository,
+            @Qualifier("riskTransactionManager") JdbcTransactionManager manager,
+            @Qualifier("riskLeaseClock") Clock clock,
+            @Value("${RISK_LEASE_DURATION}") String duration) {
+        return new RiskWorkService(repository,manager,clock,Duration.parse(duration));
     }
 }
