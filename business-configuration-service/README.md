@@ -1,4 +1,4 @@
-# Business configuration service M2a–M2d
+# Business configuration service M2a–M2e
 
 This service implements the configuration-version list (M2a), draft-version creation (M2b), and version details/draft risk-rule management (M2c). It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the authenticated empty read against Oracle 26ai Free on 13 October 2026. M2b/M2c verification is mocked only; no local Oracle writes were executed. No Maven Wrapper was created or repaired.
 
@@ -6,7 +6,7 @@ This service implements the configuration-version list (M2a), draft-version crea
 
 `GET http://localhost:8086/api/v1/configuration/versions`
 
-Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST creates a draft only; PUT manages one draft risk rule or risk band. General version editing, publication, activation and login endpoints are absent; other methods/paths are denied.
+Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST creates a draft only; PUT manages one draft risk rule, risk band or approval threshold. General version editing, publication, activation and login endpoints are absent; other methods/paths are denied.
 
 Successful requests return HTTP 200 and a JSON array ordered by VERSION_NUMBER ascending, then VERSION_ID ascending. An empty table returns `[]`; it does not create defaults or activate configuration.
 
@@ -124,6 +124,31 @@ Incomplete drafts, cross-band gaps and overlaps are allowed. Coverage, overlap a
 
 M2d verification: the unchanged implementation passed 277 automated tests (0 failures, 0 errors, 0 skipped), explicitly excluding live Oracle tests. The user reports successful Oracle checks for band creation, null maximum readback, replacement preserving the band ID, parent rowVersion increment, stale-write HTTP 409 and unchanged state afterward. Concurrent parent locking, actual database rollback and full deployed constraint enforcement remain unverified. Automated JDBC transaction tests use mocked database objects; detailed progress documentation remains deferred.
 
+## Draft approval thresholds (M2e)
+
+Use port 8086 and the same FINANCE_MANAGER Bearer authentication.
+
+| Endpoint | Response |
+|---|---|
+| GET /api/v1/configuration/versions/{versionId}/approval-thresholds | HTTP 200: array ordered by minAmountInclusive, then approvalLevel; `[]` for an existing version with no thresholds. Missing version: 404 / VERSION_NOT_FOUND. |
+| PUT /api/v1/configuration/versions/{versionId}/approval-thresholds/{approvalLevel} | HTTP 200 for creation or replacement: `{ "threshold": <saved threshold>, "rowVersion": "<updated parent value>" }`. Existing threshold identity is retained. |
+
+The path approvalLevel is exactly `1`, `2` or `3`; versionId is a positive Java Long. PUT accepts only these fields:
+
+| Field | Validation |
+|---|---|
+| minAmountInclusive | Required JSON **string** containing a nonnegative plain decimal amount from 0 through 9999999999999.99. |
+| maxAmountExclusive | Absent/null for an unbounded upper amount, or a decimal JSON string strictly greater than the minimum and no larger than 9999999999999.99. |
+| expectedRowVersion | Required nonnegative Java Long, as a decimal digit string (recommended) or JSON integer. Fetch from the version-details endpoint. |
+
+Money strings contain digits and an optional decimal point followed by digits: no whitespace, signs, exponent notation, currency symbols or separators. JSON numbers and booleans are rejected. Parsing uses BigDecimal directly, with scale 2 and RoundingMode.UNNECESSARY; extra trailing fractional zeros are accepted, but any value requiring rounding is rejected. For example, `"1.230"` becomes `"1.23"`, while `"1.231"` is invalid. Responses return minAmountInclusive/maxAmountExclusive as canonical two-decimal strings (or null maximum), alongside string thresholdConfigId/versionId and integer approvalLevel. No money is converted through Double, and clients should retain these strings.
+
+PUT shares the parent's transaction and concurrency value with rule/band edits: SELECT FOR UPDATE, DRAFT check, expectedRowVersion check, child INSERT/UPDATE, parent increment and readback. Parent and child failures roll back together; commit precedes HTTP 200. Stale/nondraft/exhausted edits use the existing 409 codes. Only an INSERT/UPDATE Oracle error with vendor code 1 and D2_CONFIGURATION.UK_CFG_THRESHOLD_LEVEL returns 409 / THRESHOLD_LEVEL_CONFLICT; primary-key, unknown-constraint and other database failures remain sanitized 503. Invalid input is 400; missing versions are 404. Authentication behavior is unchanged.
+
+Incomplete drafts and cross-tier gaps/overlaps remain allowed; coverage/completeness checks are deferred to publication, which is unavailable. No approved monetary thresholds or defaults are invented or seeded.
+
+M2e verification: the unchanged implementation passed 377 automated tests (0 failures, 0 errors, 0 skipped), explicitly excluding live Oracle tests. The user reports successful Oracle checks for exact decimal-string/null readback, replacement preserving the threshold ID, parent rowVersion increment, stale-write HTTP 409 and unchanged state afterward. Concurrent parent locking, actual database rollback and full deployed constraint enforcement remain unverified. Automated JDBC transaction tests use mocked database objects; detailed progress documentation remains deferred.
+
 ## JWT contract
 
 The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses the same **raw UTF-8 bytes** as the existing payment service, not a newly invented or automatically generated application secret. Obtain the matching verification configuration privately from Developer 1. The key must meet JJWT's algorithm/key-strength requirements (at least 32 UTF-8 bytes for HMAC-SHA-256); do not pad/change an existing key just to pass a size check.
@@ -138,7 +163,7 @@ The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses 
 
 ## Database safety and current evidence
 
-Application SQL is confined to D2_CONFIGURATION.CONFIGURATION_VERSIONS, RISK_RULE_CONFIGS and RISK_BAND_CONFIGS. Draft rule/band writes use parent locking, parameterized child INSERT/UPDATE, parent rowVersion increment and readback. Hikari permits writes; GET retains read-only service transactions and POST/PUT use write transactions. Read-only hints are not a substitute for database privilege separation: the existing schema owner still has broader rights. A separate limited runtime identity remains a future decision.
+Application SQL is confined to D2_CONFIGURATION.CONFIGURATION_VERSIONS, RISK_RULE_CONFIGS, RISK_BAND_CONFIGS and APPROVAL_THRESHOLD_CONFIGS. Draft rule/band/threshold writes use parent locking, parameterized child INSERT/UPDATE, parent rowVersion increment and readback. Hikari permits writes; GET retains read-only service transactions and POST/PUT use write transactions. Read-only hints are not a substitute for database privilege separation: the existing schema owner still has broader rights. A separate limited runtime identity remains a future decision.
 
 SQL initialization, automatic ORM DDL, Flyway and Liquibase are disabled. No ORM/migration dependency, SQL startup script, business seeds, or mock fallback is included. Existing objects are not recreated. Missing JWT configuration prevents startup; missing database configuration cannot produce a functioning read endpoint. An unreachable database causes startup/connection failure or a sanitized 503 on an authenticated read, depending on connection-pool initialization timing.
 
@@ -195,7 +220,7 @@ From this service folder, use installed Maven:
 
 ```powershell
 mvn '-Dmaven.test.skip=true' compile
-mvn '-Dtest=DraftRiskBandApiTest,DraftRiskBandRepositoryTest,DraftRiskBandJdbcTransactionTest,DraftRiskRuleApiTest,DraftRiskRuleRepositoryTest,DraftRiskRuleJdbcTransactionTest,ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
+mvn '-Dtest=DraftApprovalThresholdApiTest,DraftApprovalThresholdRepositoryTest,DraftApprovalThresholdJdbcTransactionTest,DraftRiskBandApiTest,DraftRiskBandRepositoryTest,DraftRiskBandJdbcTransactionTest,DraftRiskRuleApiTest,DraftRiskRuleRepositoryTest,DraftRiskRuleJdbcTransactionTest,ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
 ```
 
 The selected tests use random throwaway signing material only in the test JVM and mocked database access. They cover supported GET/POST/PUT behavior and denied methods. This explicit selection excludes the optional live Oracle test even if an opt-in variable exists in the terminal.

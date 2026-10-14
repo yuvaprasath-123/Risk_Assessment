@@ -7,6 +7,7 @@ import com.ofss.configuration.rule.InvalidConfigurationRequestException;
 import com.ofss.configuration.rule.ConfigurationVersionNotFoundException;
 import com.ofss.configuration.rule.DraftRuleConflictException;
 import com.ofss.configuration.band.DraftBandConflictException;
+import com.ofss.configuration.threshold.DraftThresholdConflictException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(DraftThresholdConflictException.class)
+    public ResponseEntity<ApiError> thresholdConflict(HttpServletRequest request) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "THRESHOLD_LEVEL_CONFLICT",
+                "A conflicting approval threshold already exists in this version", request.getRequestURI()));
+    }
     @ExceptionHandler(DraftBandConflictException.class)
     public ResponseEntity<ApiError> bandConflict(HttpServletRequest request) {
         return ResponseEntity.status(409).body(ApiError.of(409, "BAND_CODE_CONFLICT",
