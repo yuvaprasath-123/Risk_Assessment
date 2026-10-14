@@ -6,6 +6,7 @@ import com.ofss.configuration.version.VersionAllocationConflictException;
 import com.ofss.configuration.rule.InvalidConfigurationRequestException;
 import com.ofss.configuration.rule.ConfigurationVersionNotFoundException;
 import com.ofss.configuration.rule.DraftRuleConflictException;
+import com.ofss.configuration.band.DraftBandConflictException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(DraftBandConflictException.class)
+    public ResponseEntity<ApiError> bandConflict(HttpServletRequest request) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "BAND_CODE_CONFLICT",
+                "A conflicting band already exists in this version", request.getRequestURI()));
+    }
     @ExceptionHandler(InvalidConfigurationRequestException.class)
     public ResponseEntity<ApiError> invalidConfiguration(HttpServletRequest request) {
         return ResponseEntity.badRequest().body(ApiError.of(400, "INVALID_REQUEST",
