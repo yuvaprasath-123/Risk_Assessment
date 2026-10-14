@@ -953,3 +953,26 @@ html[dir="rtl"] .login-toolbar {
 .table-sort-button:hover {
   text-decoration: underline;
 }
+
+
+.submission-details {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.submission-details p {
+  margin: 12px 0;
+}
+
+.button-link {
+  display: inline-block;
+  padding: 12px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  background: var(--button-bg, #334155);
+  color: white;
+}
+
+.button-link:hover {
+  opacity: 0.9;
+} 

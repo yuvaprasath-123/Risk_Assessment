@@ -4,6 +4,7 @@ import {
 } from "react";
 
 import {
+  useNavigate,
   useParams
 } from "react-router";
 
@@ -26,6 +27,9 @@ export default function PaymentDetailsPage() {
   const {
     paymentId
   } = useParams();
+
+  const navigate =
+    useNavigate();
 
   const {
     token
@@ -108,7 +112,9 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
@@ -140,7 +146,10 @@ export default function PaymentDetailsPage() {
       return;
     }
 
-    setUpdating(true);
+    setUpdating(
+      true
+    );
+
     setError("");
 
     try {
@@ -172,7 +181,9 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setUpdating(false);
+      setUpdating(
+        false
+      );
     }
   }
 
@@ -182,7 +193,10 @@ export default function PaymentDetailsPage() {
       return;
     }
 
-    setSubmitting(true);
+    setSubmitting(
+      true
+    );
+
     setError("");
 
     try {
@@ -192,28 +206,39 @@ export default function PaymentDetailsPage() {
         paymentId
       );
 
-      await loadPayment();
+      navigate(
+        `/payments/${paymentId}/submission-success`
+      );
 
     } catch (error) {
+
+      let message =
+        error.message
+        ||
+        "Payment submission failed.";
 
       if (
         error.status === 409
       ) {
 
-        setError(
-          "This payment request was already modified or submitted by another user."
-        );
-
-        return;
+        message =
+          "This payment request was already modified or submitted by another user.";
       }
 
-      setError(
-        error.message
+      navigate(
+        `/payments/${paymentId}/submission-failure`,
+        {
+          state: {
+            message
+          }
+        }
       );
 
     } finally {
 
-      setSubmitting(false);
+      setSubmitting(
+        false
+      );
     }
   }
 

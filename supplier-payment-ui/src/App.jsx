@@ -37,6 +37,12 @@ import PaymentsPage
 import PaymentDetailsPage
   from "./pages/PaymentDetailsPage";
 
+import PaymentSubmissionSuccessPage
+  from "./pages/PaymentSubmissionSuccessPage";
+
+import PaymentSubmissionFailurePage
+  from "./pages/PaymentSubmissionFailurePage";
+
 function AppRoutes() {
 
   return (
@@ -117,6 +123,32 @@ function AppRoutes() {
                 ]}
               >
                 <PaymentDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payments/:paymentId/submission-success"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "PAYMENT_REQUESTER"
+                ]}
+              >
+                <PaymentSubmissionSuccessPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payments/:paymentId/submission-failure"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "PAYMENT_REQUESTER"
+                ]}
+              >
+                <PaymentSubmissionFailurePage />
               </ProtectedRoute>
             }
           />
