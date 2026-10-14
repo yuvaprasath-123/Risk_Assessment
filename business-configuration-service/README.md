@@ -1,4 +1,4 @@
-# Business configuration service M2a–M2f
+# Business configuration service M2a–M2g
 
 This service implements the configuration-version list (M2a), draft-version creation (M2b), and version details/draft risk-rule management (M2c). It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the authenticated empty read against Oracle 26ai Free on 13 October 2026. M2b/M2c verification is mocked only; no local Oracle writes were executed. No Maven Wrapper was created or repaired.
 
@@ -174,6 +174,40 @@ PUT uses the shared parent transaction: SELECT FOR UPDATE, DRAFT and expectedRow
 
 M2f verification: the unchanged implementation passed 499 automated tests (0 failures, 0 errors, 0 skipped), explicitly excluding live Oracle tests. The user reports successful SLA checks for creation and null readback, replacement preserving the SLA ID, duration/terminal-policy readback, parent rowVersion increment, stale-write HTTP 409 and unchanged state afterward. Unicode Oracle round trips, concurrent parent locking, actual database rollback and full deployed constraint enforcement remain unverified. Automated JDBC transaction tests use mocked database objects; detailed progress documentation remains deferred.
 
+## Publication readiness (M2g, read-only)
+
+`GET http://localhost:8086/api/v1/configuration/versions/{versionId}/publication-readiness` uses the same FINANCE_MANAGER prototype access policy. It reads existing DRAFT or PUBLISHED versions; it does not publish, activate, hash, seed or update anything. A missing version returns 404 / VERSION_NOT_FOUND; malformed versionId returns 400. An existing but incomplete version returns HTTP 200 with readiness issues. Authentication and sanitized database-error conventions are unchanged; failed/corrupt reads return an error, never a partial readiness report.
+
+| Response field | Meaning |
+|---|---|
+| versionId / rowVersion | Exact decimal strings from the evaluated parent snapshot. |
+| publicationState / isDemonstration | Stored metadata; neither grants publication permission nor approves policy values. |
+| structurallyValid | True only when no CONFIGURATION_ERROR issues exist. |
+| ready | True only when the issue list is empty, including semantic blockers. Currently always false because approved semantic validators/contracts do not exist. |
+| issues | Array of `{ "category": "CONFIGURATION_ERROR" or "POLICY_BLOCKER", "code": "stable code", "path": "/configuration-section/entry", "message": "safe explanation" }`. Sorted by category (configuration errors first), then path and code. |
+
+Structural checks require the five M2c supported rule entries (presence, not an invented requirement to enable every rule), valid rule fields and unique evaluation order. Unsupported new-supplier/near-duplicate codes are configuration errors. Stored parameter arrays/scalars or invalid JSON are reported as INVALID_RULE_PARAMETER_OBJECT configuration errors; JDBC read failures remain sanitized 503. Existing risk-rule read/write contracts are unchanged. Enabled weights are added exactly; SUM must have no cap and its total must fit the nonnegative Java Integer final-score range. CAP_AT_MAX requires its existing positive Integer cap. Large raw totals are accumulated exactly rather than wrapped or silently clamped; business contribution/enablement semantics remain blocked below.
+
+LOW, MEDIUM and HIGH must be ordered, adjacent inclusive integer ranges starting at zero: each successor minimum equals the preceding maximum plus one. Only HIGH may have a null maximum. A finite HIGH maximum must cover the configured score upper bound. Coverage does not require every band to be reachable with the current weights/cap; no such business requirement is established. The structural bound is the enabled weight sum for SUM, or the declared maxFinalScore for CAP_AT_MAX. These are storage/configuration checks, not proof of complete rule semantics or approval of weights/boundaries. Band approval levels must be in 1–3; no fixed LOW/MEDIUM/HIGH-to-authority mapping is invented.
+
+Amount levels 1–3 must form contiguous `[minimum inclusive, maximum exclusive)` tiers starting at zero, using exact NUMBER(15,2) BigDecimal arithmetic. Level 3 must be unbounded and preceding levels bounded. SLA levels 1–3 must exist and meet M2f duration/string/null constraints. Missing sections/entries, gaps, overlaps and invalid bounds are configuration errors; no monetary or SLA defaults are created.
+
+Every report includes these POLICY_BLOCKER groups until agreed, versioned semantic validation is implemented:
+
+| Code | Decision needed |
+|---|---|
+| RULE_PARAMETER_CONTRACTS_UNRESOLVED | Business trigger definitions, parameter meanings and units for each supported factor. Version identifiers and serialization mechanics are implementation choices. |
+| HISTORY_POLICY_UNRESOLVED | Eligible historical records/statuses, windows/current-request inclusion, minimum observations and insufficient-history outcomes. |
+| SCORING_CONTRACT_UNRESOLVED | Business contribution models and whether supported rules may be disabled at publication. Exact arithmetic and the existing approved SUM/CAP_AT_MAX behavior are implementation work, not new approval questions. |
+| APPROVAL_POLICY_UNRESOLVED | Amount currency/unit, risk-band authority mapping and level-one automatic/human handling with Developer 3. The scope's MAX routing rule is already established. |
+| SLA_POLICY_SEMANTICS_UNRESOLVED | Start-event meanings, escalation/backup priority and terminal-level behavior with Developer 3. Arbitrary stored strings cannot clear this blocker. |
+
+Demonstration values and arbitrary JSON flags are never semantic approval. Readiness is advisory: future publication must revalidate the same version/content atomically with its state transition, hash/immutability and agreed audit delivery; none is implemented here.
+
+All five SELECTs run on one Spring read-only SERIALIZABLE transaction. Oracle [transaction-level read consistency](https://docs.oracle.com/en/database/oracle/oracle-database/26/cncpt/data-concurrency-and-consistency.html) supplies a single committed snapshot across parent/rules/bands/thresholds/SLAs. A JDBC read-only hint alone would not provide this guarantee. No SELECT FOR UPDATE is used; repositories are called only for reads, and connection isolation/read-only settings are restored afterward. A readiness-specific rule reader distinguishes invalid stored configuration from SQL failures. Live Oracle concurrent-read/snapshot behavior remains unverified; transaction tests use mocked JDBC, including a MOCK-web Boot test of automatic transaction proxy wiring with no server socket or Oracle connection. Detailed progress documentation remains deferred.
+
+M2g verification: the unchanged implementation passed 590 automated tests (0 failures, 0 errors, 0 skipped), explicitly excluding live Oracle tests. The user verified an HTTP 200 readiness response for versionId `"1"`, rowVersion `"9"`, structurallyValid `false` and ready `false`, with expected missing-section configuration errors and unresolved-policy blockers. This checks the live readiness response, not concurrent snapshot consistency, which remains unverified. No policy agreement or publication is implied; detailed documentation remains deferred.
+
 ## JWT contract
 
 The service verifies signed claims with JJWT 0.12.6. The external HMAC key uses the same **raw UTF-8 bytes** as the existing payment service, not a newly invented or automatically generated application secret. Obtain the matching verification configuration privately from Developer 1. The key must meet JJWT's algorithm/key-strength requirements (at least 32 UTF-8 bytes for HMAC-SHA-256); do not pad/change an existing key just to pass a size check.
@@ -245,7 +279,7 @@ From this service folder, use installed Maven:
 
 ```powershell
 mvn '-Dmaven.test.skip=true' compile
-mvn '-Dtest=DraftApprovalSlaApiTest,DraftApprovalSlaRepositoryTest,DraftApprovalSlaJdbcTransactionTest,DraftApprovalThresholdApiTest,DraftApprovalThresholdRepositoryTest,DraftApprovalThresholdJdbcTransactionTest,DraftRiskBandApiTest,DraftRiskBandRepositoryTest,DraftRiskBandJdbcTransactionTest,DraftRiskRuleApiTest,DraftRiskRuleRepositoryTest,DraftRiskRuleJdbcTransactionTest,ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
+mvn '-Dtest=PublicationReadinessValidatorTest,PublicationReadinessApiTest,PublicationReadinessJdbcTransactionTest,PublicationReadinessRuleRepositoryTest,PublicationReadinessBootTransactionTest,DraftApprovalSlaApiTest,DraftApprovalSlaRepositoryTest,DraftApprovalSlaJdbcTransactionTest,DraftApprovalThresholdApiTest,DraftApprovalThresholdRepositoryTest,DraftApprovalThresholdJdbcTransactionTest,DraftRiskBandApiTest,DraftRiskBandRepositoryTest,DraftRiskBandJdbcTransactionTest,DraftRiskRuleApiTest,DraftRiskRuleRepositoryTest,DraftRiskRuleJdbcTransactionTest,ConfigurationVersionApiTest,ConfigurationVersionCreationApiTest,ConfigurationVersionRepositoryTest,ConfigurationVersionTransactionTest,ConfigurationVersionJdbcTransactionTest,OracleVersionNumberConflictTest' test
 ```
 
 The selected tests use random throwaway signing material only in the test JVM and mocked database access. They cover supported GET/POST/PUT behavior and denied methods. This explicit selection excludes the optional live Oracle test even if an opt-in variable exists in the terminal.
