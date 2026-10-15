@@ -230,4 +230,21 @@ class RiskFinalizationTransactionTest {
         });
         fails(FinalizationFailure.Code.INVALID_EVALUATION); verify(work,never()).lock(anyLong()); verify(insert,never()).executeUpdate();
     }
+    @Test void readAuthorizedResultUsesStoredFactorsWithoutWorkerCapabilityOrWrites() throws Exception {
+        var completed=service.finalizeAssessment(request); clearInvocations(insert,complete);
+        var reads=new TransactionTemplate(manager); reads.setReadOnly(true);
+        var actual=reads.execute(status->{repository.beginSnapshot(); return repository.readPersisted(parent.get());});
+        assertEquals(completed,actual); assertEquals(1,evaluations.get()); verify(insert,never()).executeUpdate(); verify(complete,never()).executeUpdate();
+    }
+    @ParameterizedTest @ValueSource(strings={"receipt","details","contribution","missing-factor"}) void readAuthorizedCorruptResultsAreRejectedWithoutRescoring(String changed) throws Exception {
+        service.finalizeAssessment(request); clearInvocations(insert,complete);
+        var row=factorRows.getFirst();
+        if(changed.equals("receipt")) row.put(10,((String)row.get(10)).replace(FinalizedFactors.receipt(request),"b".repeat(64)));
+        if(changed.equals("details")) row.put(10,((String)row.get(10)).replace("risk-factor-v1","risk-factor-v2"));
+        if(changed.equals("contribution")) row.put(6,0);
+        if(changed.equals("missing-factor")) factorRows.removeLast();
+        var reads=new TransactionTemplate(manager); reads.setReadOnly(true);
+        assertThrows(RuntimeException.class,()->reads.execute(status->repository.readPersisted(parent.get())));
+        assertEquals(1,evaluations.get()); verify(insert,never()).executeUpdate(); verify(complete,never()).executeUpdate();
+    }
 }

@@ -3,13 +3,20 @@
   <modelVersion>4.0.0</modelVersion>
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version><relativePath/></parent>
   <groupId>com.ofss</groupId><artifactId>risk-assessment-service</artifactId><version>1</version>
-  <properties><java.version>21</java.version></properties>
+  <properties><java.version>21</java.version><jjwt.version>0.12.6</jjwt.version></properties>
   <dependencies>
     <dependency><groupId>com.ofss</groupId><artifactId>risk-rule-contracts</artifactId><version>1</version></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
+    <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-api</artifactId><version>${jjwt.version}</version></dependency>
+    <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-impl</artifactId><version>${jjwt.version}</version><scope>runtime</scope></dependency>
+    <dependency><groupId>io.jsonwebtoken</groupId><artifactId>jjwt-jackson</artifactId><version>${jjwt.version}</version><scope>runtime</scope></dependency>
     <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
     <dependency><groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc17</artifactId><scope>runtime</scope></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-webmvc-test</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
   </dependencies>
+  <build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin></plugins></build>
 </project>

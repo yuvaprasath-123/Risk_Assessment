@@ -19,15 +19,19 @@ class FrozenAssessmentLoader {
     FrozenAssessmentLoader(RiskAcceptanceRepository acceptance,RiskWorkRepository work,RiskEvidenceRepository evidence) {
         this.acceptance=acceptance; this.work=work; this.evidence=evidence;
     }
-    @SuppressWarnings("unchecked") Snapshot load(FinalizationRequest request) {
+    Snapshot load(FinalizationRequest request) {
         var accepted=acceptance.find(request.identity()).orElseThrow(()->new WorkFailure(WorkFailure.Code.WORK_NOT_FOUND));
         if(!accepted.assessmentId().equals(request.lease().assessmentId())) throw conflict();
+        var snapshot=loadStored(accepted);
+        if(!request.acceptanceHash().equals(accepted.acceptanceHash()) || !request.configurationHash().equals(accepted.configurationHash())
+            || !request.inputHash().equals(snapshot.header().hash())) throw conflict();
+        return snapshot;
+    }
+    @SuppressWarnings("unchecked") Snapshot loadStored(AcceptedAssessment accepted) {
         var parent=work.read(PersistenceValues.id(accepted.assessmentId())); var header=evidence.header(parent.id());
         if(header.hash()==null) throw new FinalizationFailure(FinalizationFailure.Code.FROZEN_INPUT_REQUIRED);
         if(!accepted.rowVersion().equals(Long.toString(parent.revision())) || !accepted.configurationSnapshotId().equals(Long.toString(parent.snapshot()))
             || !accepted.workState().equals(parent.state())) throw unavailable();
-        if(!request.acceptanceHash().equals(accepted.acceptanceHash()) || !request.configurationHash().equals(accepted.configurationHash())
-            || !request.inputHash().equals(header.hash())) throw conflict();
         var config=StoredConfigurationDecoder.read(accepted.configurationJson()); var rows=evidence.children(parent.id());
         var manifests=rows.stream().filter(r->"ENGINE_INPUT".equals(r.key())).toList(); if(manifests.size()!=1) throw unavailable();
         var body=CanonicalAcceptance.read(manifests.getFirst().json()); var document=CanonicalEvidence.document(body.get("inputDocument"));
@@ -38,7 +42,7 @@ class FrozenAssessmentLoader {
         var facts=CanonicalAcceptance.read(accepted.acceptanceJson()); String evaluator=(String)facts.get("evaluatorVersion");
         var original=new AcceptanceRequest(accepted.identity(),PersistenceValues.id((String)facts.get("paymentId")),PersistenceValues.id((String)facts.get("requesterId")),
             (String)facts.get("validationReference"),(String)facts.get("validationRevision"),input.current(),input.cutoff(),input.currentAndRetrySubmissionIds(),evaluator,config,null);
-        var frozen=new EvidenceFreezeRequest(request.lease(),original,input,sources);
+        var frozen=new EvidenceContent.Stored(original,input,sources);
         EvidenceValidation.matches(frozen,accepted);
         if(!new CanonicalEvidence().input(frozen,accepted).equals(document)) throw unavailable();
         RiskEvidenceService.verifyStored(frozen,accepted,document,header,rows);

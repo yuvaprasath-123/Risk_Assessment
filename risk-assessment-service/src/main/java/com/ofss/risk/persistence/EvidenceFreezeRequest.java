@@ -5,7 +5,7 @@ import java.util.*;
 
 /** Supplied adapter data only. Configuration must explicitly reproduce the accepted snapshot. */
 public record EvidenceFreezeRequest(WorkLease lease, AcceptanceRequest acceptance, RiskInput input,
-                                   Map<Kind, Source> sources) {
+                                   Map<Kind, Source> sources) implements EvidenceContent {
     public enum Kind { CURRENT_INPUT, PAYMENT_HISTORY, SUPPLIER, SUPPLIER_TRANSITIONS, PRIOR_ASSESSMENTS }
     public record Source(String service, String recordReference, String revision) {
         public Source {

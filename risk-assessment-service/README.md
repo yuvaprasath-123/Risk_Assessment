@@ -1,11 +1,60 @@
-# Standalone risk engine
+# Risk assessment service
 
-Java 21 library, built with the Spring Boot 4.1.1 dependency baseline and installed Maven 3.9.16. The scoring engine remains pure Java; a separate Spring JDBC module implements atomic acceptance and lookup. There is no HTTP endpoint, executable Spring application, scheduler or live adapter. Developer 1 owns validation; `RiskInput.current.validated` certifies its upstream PASS. Exact duplicates must already have been blocked upstream.
+Java 21, Spring Boot 4.1.1 and installed Maven 3.9.16. The scoring engine remains pure Java. Spring JDBC implements acceptance, leases, frozen evidence and finalization; the executable HTTP host exposes manager-only persisted assessment reads. No HTTP submission, scheduler, live adapter or callback is supplied. Developer 1 owns validation; `RiskInput.current.validated` certifies its upstream PASS. Exact duplicates must already have been blocked upstream.
+
+## Manager-only HTTP reads
+
+The default is **8087**, configurable with `RISK_HTTP_PORT` or `server.port`. Inspected repository assignments are security 8081, supplier/invoice 8082, payment 8083 and configuration 8086; 8087 has no existing assignment. FINANCE_MANAGER-only access is the user's prototype policy, not a scope-document requirement. JWT verification follows the configuration service: raw UTF-8 external HMAC key, verified signature/expiry, required exp, nonblank subject and positive integral Java Long userId; roles contain unprefixed FINANCE_MANAGER. Bearer matching is case-insensitive. Missing/unsupported credentials receive 401 with a Bearer challenge; invalid/expired tokens add error="invalid_token". Authenticated other roles receive 403. Issuer/audience alignment remains pending Developer 1 agreement.
+
+| GET endpoint | HTTP 200 response |
+| --- | --- |
+| `/api/v1/risk-assessments/{assessmentId}` | assessmentId, rowVersion, status, createdAt, cutoff, evaluatedAt, completedAt, configurationVersionId, configurationRowVersion, evaluatorVersion, result |
+| `/api/v1/risk-assessments/{assessmentId}/score-breakdown` | assessmentId, rowVersion, status, result with rawScore, finalScore, maxFinalScore, band and contributions (ruleCode, outcome, configuredWeight, contribution) |
+| `/api/v1/risk-assessments/{assessmentId}/factors` | assessmentId, rowVersion, status, factors (ruleCode, evaluationOrder, outcome, configuredWeight, contribution, explanation) |
+| `/api/v1/risk-assessments/{assessmentId}/configuration-snapshot` | assessmentId, rowVersion, status, snapshotId, configurationHash, evaluatorVersion, configuration |
+
+Completed summary `result` is `{ "rawScore": 135, "finalScore": 100, "maxFinalScore": 100, "band": "HIGH" }` in an illustrative demonstration, not seeded data. Every ID/rowVersion is a JSON string. Scores, weights and contributions are exact JSON integers; the maximum raw score 15032385529 remains below JavaScript's safe-integer limit. Timestamps are ISO-8601 UTC strings retaining nanoseconds. The pinned configuration uses the existing canonical shape (rules with code, enabled, weight, evaluationOrder, parameterSchemaVersion and typed parameters; bands with code/minimum/maximum); approvalBoundaries money and meanMultiplier ratios remain exact decimal strings.
+
+For ACCEPTED, IN_PROGRESS, RETRYABLE_FAILURE and BLOCKED, summary/breakdown return `result: null`, factors returns `factors: null`, and evaluatedAt/completedAt are null. This is HTTP 200 with the actual status, never a fabricated zero score or empty successful factor set. The snapshot remains available after acceptance. Invalid/nonpositive/overflow IDs return sanitized 400 INVALID_ASSESSMENT_ID; absent assessments return 404 ASSESSMENT_NOT_FOUND; database, broken association or integrity failures return 503 ASSESSMENT_UNAVAILABLE. Error shape is status/code/message/timestamp/path. No lease, diagnostic, accepted-fact payload, matched source ID, observations, completion proof or raw input evidence is exposed.
+
+Every request uses one REQUIRES_NEW read-only transaction, beginning with Oracle `SET TRANSACTION READ ONLY` before SELECTs. Local acceptance/configuration/input hashes, snapshot/manifest associations and completed factor coverage/totals/band are verified. This reads stored results without evaluator selection, rescoring, row locks or DML. Different requests may observe different rowVersions; each individual response is coherent. The HTTP host scans only HTTP components and does not instantiate worker/write-service beans or require RISK_LEASE_DURATION.
+
+Set `RISK_DB_USERNAME=D2_RISK`, `RISK_DB_PASSWORD` and `RISK_JWT_SECRET` securely in your local environment or STS run configuration. Use the issuer-aligned external signing key; do not place it in source or command-line arguments. Optional `RISK_DB_URL` defaults to jdbc:oracle:thin:@//localhost:1521/FREEPDB1. DDL, SQL initialization, migration and seeding remain disabled. Build the executable jar from the repository root, then start it yourself when ready:
+
+```powershell
+mvn -f developer2-pom.xml -pl risk-assessment-service -am '-DskipTests' package
+java -jar .\risk-assessment-service\target\risk-assessment-service-1.jar
+```
+
+STS main class: `com.ofss.risk.RiskAssessmentApplication`. These instructions do not start a service during implementation. MockMvc and mocked-JDBC tests are separate from the user-run genuine issuer HTTP-to-Oracle verification recorded below.
+
+Risk-read checkpoint verification: **1,214 regression tests and 69 affected offline tests passed**. The user-run genuine issuer HTTP-to-Oracle suite reported **6 tests, zero failures/errors, 1 skipped**; genuine non-manager-token coverage remains unverified. Workers terminated and guarded fixture cleanup left **zero parents**. The passing run supplied the manager token directly from process memory after hidden-paste attempts failed; no token or signing key is recorded here. Implementation is unchanged, so existing results are reused without rerunning tests. The agent did not run live SQL or services. Detailed documentation remains deferred.
+
+Opt-in genuine issuer verification uses `OracleRiskReadHttpTest`, gated by `RISK_VERIFY_ORACLE_HTTP_WRITES=true`. It sends real HTTP to a separately user-started loopback application; it neither starts that application nor mints tokens. Supply fresh raw JWTs obtained through security-service login. Required `RISK_HTTP_TEST_MANAGER_TOKEN` and optional `RISK_HTTP_TEST_OTHER_ROLE_TOKEN` stay external. The harness does not receive/read the signing key. The existing automated JWT token-fixture tests prove local validation behavior; only a successful user-run genuine-token test establishes issuer interoperability. Issuer/audience contract agreement is still separate.
+
+The suite first checks genuine manager authentication on ID 0 (400 before any database lookup), then guards the Oracle owner/container. It commits two synthetic fixtures under a fresh printed `D2_RISK_FINAL_<UUID>` namespace using the reviewed finalization fixture format: key success is COMPLETED; key insufficient is ACCEPTED without input or score. Its six test methods cover all four successful reads for both states, exact public projections, UTC timestamps/numbers, missing/invalid-token challenges, optional genuine wrong-role denial, 404, malformed/overflow IDs and denied extra paths. Every test compares all fixture parent/snapshot/evidence/factor columns before/after HTTP reads. Without a genuine non-manager token, that one test is explicitly skipped/unverified, never replaced by a self-signed token.
+
+Use the hidden-input runner below in two PowerShell terminals from the repository root. Start mode builds the executable, prompts locally for DB password and the existing issuer-aligned key, and runs in the foreground; Ctrl+C stops it. If STS already runs the correctly configured application, omit Start mode. Verify mode prompts for DB password and genuine tokens, temporarily removes the signing key from its test environment, then runs only the opt-in HTTP suite. Secret BSTR buffers are freed, SecureStrings disposed and original process environment values restored in finally blocks. No secrets are command-line arguments or written to files. The agent has not run either live mode.
+
+```powershell
+# Terminal 1: local application startup, when ready
+.\risk-assessment-service\scripts\verify-risk-read-http.ps1 -Mode Start
+# Terminal 2: real HTTP-to-Oracle verification, while Terminal 1/STS runs
+.\risk-assessment-service\scripts\verify-risk-read-http.ps1 -Mode Verify
+```
+
+Both commands default to port 8087; pass the same `-Port` to both to override it. HTTP redirects and non-loopback targets are refused. Cleanup waits for HTTP-client termination, verifies every namespace row/hash/result and accepts ONLY the two HTTP fixture keys. Unknown data rolls cleanup back; request timeout/interruption defers it because server-side completion is uncertain. Identities are never reset and unrelated records are never deleted. After stopping outstanding test requests/application, recover only the exact printed namespace:
+
+```powershell
+.\risk-assessment-service\scripts\verify-risk-read-http.ps1 -Mode Cleanup -Namespace (Read-Host 'Exact printed HTTP fixture namespace') -ConfirmRequestsStopped
+```
+
+Recovery selects only `OracleRiskReadHttpCleanupTest` and requires the write opt-in, `RISK_ORACLE_HTTP_CLEANUP_ONLY=true`, `RISK_HTTP_TEST_REQUESTS_STOPPED=true` and `RISK_ORACLE_HTTP_NAMESPACE`; the runner supplies these after the explicit switch and prompts only for the database password. No issuer token/signing key is needed for cleanup. Detailed progress documentation remains deferred.
 
 From the repository root, build and test the shared contracts, configuration service and engine together:
 
 ```powershell
-mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest,!OracleFinalizationPersistenceTest,!OracleFinalizationFixtureCleanupTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest,!OracleFinalizationPersistenceTest,!OracleFinalizationFixtureCleanupTest,!OracleRiskReadHttpTest,!OracleRiskReadHttpCleanupTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
 `OracleEvidencePersistenceTest` is independently opt-in with `RISK_VERIFY_ORACLE_EVIDENCE_WRITES=true` and the same external D2_RISK credentials. Select only `'-Dtest=OracleEvidencePersistenceTest'` with `mvn -f developer2-pom.xml -pl risk-assessment-service -am ... '-Dsurefire.failIfNoSpecifiedTests=false' test`. It prepares ten real-transaction cases under a fresh printed `D2_RISK_FREEZE_<UUID>` namespace, using large Unicode CLOBs for every attempt-0 locator INSERT, exact money/nanoseconds, manifest readback, retries/conflicts, rejected partial data, verified post-write rollback injections, expired/superseded fences, populated-input recovery and two competing freeze workers. A final-guard test supplies a deliberately stale time sample while verifying unchanged fence values and the real Oracle clock's expiry rejection after all six inserts; production retains OracleLeaseClock. These live tests have not been run by the agent.
@@ -42,7 +91,7 @@ Readiness retains Developer 1 history/identity, approval mapping and Developer 3
 
 ## Atomic acceptance and lookup contract
 
-Import `RiskPersistenceConfiguration` explicitly into a host Spring context; this jar has no startup entry point. Supply `RISK_DB_USERNAME` (D2_RISK) and `RISK_DB_PASSWORD` externally, plus optional `RISK_DB_URL` (default localhost:1521/FREEPDB1). Never commit local values. There is no connection-initialization SQL, DDL, migration or seed code. The supplied application resource disables SQL initialization, Hibernate DDL, Flyway and Liquibase; a future host must preserve those settings. No live Oracle acceptance test is run by the reactor command above.
+Import `RiskPersistenceConfiguration` explicitly into a worker Spring context to use acceptance/work operations; the HTTP startup entry point deliberately excludes this worker configuration. Supply `RISK_DB_USERNAME` (D2_RISK) and `RISK_DB_PASSWORD` externally, plus optional `RISK_DB_URL` (default localhost:1521/FREEPDB1). Never commit local values. There is no connection-initialization SQL, DDL, migration or seed code. The supplied application resource disables SQL initialization, Hibernate DDL, Flyway and Liquibase; any host must preserve those settings. No live Oracle acceptance test is run by the reactor command above.
 
 `RiskAcceptanceService.accept(AcceptanceRequest)` accepts an explicit namespaced `(source,key)`, separate payment/requester IDs, validation reference/revision, validated current `Payment`, cutoff, immutable current/retry exclusion set, evaluator build identifier, optional `RiskConfiguration` and optional correlation ID. Schema supplier/invoice IDs must be positive Java Long decimal strings; opaque engine submission/evidence IDs remain separate frozen facts. No assumption equates an engine submission ID, payment ID or correlation ID with the namespaced logical key. Developer 1 must confirm their adapter mapping and genuine resubmission lineage.
 

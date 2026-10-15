@@ -1,6 +1,14 @@
+server:
+  port: ${RISK_HTTP_PORT:8087}
+  error:
+    include-message: never
+    include-stacktrace: never
+security:
+  jwt:
+    secret: ${RISK_JWT_SECRET}
 spring:
-  main:
-    web-application-type: none
+  application:
+    name: risk-assessment-service
   datasource:
     url: ${RISK_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
     username: ${RISK_DB_USERNAME}

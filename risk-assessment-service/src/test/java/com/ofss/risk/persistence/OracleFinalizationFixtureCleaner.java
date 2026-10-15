@@ -32,11 +32,15 @@ final class OracleFinalizationFixtureCleaner {
         tx.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
     }
     void clean(String namespace) {
+        clean(namespace,OracleFinalizationFixtures.KEYS);
+    }
+    void clean(String namespace,Set<String> allowedKeys) {
         OracleFinalizationFixtures.requireNamespace(namespace);
+        require(!allowedKeys.isEmpty() && OracleFinalizationFixtures.KEYS.containsAll(allowedKeys));
         tx.executeWithoutResult(status->{
             var fixtures=new OracleFinalizationFixtures(namespace); var verified=new ArrayList<Verified>(); var keys=new HashSet<String>();
             for(var parent:jdbc.query(LOCK,(rs,n)->OracleWorkPersistenceTest.values(rs),namespace)) {
-                String key=(String)parent.get("SUBMISSION_KEY"); require(OracleFinalizationFixtures.KEYS.contains(key) && keys.add(key));
+                String key=(String)parent.get("SUBMISSION_KEY"); require(allowedKeys.contains(key) && keys.add(key));
                 require(namespace.equals(parent.get("SUBMISSION_SOURCE")) && PinnedRiskEvaluators.CURRENT.equals(parent.get("EVALUATOR_VERSION"))
                     && ("synthetic-final-pass/"+key).equals(parent.get("VALIDATION_REFERENCE")) && ("final-fixture/"+key).equals(parent.get("CORRELATION_ID"))
                     && Set.of("ACCEPTED","IN_PROGRESS","COMPLETED").contains(parent.get("WORK_STATE")));

@@ -8,10 +8,10 @@ import static com.ofss.risk.persistence.EvidenceFreezeRequest.*;
 
 /** Structural dependency validation only; no scoring or new rule/policy semantics. */
 final class EvidenceValidation {
-    static void matches(EvidenceFreezeRequest request,AcceptedAssessment stored) {
+    static void matches(EvidenceContent request,AcceptedAssessment stored) {
         try { validate(request,stored); } catch(IllegalArgumentException e) { throw mismatch(); }
     }
-    private static void validate(EvidenceFreezeRequest request,AcceptedAssessment stored) {
+    private static void validate(EvidenceContent request,AcceptedAssessment stored) {
         var acceptance=request.acceptance(); var config=acceptance.configuration(); var canonical=new CanonicalAcceptance();
         if(!canonical.configuration(config).hash().equals(stored.configurationHash())) throw mismatch();
         // Replace only current/input cutoff/exclusions to prove the assembled input matches every accepted fact.

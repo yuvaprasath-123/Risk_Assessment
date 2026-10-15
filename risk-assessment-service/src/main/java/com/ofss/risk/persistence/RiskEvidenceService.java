@@ -63,7 +63,7 @@ public final class RiskEvidenceService {
         } catch(FreezeFailure | WorkFailure e) { throw e; }
         catch(RuntimeException e) { throw unavailable(); }
     }
-    static RiskEvidenceRepository.Stored verifyStored(EvidenceFreezeRequest request,AcceptedAssessment accepted,
+    static RiskEvidenceRepository.Stored verifyStored(EvidenceContent request,AcceptedAssessment accepted,
             CanonicalEvidence.Document input,RiskEvidenceRepository.Header header,List<RiskEvidenceRepository.Stored> saved) {
         var byKey=new HashMap<String,RiskEvidenceRepository.Stored>();
         for(var row:saved) if(byKey.put(row.key(),row)!=null) throw unavailable();
@@ -76,7 +76,7 @@ public final class RiskEvidenceService {
         var expected=manifest(request,input,children,header.frozenAt()); var row=byKey.get("ENGINE_INPUT");
         if(row==null || row.id()!=header.manifest() || !expected.withId(row.id()).equals(row)) throw unavailable(); return row;
     }
-    static List<RiskEvidenceRepository.Stored> inputs(EvidenceFreezeRequest request,AcceptedAssessment stored,Instant now) {
+    static List<RiskEvidenceRepository.Stored> inputs(EvidenceContent request,AcceptedAssessment stored,Instant now) {
         var canonical=new CanonicalEvidence();
         var input=request.input(); var result=new ArrayList<RiskEvidenceRepository.Stored>();
         var currentSource=new Source("risk-assessment-service",stored.assessmentId(),null);
@@ -97,7 +97,7 @@ public final class RiskEvidenceService {
         }
         return result;
     }
-    static RiskEvidenceRepository.Stored manifest(EvidenceFreezeRequest request,CanonicalEvidence.Document input,
+    static RiskEvidenceRepository.Stored manifest(EvidenceContent request,CanonicalEvidence.Document input,
             List<RiskEvidenceRepository.Stored> children,Instant now) {
         return row("MANIFEST","ENGINE_INPUT","INPUT_MANIFEST",new Source("risk-assessment-service",null,null),input.hash(),
             CanonicalEvidence.MANIFEST_FORMAT,request.input().cutoff(),null,children.size(),"COMPLETE",new CanonicalEvidence().manifest(input,children),now);

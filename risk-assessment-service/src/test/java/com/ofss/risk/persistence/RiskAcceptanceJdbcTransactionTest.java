@@ -114,6 +114,21 @@ class RiskAcceptanceJdbcTransactionTest {
         verify(snapshot, never()).setCharacterStream(anyInt(), any(Reader.class), anyLong());
         verify(associate).setObject(1, 23L); verify(associate).setObject(2, 17L);
     }
+    @Test void lookupByAssessmentIdBindsNumericIdAndVerifiesImmutableAssociationsInReadOnlyTransaction() throws Exception {
+        when(connection.prepareStatement(RiskAcceptanceRepository.FIND_BY_ID)).thenReturn(find); queries.add(row());
+        var repo=new RiskAcceptanceRepository(new JdbcTemplate(source));
+        var reads=new org.springframework.transaction.support.TransactionTemplate(new JdbcTransactionManager(source)); reads.setReadOnly(true);
+        var saved=reads.execute(status->repo.findById(17).orElseThrow()); assertEquals("17",saved.assessmentId());
+        assertEquals(original.configuration().versionId(),saved.configurationVersionId()); assertEquals(original.cutoff(),saved.cutoff());
+        verify(find).setLong(1,17); verify(parent,never()).executeUpdate(); verify(snapshot,never()).executeUpdate(); verify(associate,never()).executeUpdate();
+    }
+    @Test void lookupByIdRejectsBrokenSnapshotRatherThanReturningNotFound() throws Exception {
+        when(connection.prepareStatement(RiskAcceptanceRepository.FIND_BY_ID)).thenReturn(find); var broken=row();
+        doReturn(BigDecimal.valueOf(999)).when(broken).getObject("SNAPSHOT_PARENT_ID"); queries.add(broken);
+        var repo=new RiskAcceptanceRepository(new JdbcTemplate(source));
+        var reads=new org.springframework.transaction.support.TransactionTemplate(new JdbcTransactionManager(source)); reads.setReadOnly(true);
+        assertThrows(org.springframework.dao.DataRetrievalFailureException.class,()->reads.execute(status->repo.findById(17))); rollback();
+    }
     @ParameterizedTest @ValueSource(booleans = {true, false})
     void retriesReusePinnedConfigurationWithoutAnyWrite(boolean explicitConfiguration) throws Exception {
         queries.add(row());

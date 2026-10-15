@@ -16,7 +16,7 @@ public final class CanonicalEvidence {
         return document(map("hashFormatVersion",HASH_FORMAT,"evidenceFormatVersion",EVIDENCE_FORMAT,
             "kind",kind.name(),"source",source,"evidence",envelope));
     }
-    Document input(EvidenceFreezeRequest request,AcceptedAssessment accepted) {
+    Document input(EvidenceContent request,AcceptedAssessment accepted) {
         return document(map("hashFormatVersion",HASH_FORMAT,"inputFormatVersion",INPUT_FORMAT,
             "acceptanceHash",accepted.acceptanceHash(),"configurationHash",accepted.configurationHash(),
             "evaluatorVersion",request.acceptance().evaluatorVersion(),"input",request.input(),"sources",request.sources()));

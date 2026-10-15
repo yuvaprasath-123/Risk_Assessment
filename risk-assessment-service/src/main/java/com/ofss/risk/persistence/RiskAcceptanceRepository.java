@@ -50,6 +50,14 @@ public class RiskAcceptanceRepository {
         if (rows.size() > 1 || (!rows.isEmpty() && !identity.equals(rows.getFirst().identity()))) throw invalid();
         return rows.stream().findFirst();
     }
+    static final String FIND_BY_ID=FIND.replace("A.SUBMISSION_SOURCE = ? AND A.SUBMISSION_KEY = ?","A.ASSESSMENT_ID = ?");
+    Optional<AcceptedAssessment> findById(long id) {
+        if(!TransactionSynchronizationManager.isActualTransactionActive() || !TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+            || !TransactionSynchronizationManager.hasResource(jdbc.getDataSource())) throw invalid();
+        var rows=jdbc.query(FIND_BY_ID,ps->ps.setLong(1,id),(rs,n)->map(rs));
+        if(rows.size()>1 || !rows.isEmpty() && !Long.toString(id).equals(rows.getFirst().assessmentId())) throw invalid();
+        return rows.stream().findFirst();
+    }
 
     AcceptedAssessment insert(AcceptanceRequest r, CanonicalAcceptance.Document acceptance,
             CanonicalAcceptance.Document config, Instant createdAt) {

@@ -78,6 +78,18 @@ public class RiskFinalizationRepository {
         if(!row.state().equals("COMPLETED") || row.token()!=null || row.expiry()!=null || row.errorCode()!=null || row.errorMessage()!=null
             || row.epoch()!=lease.epoch() || row.attempt()!=lease.attempt() || WorkLease.revision(lease.rowVersion())==Long.MAX_VALUE
             || row.revision()!=WorkLease.revision(lease.rowVersion())+1) throw new WorkFailure(WorkFailure.Code.LEASE_REJECTED);
+        return readResult(s,receipt);
+    }
+    /** Read-authorized callers need no worker capability. Still verifies every stored factor and association. */
+    CompletedAssessment readPersisted(FrozenAssessmentLoader.Snapshot s) {
+        bound(false);
+        var row=s.work();
+        if(!row.state().equals("COMPLETED") || row.token()!=null || row.expiry()!=null || row.errorCode()!=null || row.errorMessage()!=null
+            || row.epoch()<1 || row.attempt()<1 || row.revision()<1) throw FrozenAssessmentLoader.unavailable();
+        return readResult(s,null);
+    }
+    private CompletedAssessment readResult(FrozenAssessmentLoader.Snapshot s,String expectedReceipt) {
+        var row=s.work(); String[] storedReceipt={expectedReceipt};
         var parents=jdbc.query(RESULT,ps->ps.setLong(1,row.id()),(rs,n)->new Parent(
             PersistenceValues.number(rs.getObject("TOTAL_RAW_SCORE"),false),Math.toIntExact(PersistenceValues.number(rs.getObject("FINAL_SCORE"),false)),
             rs.getString("RISK_BAND"),Math.toIntExact(PersistenceValues.number(rs.getObject("FINAL_FACTOR_COUNT"),true)),
@@ -95,7 +107,13 @@ public class RiskFinalizationRepository {
             String json=clob(rs); var factor=FinalizedFactors.decode(code,outcome,
                 Math.toIntExact(PersistenceValues.number(rs.getObject("CONFIGURED_WEIGHT"),false)),
                 Math.toIntExact(PersistenceValues.number(rs.getObject("SCORE_CONTRIBUTION"),false)),rs.getString("EXPLANATION"),json);
-            if(!receipt.equals(CanonicalAcceptance.read(json).get("completionFenceHash"))) throw new WorkFailure(WorkFailure.Code.LEASE_REJECTED);
+            Object receiptValue=CanonicalAcceptance.read(json).get("completionFenceHash");
+            if(!(receiptValue instanceof String receipt) || !receipt.matches("[0-9a-f]{64}")) throw FrozenAssessmentLoader.unavailable();
+            if(storedReceipt[0]==null) storedReceipt[0]=receipt;
+            if(!storedReceipt[0].equals(receipt)) {
+                if(expectedReceipt!=null) throw new WorkFailure(WorkFailure.Code.LEASE_REJECTED);
+                throw FrozenAssessmentLoader.unavailable();
+            }
             if(!json.equals(FinalizedFactors.details(factor,s,receipt))) throw FrozenAssessmentLoader.unavailable(); return factor;
         });
         var result=new RiskResult(RiskResult.Status.COMPLETED,s.input().current().submissionId(),s.config().versionId(),s.config().rowVersion(),s.config().contentHash(),
