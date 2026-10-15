@@ -87,9 +87,9 @@ class ConfigurationPublicationApiTest {
             .andExpect(status().is(failure.equals("missing")?404:failure.equals("database")?503:409))
             .andExpect(content().string(not(containsString("private JDBC detail"))));
     }
-    @Test void publicationDoesNotExposeActivationOrOtherMutationMethods() throws Exception {
+    @Test void publicationRejectsUnsupportedMethodsAndActions() throws Exception {
         mvc.perform(get(PATH).header("Authorization","Bearer "+token("FINANCE_MANAGER",false))).andExpect(status().isForbidden());
-        mvc.perform(post(PATH.replace("publish","activate")).header("Authorization","Bearer "+token("FINANCE_MANAGER",false))).andExpect(status().isForbidden());
+        mvc.perform(post(PATH.replace("publish","unsupported-action")).header("Authorization","Bearer "+token("FINANCE_MANAGER",false))).andExpect(status().isForbidden());
         verifyNoInteractions(service);
     }
 }

@@ -1,4 +1,71 @@
-# Business configuration service M2a–M2g
+# Business configuration service
+
+## Activation and active snapshot contract
+
+Both routes require the existing verified FINANCE_MANAGER JWT. Internal-service access is not added by this milestone.
+
+`POST /api/v1/configuration/versions/{versionId}/activate` requires exactly one field:
+
+```json
+{"expectedPointerRowVersion":null}
+```
+
+Explicit null means **no current pointer exists**. When a pointer exists, send its exact revision as a decimal string, for example `{"expectedPointerRowVersion":"0"}`. Missing fields, fractions, negative/overflowing revisions, unknown fields and invalid version IDs return 400. The pointer revision is separate from the immutable version's revision.
+
+Only PUBLISHED targets with a recomputed matching `configuration-content-v1` hash may activate. Pointer mutations serialize using a five-second-wait exclusive lock on the singleton table, including the empty-table first-activation race, followed by the target version lock. The READ_COMMITTED transaction has a 15-second timeout. First activation creates pointer revision `"0"`; switching versions increments it exactly once. Published rows/children and risk snapshots are never changed. A lost first-activation response followed by the original null precondition returns stale: read `/active` before deciding whether to retry.
+
+A repeated activation of the same version with the **current pointer revision** returns 200 without changing actor, activation time or revision. A stale precondition takes precedence even for the same target. Errors: 409 `STALE_ACTIVE_CONFIGURATION`, `VERSION_NOT_PUBLISHED`, or `ACTIVATION_REVISION_EXHAUSTED`; 404 `VERSION_NOT_FOUND`; 503 `CONFIGURATION_UNAVAILABLE` for corruption/database/lock-timeout errors. Only the exact owned first-pointer PK collision is classified as a stale conflict.
+
+`GET /api/v1/configuration/active` uses a read-only SERIALIZABLE transaction to return one coherent, verified snapshot. No pointer returns 404 `NO_ACTIVE_CONFIGURATION`. Missing/corrupt published associations fail closed with sanitized 503. Both successful endpoints return:
+
+```json
+{
+  "versionId":"7",
+  "versionRowVersion":"9",
+  "pointerRowVersion":"0",
+  "activatedAt":"2026-10-15T08:10:00Z",
+  "activatedByUserId":"42",
+  "publishedAt":"2026-10-15T08:09:00Z",
+  "publishedByUserId":"42",
+  "contentHash":"<locally recomputed SHA-256>",
+  "hashFormat":"configuration-content-v1",
+  "configuration":{
+    "hashFormat":"configuration-content-v1",
+    "versionId":"7",
+    "riskRules":[],
+    "riskBands":[],
+    "approvalThresholds":[],
+    "approvalSlas":[]
+  }
+}
+```
+
+Illustrative shape only: the `configuration` object is the **complete canonical publication content**, including version number/label/description, demonstration flag, score policy/cap, creation actor/time and every rule/band/threshold/SLA field. Arrays above are abbreviated, not a publishable example. IDs/revisions are strings, times UTC, money two-decimal strings; exact nested rule numbers are emitted directly from canonical JSON without a floating-point decode. Publication content hash and risk-engine snapshot hash are distinct contracts; a future adapter must map them explicitly. Current readiness/policy blockers remain unchanged; activation supplies no readiness bypass.
+
+### Oracle activation mechanics verification
+
+`OracleConfigurationActivationTest` requires **both** write and isolated-environment opt-ins. Stop configuration writers and first confirm `SELECT COUNT(*) FROM D2_CONFIGURATION.CURRENT_CONFIGURATION` returns 0 as D2_CONFIGURATION/FREEPDB1. If a real pointer exists, do not delete it: use a separate approved test environment. The suite refuses existing pointers; it never restores or overwrites one.
+
+Six live cases cover first activation/readback, switching/repeat/stale behavior, draft and corrupt-hash rejection, actual post-write rollback and concurrent first activation. Test-only synthetic PUBLISHED rows are constructed with canonical hashes to test mechanics; their empty sections deliberately do **not** claim successful publication through the real blocked readiness validator. No production bypass is installed. Each case commits two UUID-labelled fixture versions and may commit its own singleton pointer. Cleanup requires worker termination, exact fixture identities/actors, unchanged parent content/hash and no unexpected children before removing only its pointer/versions transactionally. It never resets identity sequences. If interrupted or refused, retain the printed namespace and inspect before any recovery; there is no broad-delete fallback.
+
+User-run only, from repository root (no server or JWT needed):
+
+```powershell
+try {
+    $env:CONFIG_VERIFY_ORACLE_ACTIVATION_WRITES = 'true'
+    $env:CONFIG_ORACLE_ACTIVATION_ISOLATED = 'true'
+    $env:CONFIG_DB_PASSWORD = [System.Net.NetworkCredential]::new(
+        '', (Read-Host 'D2_CONFIGURATION database password' -AsSecureString)
+    ).Password
+    mvn -f developer2-pom.xml -pl business-configuration-service -am '-Dtest=OracleConfigurationActivationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+    if ($LASTEXITCODE -ne 0) { throw 'Activation verification failed; retain namespace and reports.' }
+}
+finally {
+    Remove-Item Env:CONFIG_VERIFY_ORACLE_ACTIVATION_WRITES, Env:CONFIG_ORACLE_ACTIVATION_ISOLATED, Env:CONFIG_DB_PASSWORD -ErrorAction SilentlyContinue
+}
+```
+
+Activation-checkpoint verification: **1,398 offline tests passed**. The user-run live Oracle activation-mechanics suite passed **6 tests, zero failures/errors/skips**. Concurrent workers terminated; all fixture cleanups left **zero parents**. Controlled PUBLISHED fixtures verify activation mechanics, including contention and rollback, **not successful publication through the real readiness validator**. Real publication policy blockers remain intact. Successful real publication and live snapshots populated with complete business configuration remain unverified. Production implementation is unchanged, so existing reactor results are reused; the adjusted publication API regression class was additionally rerun (**32 tests, zero failures/errors/skips**) because its source was newer than its report. The agent did not run live SQL or services; detailed documentation remains deferred.
 
 This service implements the configuration-version list (M2a), draft-version creation (M2b), and version details/draft risk-rule management (M2c). It uses Java 21, Spring Boot 4.1.1, installed Maven 3.9.16, Spring JDBC and Boot-managed ojdbc17 23.26.3.0.0. The user verified direct JDBC connection, basic metadata and the authenticated empty read against Oracle 26ai Free on 13 October 2026. M2b/M2c verification is mocked only; no local Oracle writes were executed. No Maven Wrapper was created or repaired.
 
@@ -6,7 +73,7 @@ This service implements the configuration-version list (M2a), draft-version crea
 
 `GET http://localhost:8086/api/v1/configuration/versions`
 
-Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST on the collection creates a draft; PUT manages one draft risk rule, risk band, approval threshold or approval SLA. The publication endpoint below is separate. General version editing, activation and login endpoints remain absent; other methods/paths are denied.
+Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST on the collection creates a draft; PUT manages one draft risk rule, risk band, approval threshold or approval SLA. Publication and activation are separate operations. General version editing and login endpoints remain absent; other methods/paths are denied.
 
 Successful requests return HTTP 200 and a JSON array ordered by VERSION_NUMBER ascending, then VERSION_ID ascending. An empty table returns `[]`; it does not create defaults or activate configuration.
 

@@ -21,6 +21,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(com.ofss.configuration.activation.ActivationFailure.class)
+    public ResponseEntity<ApiError> activation(com.ofss.configuration.activation.ActivationFailure exception, HttpServletRequest request) {
+        int status = exception.reason() == com.ofss.configuration.activation.ActivationFailure.Reason.NO_ACTIVE_CONFIGURATION ? 404 : 409;
+        return ResponseEntity.status(status).body(ApiError.of(status, exception.reason().name(),
+                "The active configuration request could not be completed", request.getRequestURI()));
+    }
     public record PublicationRejected(int status, String code, String message, String timestamp, String path, PublicationReadiness readiness) {}
     @ExceptionHandler(PublicationNotReadyException.class)
     public ResponseEntity<PublicationRejected> notReady(PublicationNotReadyException exception, HttpServletRequest request) {
