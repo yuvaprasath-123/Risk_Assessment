@@ -23,6 +23,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
+    @org.springframework.core.annotation.Order(2)
     SecurityFilterChain configurationSecurity(HttpSecurity http, JwtVerifier verifier,
             ErrorResponseWriter errors) throws Exception {
         return http.csrf(csrf -> csrf.disable())

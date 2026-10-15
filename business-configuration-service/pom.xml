@@ -16,6 +16,8 @@
         <jjwt.version>0.12.6</jjwt.version>
     </properties>
     <dependencies>
+        <dependency><groupId>com.ofss</groupId><artifactId>internal-service-security</artifactId><version>1</version></dependency>
+        <dependency><groupId>com.ofss</groupId><artifactId>internal-service-security</artifactId><version>1</version><type>test-jar</type><classifier>tests</classifier><scope>test</scope></dependency>
         <dependency>
             <groupId>com.ofss</groupId><artifactId>risk-rule-contracts</artifactId><version>1</version>
         </dependency>

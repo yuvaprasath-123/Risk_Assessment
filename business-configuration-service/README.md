@@ -1,5 +1,9 @@
 # Business configuration service
 
+## Opt-in internal reads
+
+Dedicated service authentication and read contracts are defined in [internal-service-security](../internal-service-security/README.md). `GET /internal/v1/configuration/active` requires CONFIGURATION_ACTIVE_READ; `GET /internal/v1/configuration/versions/{versionId}` requires CONFIGURATION_VERSION_READ and verifies the requested published snapshot without consulting the current pointer. Internal access defaults off and never grants configuration mutations or manager roles. When enabled, require separate external RS256 public keys, issuer, receiver audience and explicit per-service permissions; user HMAC keys are not used. Existing manager endpoints remain unchanged. Build through `mvn -f developer2-pom.xml -pl business-configuration-service -am ...` from the repository root so the shared security library is included. No live service-issuer/Oracle verification has been performed for these routes.
+
 ## Activation and active snapshot contract
 
 Both routes require the existing verified FINANCE_MANAGER JWT. Internal-service access is not added by this milestone.
@@ -326,7 +330,7 @@ Windows are exact positive JSON integers bounded to 3155760000 seconds (100 year
 The shared `risk-rule-contracts` library prevents drift between readiness and scoring. From the repository root, run all Developer 2 tests without Oracle:
 
 ```powershell
-mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleConfigurationPublicationTest,!OraclePublicationFixtureCleanupTest,!OracleConfigurationActivationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest,!OracleFinalizationPersistenceTest,!OracleFinalizationFixtureCleanupTest,!OracleRiskReadHttpTest,!OracleRiskReadHttpCleanupTest,!OracleInternalConfigurationHttpTest,!OracleInternalConfigurationCleanupTest,!OracleInternalRiskHttpTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
 Before using the existing service-local Maven compile/test/run commands, install the shared library once from the repository root (repeat after changing it): `mvn -f risk-rule-contracts/pom.xml install`. This command builds a library; it does not start a service or access Oracle.

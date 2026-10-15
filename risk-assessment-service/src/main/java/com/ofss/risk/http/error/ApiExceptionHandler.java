@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.*;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler(com.ofss.risk.http.internal.AssessmentNotCompletedException.class)
+    public ResponseEntity<ApiError> notCompleted(HttpServletRequest request) {
+        return ResponseEntity.status(409).body(ApiError.of(409,"ASSESSMENT_NOT_COMPLETED","A completed risk assessment is required",request.getRequestURI()));
+    }
     @ExceptionHandler(AssessmentReadFailure.class) public ResponseEntity<ApiError> assessment(AssessmentReadFailure failure,HttpServletRequest request) {
         int status=switch(failure.code()) {case INVALID_ASSESSMENT_ID->400;case ASSESSMENT_NOT_FOUND->404;case ASSESSMENT_UNAVAILABLE->503;};
         String message=switch(failure.code()) {case INVALID_ASSESSMENT_ID->"A positive assessment ID within Java Long range is required";

@@ -15,7 +15,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfiguration {
     @Bean UserDetailsService localAccountsDisabled() { return username->{throw new UsernameNotFoundException("Local accounts are not supported");}; }
-    @Bean SecurityFilterChain riskSecurity(HttpSecurity http,JwtVerifier verifier,ErrorResponseWriter errors) throws Exception {
+    @Bean @org.springframework.core.annotation.Order(2)
+    SecurityFilterChain riskSecurity(HttpSecurity http,JwtVerifier verifier,ErrorResponseWriter errors) throws Exception {
         return http.csrf(csrf->csrf.disable()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .requestCache(c->c.disable()).formLogin(f->f.disable()).httpBasic(b->b.disable())
             .authorizeHttpRequests(a->a.requestMatchers(HttpMethod.GET,AssessmentReadController.PATH+"/*",AssessmentReadController.PATH+"/*/score-breakdown",

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 @Component
-public class ErrorResponseWriter {
+public class ErrorResponseWriter implements com.ofss.internal.InternalErrorWriter {
     private static final String BEARER_CHALLENGE = "Bearer realm=\"risk-assessment-service\"";
     private final JsonMapper mapper;
 

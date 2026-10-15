@@ -27,7 +27,11 @@ public class JwtVerifier {
     }
 
     public UsernamePasswordAuthenticationToken authenticate(String token) {
-        Claims claims = parser.parseSignedClaims(token).getPayload();
+        var signed = parser.parseSignedClaims(token);
+        Claims claims = signed.getPayload();
+        if ("service+jwt".equals(signed.getHeader().getType()) || "SERVICE".equals(claims.get("principalType"))) {
+            throw new IllegalArgumentException("User authentication is required");
+        }
         Date expiry = claims.getExpiration();
         if (expiry == null || !expiry.after(new Date())) {
             throw new IllegalArgumentException("A future expiry is required");

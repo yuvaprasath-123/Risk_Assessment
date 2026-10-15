@@ -3,6 +3,12 @@ server:
   error:
     include-message: never
     include-stacktrace: never
+internal-access:
+  enabled: ${RISK_INTERNAL_ENABLED:false}
+  issuer: ${RISK_INTERNAL_ISSUER:}
+  audience: ${RISK_INTERNAL_AUDIENCE:}
+  public-keys: ${RISK_INTERNAL_PUBLIC_KEYS:}
+  service-permissions: ${RISK_INTERNAL_SERVICE_PERMISSIONS:}
 security:
   jwt:
     secret: ${RISK_JWT_SECRET}

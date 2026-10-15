@@ -5,6 +5,13 @@ server:
     include-stacktrace: never
     include-binding-errors: never
 
+internal-access:
+  enabled: ${CONFIG_INTERNAL_ENABLED:false}
+  issuer: ${CONFIG_INTERNAL_ISSUER:}
+  audience: ${CONFIG_INTERNAL_AUDIENCE:}
+  public-keys: ${CONFIG_INTERNAL_PUBLIC_KEYS:}
+  service-permissions: ${CONFIG_INTERNAL_SERVICE_PERMISSIONS:}
+
 spring:
   application:
     name: business-configuration-service

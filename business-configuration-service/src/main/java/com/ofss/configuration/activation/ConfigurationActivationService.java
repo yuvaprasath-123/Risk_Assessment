@@ -18,6 +18,8 @@ public class ConfigurationActivationService {
     public record ActiveSnapshot(String versionId, String versionRowVersion, String pointerRowVersion,
             String activatedAt, String activatedByUserId, String publishedAt, String publishedByUserId,
             String contentHash, String hashFormat, @JsonRawValue String configuration) {}
+    public record PublishedSnapshot(String versionId, String versionRowVersion, String publishedAt, String publishedByUserId,
+            String contentHash, String hashFormat, @JsonRawValue String configuration) {}
     private final ConfigurationActivationRepository repository;
     private final DraftRiskRuleRepository versions;
     private final DraftRiskBandRepository bands;
@@ -60,6 +62,16 @@ public class ConfigurationActivationService {
         var pointer = repository.pointer().orElseThrow(() -> new ActivationFailure(ActivationFailure.Reason.NO_ACTIVE_CONFIGURATION));
         var parent = versions.findVersion(pointer.versionId(), false).orElseThrow(ConfigurationActivationRepository::invalid);
         return response(pointer, parent, verify(parent));
+    }
+    /** Pinned reads never consult the mutable active pointer or select a newer version. */
+    @Transactional(readOnly=true, isolation=Isolation.SERIALIZABLE)
+    public PublishedSnapshot published(long versionId) {
+        if (versionId < 1) throw new InvalidConfigurationRequestException();
+        var parent=versions.findVersion(versionId,false).orElseThrow(ConfigurationVersionNotFoundException::new);
+        if (!"PUBLISHED".equals(parent.version().publicationState())) throw new ActivationFailure(ActivationFailure.Reason.VERSION_NOT_PUBLISHED);
+        var verified=verify(parent);
+        return new PublishedSnapshot(Long.toString(versionId),Long.toString(parent.rowVersion()),verified.metadata().publishedAt().toInstant().toString(),
+                Long.toString(verified.metadata().publisher()),verified.content().hash(),ConfigurationContentHash.FORMAT,verified.content().json());
     }
     private record Verified(ConfigurationActivationRepository.Metadata metadata, ConfigurationContentHash.Document content) {}
     private Verified verify(ConfigurationVersionDetails parent) {

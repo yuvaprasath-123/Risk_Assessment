@@ -1,5 +1,9 @@
 # Risk assessment service
 
+## Opt-in internal reads
+
+Dedicated service authentication and provisioning/rotation are defined in [internal-service-security](../internal-service-security/README.md). Internal access defaults off and uses separate external RS256 public keys, issuer, receiver audience and per-service grants. The GET routes `/internal/v1/risk-assessments/{assessmentId}`, `/factors` and `/configuration-snapshot` require RISK_ASSESSMENT_READ, RISK_FACTORS_READ and RISK_CONFIGURATION_READ respectively. They reuse verified stored reads, expose only existing safe projections and return 409 ASSESSMENT_NOT_COMPLETED for every non-completed assessment. No submission, scoring, mutation or raw-evidence access is added. Existing manager routes and non-completed response contracts are preserved. Build through the Developer 2 reactor (`-pl risk-assessment-service -am`) to include the shared library. Live internal-token issuer/Oracle interoperability remains unverified.
+
 Java 21, Spring Boot 4.1.1 and installed Maven 3.9.16. The scoring engine remains pure Java. Spring JDBC implements acceptance, leases, frozen evidence and finalization; the executable HTTP host exposes manager-only persisted assessment reads. No HTTP submission, scheduler, live adapter or callback is supplied. Developer 1 owns validation; `RiskInput.current.validated` certifies its upstream PASS. Exact duplicates must already have been blocked upstream.
 
 ## Manager-only HTTP reads
@@ -54,7 +58,7 @@ Recovery selects only `OracleRiskReadHttpCleanupTest` and requires the write opt
 From the repository root, build and test the shared contracts, configuration service and engine together:
 
 ```powershell
-mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest,!OracleFinalizationPersistenceTest,!OracleFinalizationFixtureCleanupTest,!OracleRiskReadHttpTest,!OracleRiskReadHttpCleanupTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleConfigurationPublicationTest,!OraclePublicationFixtureCleanupTest,!OracleConfigurationActivationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest,!OracleFinalizationPersistenceTest,!OracleFinalizationFixtureCleanupTest,!OracleRiskReadHttpTest,!OracleRiskReadHttpCleanupTest,!OracleInternalConfigurationHttpTest,!OracleInternalConfigurationCleanupTest,!OracleInternalRiskHttpTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
 `OracleEvidencePersistenceTest` is independently opt-in with `RISK_VERIFY_ORACLE_EVIDENCE_WRITES=true` and the same external D2_RISK credentials. Select only `'-Dtest=OracleEvidencePersistenceTest'` with `mvn -f developer2-pom.xml -pl risk-assessment-service -am ... '-Dsurefire.failIfNoSpecifiedTests=false' test`. It prepares ten real-transaction cases under a fresh printed `D2_RISK_FREEZE_<UUID>` namespace, using large Unicode CLOBs for every attempt-0 locator INSERT, exact money/nanoseconds, manifest readback, retries/conflicts, rejected partial data, verified post-write rollback injections, expired/superseded fences, populated-input recovery and two competing freeze workers. A final-guard test supplies a deliberately stale time sample while verifying unchanged fence values and the real Oracle clock's expiry rejection after all six inserts; production retains OracleLeaseClock. These live tests have not been run by the agent.
