@@ -19,15 +19,21 @@ public final class EphemeralReceiver implements AutoCloseable {
         properties.putAll(Map.of("logging.level.root","WARN","logging.level.org.springframework.security","OFF","logging.level.org.springframework.web","OFF",
             "spring.mvc.log-request-details",false,"server.tomcat.accesslog.enabled",false));
         properties.putAll(Map.of("spring.main.web-application-type","servlet","server.ssl.enabled",false,"spring.datasource.hikari.connection-init-sql",""));
+        properties.put("risk-submission.enabled",false);
         return properties;
     }
     public static EphemeralReceiver start(Class<?> app,EphemeralCredentials credentials,String audience,String grants,boolean enabled,Map<String,Object> database) {
+        return start(app,credentials,audience,grants,enabled,database,c->{});
+    }
+    public static EphemeralReceiver start(Class<?> app,EphemeralCredentials credentials,String audience,String grants,boolean enabled,Map<String,Object> database,
+            java.util.function.Consumer<ConfigurableApplicationContext> testCustomization) {
         var properties=properties(credentials,audience,grants,enabled,database);
         var application=new SpringApplication(app);application.setBannerMode(Banner.Mode.OFF);application.setLogStartupInfo(false);
-        application.addInitializers(c->c.getEnvironment().getPropertySources().addFirst(new MapPropertySource("ephemeral-test-only",properties)));
+        application.addInitializers(c->{c.getEnvironment().getPropertySources().addFirst(new MapPropertySource("ephemeral-test-only",properties));testCustomization.accept(c);});
         try{return new EphemeralReceiver(application.run());}
         catch(RuntimeException failure){throw new AssertionError("Ephemeral test receiver startup failed; no credentials or exception payload displayed");}
     }
     public URI base(){return URI.create("http://127.0.0.1:"+context.getEnvironment().getRequiredProperty("local.server.port",Integer.class));}
+    public <T>T bean(Class<T> type){return context.getBean(type);}
     @Override public void close(){try{context.close();}catch(RuntimeException e){throw new AssertionError("Test receiver shutdown failed; cleanup must be deferred");}}
 }

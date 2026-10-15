@@ -31,6 +31,8 @@ JWT JSON field names above describe the contract; no usable token or signing key
 | Risk `/internal/v1/risk-assessments/{assessmentId}` | RISK_ASSESSMENT_READ | Existing summary projection, COMPLETED only |
 | Risk `/internal/v1/risk-assessments/{assessmentId}/factors` | RISK_FACTORS_READ | Existing ordered factor projection, COMPLETED only |
 | Risk `/internal/v1/risk-assessments/{assessmentId}/configuration-snapshot` | RISK_CONFIGURATION_READ | That completed assessment's frozen engine configuration |
+| Risk POST `/internal/v1/risk-assessments` | RISK_ASSESSMENT_SUBMIT | Separate opt-in orchestration; receiver-owned namespace binding also required |
+| Risk GET `/internal/v1/risk-assessment-submissions/status` | RISK_ASSESSMENT_SUBMIT | Source/key lookup, same namespace ownership; no work triggered |
 
 No other internal methods/routes are authorized. Ordinary manager routes retain their existing access policy and DTOs. String IDs/revisions, UTC timestamps and exact numeric/money representations are preserved. Factors expose outcomes, weights, contributions and explanations, not unrestricted matched evidence, observations, diagnostics, lease capabilities or completion proofs.
 

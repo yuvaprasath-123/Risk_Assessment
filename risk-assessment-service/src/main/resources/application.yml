@@ -3,6 +3,10 @@ server:
   error:
     include-message: never
     include-stacktrace: never
+risk-submission:
+  enabled: ${RISK_SUBMISSION_ENABLED:false}
+  sources: ${RISK_SUBMISSION_SOURCES:}
+  dependency-budget: ${RISK_SUBMISSION_DEPENDENCY_BUDGET:}
 internal-access:
   enabled: ${RISK_INTERNAL_ENABLED:false}
   issuer: ${RISK_INTERNAL_ISSUER:}

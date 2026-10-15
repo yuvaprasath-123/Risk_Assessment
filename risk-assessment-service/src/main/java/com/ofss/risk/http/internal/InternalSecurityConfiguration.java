@@ -19,7 +19,9 @@ public class InternalSecurityConfiguration {
         String path="/internal/v1/risk-assessments";
         return http.securityMatcher("/internal/**").csrf(c->c.disable()).sessionManagement(s->s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .requestCache(c->c.disable()).formLogin(c->c.disable()).httpBasic(c->c.disable())
-            .authorizeHttpRequests(a->a.requestMatchers(HttpMethod.GET,path+"/*").hasAuthority(ServicePermissions.authority(ServicePermissions.RISK_ASSESSMENT))
+            .authorizeHttpRequests(a->a.requestMatchers(HttpMethod.POST,path).hasAuthority(ServicePermissions.authority(ServicePermissions.RISK_SUBMIT))
+                .requestMatchers(HttpMethod.GET,"/internal/v1/risk-assessment-submissions/status").hasAuthority(ServicePermissions.authority(ServicePermissions.RISK_SUBMIT))
+                .requestMatchers(HttpMethod.GET,path+"/*").hasAuthority(ServicePermissions.authority(ServicePermissions.RISK_ASSESSMENT))
                 .requestMatchers(HttpMethod.GET,path+"/*/factors").hasAuthority(ServicePermissions.authority(ServicePermissions.RISK_FACTORS))
                 .requestMatchers(HttpMethod.GET,path+"/*/configuration-snapshot").hasAuthority(ServicePermissions.authority(ServicePermissions.RISK_CONFIGURATION)).anyRequest().denyAll())
             .exceptionHandling(e->e.authenticationEntryPoint((request,response,failure)->errors.unauthorized(request,response,false))
