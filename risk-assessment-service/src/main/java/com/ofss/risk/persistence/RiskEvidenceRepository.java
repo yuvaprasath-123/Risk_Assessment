@@ -39,7 +39,7 @@ public class RiskEvidenceRepository {
     private final JdbcTemplate jdbc;
     public RiskEvidenceRepository(JdbcTemplate jdbc) { this.jdbc=Objects.requireNonNull(jdbc); }
     Header header(long id) {
-        bound(); var rows=jdbc.query(HEADER,ps->ps.setLong(1,id),(rs,n)-> {
+        readBound(); var rows=jdbc.query(HEADER,ps->ps.setLong(1,id),(rs,n)-> {
             Object manifest=rs.getObject("FROZEN_INPUT_EVIDENCE_ID");
             var value=new Header(rs.getString("INPUT_HASH"),manifest==null?null:PersistenceValues.number(manifest,true),time(rs,"INPUT_FROZEN_AT"));
             if(value.hash()==null ? value.manifest()!=null || value.frozenAt()!=null : value.manifest()==null || value.frozenAt()==null
@@ -49,7 +49,7 @@ public class RiskEvidenceRepository {
         if(rows.size()!=1) throw invalid(); return rows.getFirst();
     }
     List<Stored> children(long id) {
-        bound(); return jdbc.query(CHILDREN,ps->ps.setLong(1,id),(rs,n)-> {
+        readBound(); return jdbc.query(CHILDREN,ps->ps.setLong(1,id),(rs,n)-> {
             if(PersistenceValues.number(rs.getObject("ASSESSMENT_ID"),true)!=id
                 || PersistenceValues.number(rs.getObject("ATTEMPT_NO"),false)!=0) throw invalid();
             Object count=rs.getObject("RECORD_COUNT");
@@ -112,6 +112,10 @@ public class RiskEvidenceRepository {
     private void bound() {
         if(!TransactionSynchronizationManager.isActualTransactionActive() || TransactionSynchronizationManager.isCurrentTransactionReadOnly()
             || !TransactionSynchronizationManager.hasResource(jdbc.getDataSource())) throw new IllegalStateException("Evidence requires its bound writable transaction");
+    }
+    private void readBound() {
+        if(!TransactionSynchronizationManager.isActualTransactionActive() || !TransactionSynchronizationManager.hasResource(jdbc.getDataSource()))
+            throw new IllegalStateException("Evidence reads require their bound transaction");
     }
     private static Instant time(ResultSet rs,String column) throws SQLException {
         var value=rs.getObject(column,OffsetDateTime.class); if(value==null) return null;

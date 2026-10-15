@@ -52,4 +52,13 @@ public class RiskPersistenceConfiguration {
             @Value("${RISK_LEASE_DURATION}") String duration) {
         return new RiskWorkService(repository,manager,clock,Duration.parse(duration));
     }
+    @Bean public RiskFinalizationRepository riskFinalizationRepository(@Qualifier("riskDataSource") DataSource ds) {
+        return new RiskFinalizationRepository(new JdbcTemplate(ds));
+    }
+    @Bean public PinnedRiskEvaluators pinnedRiskEvaluators() { return PinnedRiskEvaluators.current(); }
+    @Bean public RiskFinalizationService riskFinalizationService(RiskAcceptanceRepository acceptance,RiskWorkRepository work,
+            RiskEvidenceRepository evidence,RiskFinalizationRepository repository,PinnedRiskEvaluators evaluators,
+            @Qualifier("riskTransactionManager") JdbcTransactionManager manager,@Qualifier("riskLeaseClock") Clock clock) {
+        return new RiskFinalizationService(acceptance,work,evidence,repository,evaluators,manager,clock);
+    }
 }

@@ -5,7 +5,7 @@ Java 21 library, built with the Spring Boot 4.1.1 dependency baseline and instal
 From the repository root, build and test the shared contracts, configuration service and engine together:
 
 ```powershell
-mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+mvn -f developer2-pom.xml '-Dtest=!OracleReadOnlyVerificationTest,!OracleAcceptancePersistenceTest,!OracleAcceptanceFixtureCleanupTest,!OracleWorkPersistenceTest,!OracleWorkFixtureCleanupTest,!OracleEvidencePersistenceTest,!OracleEvidenceFixtureCleanupTest,!OracleFinalizationPersistenceTest,!OracleFinalizationFixtureCleanupTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
 `OracleEvidencePersistenceTest` is independently opt-in with `RISK_VERIFY_ORACLE_EVIDENCE_WRITES=true` and the same external D2_RISK credentials. Select only `'-Dtest=OracleEvidencePersistenceTest'` with `mvn -f developer2-pom.xml -pl risk-assessment-service -am ... '-Dsurefire.failIfNoSpecifiedTests=false' test`. It prepares ten real-transaction cases under a fresh printed `D2_RISK_FREEZE_<UUID>` namespace, using large Unicode CLOBs for every attempt-0 locator INSERT, exact money/nanoseconds, manifest readback, retries/conflicts, rejected partial data, verified post-write rollback injections, expired/superseded fences, populated-input recovery and two competing freeze workers. A final-guard test supplies a deliberately stale time sample while verifying unchanged fence values and the real Oracle clock's expiry rejection after all six inserts; production retains OracleLeaseClock. These live tests have not been run by the agent.
@@ -53,6 +53,46 @@ A new logical key requires supplied configuration; there is no active/newest-ver
 The service owns a REQUIRES_NEW, READ_COMMITTED transaction: lookup, insert assessment with Oracle-generated identity, insert immutable snapshot, associate it, verify readback and commit. Initial rowVersion stays zero; the association belongs to initial creation. Only the parent INSERT's recognized `D2_RISK.UK_RSK_SUBMISSION` collision rolls back and starts a fresh lookup transaction for the concurrent winner. Matching data reuses it; conflicting data raises sanitized `SUBMISSION_CONFLICT`. Unknown/primary-key constraints, missing snapshots and invalid readback raise sanitized `RISK_PERSISTENCE_UNAVAILABLE`. A commit/network ambiguity requires another idempotent call using the same identity, never blind recreation. Repository writes require an active writable transaction bound to their datasource.
 
 Offline transaction tests use a real Spring JDBC transaction manager with mocked connections/statements; they are distinct from live Oracle verification. Durable historical as-of visibility, identity/retry mapping and coherent published-configuration sourcing are still integration dependencies. Complete scoring, factor sets and callbacks remain later milestones.
+
+## Scoring finalization library contract
+
+`RiskFinalizationService.finalizeAssessment(FinalizationRequest)` takes the namespaced identity, current post-freeze/renewal `WorkLease`, and expected acceptance/configuration/input hashes. Hashes are preconditions: persisted configuration, acceptance and the complete frozen graph are independently reconstructed and verified locally. No supplied score, factor or replacement input is accepted. The pinned executable registry currently supports **`risk-scoring-v1`** only; accept this evaluator identity for new work. Unknown historical identities fail closed with `EVALUATOR_UNAVAILABLE`; they are never silently aliased to the current engine. Retain executable versions and canonical decoders for historical work.
+
+Execution has three phases: a short Oracle `SET TRANSACTION READ ONLY` snapshot; pure evaluation with any caller transaction suspended and no database lock; then a REQUIRES_NEW writable transaction locking the parent and verifying the frozen identity/graph plus the full lease again. Seven unique factors are validated against configured weights/enabled flags, exact raw total, configured cap and configured band. They retain original outcomes (including valid zero-contribution INSUFFICIENT_HISTORY), matched IDs, observations and explanations. Each enabled factor points to the manifest; its `risk-factor-v1` CLOB includes the full frozen evidence reference graph. Disabled factors have null primary evidence and no references. Upstream rule-row IDs are absent from the engine snapshot and remain null rather than invented.
+
+All seven inserts, final score/band/timestamps, factor count, rowVersion increment and lease clearing commit together. Oracle remains the clock authority: the final conditional UPDATE checks token/epoch/attempt/rowVersion/exact expiry and `SYSTIMESTAMP` after factor inserts; readback also rechecks the original expiry before returning for commit. If evaluation succeeds but authority expires before the final guarded write or during readback, finalization rejects and rolls back all factors/completion. It does not extend or revive the lease. A newly claimed worker may evaluate the unchanged frozen input. Technical/unresolved-policy outcomes create no completion or final factors; failure/blocked recording remains the separate existing fenced work operation.
+
+A completed retry uses the original successful lease capability and the same frozen hash preconditions. A versioned one-way fence digest in every factor CLOB verifies that capability after the parent clears its lease token. The token itself is not stored in factor details. Matching retries return verified stored factors/scores/timestamps, even after lease expiry or without an evaluator artifact, without rescoring or updating completion time. Superseded capabilities reject. Concurrent finalizers may evaluate independently; the parent lock permits only one atomic factor set. User-run Oracle verification is recorded below. No HTTP operation, scheduler or callback is supplied.
+
+`OracleFinalizationPersistenceTest` is independently opt-in through `RISK_VERIFY_ORACLE_FINALIZATION_WRITES=true`. Its **13 live cases have not been run by the agent**. They use the real acceptance/freeze/finalization/work repositories and Spring transaction manager, large Unicode factor CLOBs, exact decimals, the maximum seven-factor raw total, nine-digit timestamp bindings (a test-only Oracle-derived fixed sample), an insufficient-history result, immutable completed retries without an evaluator call, two competing finalizers, expired/taken-over workers, three reached-and-asserted rollback injections, the final Oracle expiry predicate, unresolved-policy rejection and COMPLETED claim/renew/fail rejection. These are separate from the existing **1,082 passing offline regression tests**, whose unchanged production implementation result is reused.
+
+Scoring-finalization checkpoint verification: **1,082 regression tests and 37 additional offline tests passed**. The user-run live Oracle finalization suite passed **13 tests, zero failures/errors/skips**. Both workers terminated; scoped fixture cleanup left **zero parents**. The earlier ORA-01536 quota failure was resolved by increasing D2_RISK's USERS quota from **100M to 300M**. This was a later local database change: historical setup scripts retain their original 100M proposal and have not been rewritten to imply they originally granted 300M. Implementation is unchanged, so these results are reused without rerunning tests. The agent did not execute live SQL or start services.
+
+The test commits isolated fixtures under a fresh printed `D2_RISK_FINAL_<UUID>` namespace so workers can see them. Controlled expiry changes only that exact fenced synthetic parent's expiry/rowVersion, with no sleeps or clock changes. The final SQL-guard case uses an expired boundary one nanosecond after frozenAt and a deliberately stale injected time sample; real Oracle expiry must reject after seven inserts. Production retains OracleLeaseClock. Automatic cleanup runs only after workers terminate, verifies every fixture's acceptance/configuration/input hashes and complete result graph, then deletes factors, clears completion/references, and deletes evidence/snapshots/parents in one guarded transaction. Clearing completion and references together satisfies the deployed CHECK constraints. Unexpected data or uncertain termination refuses/defers cleanup. No unrelated record is deleted and identities are never reset. Existing milestone cleaners remain unchanged.
+
+For interruption recovery, first confirm all test workers/processes stopped. Reuse external credentials/write opt-in, set `RISK_ORACLE_FINALIZATION_NAMESPACE` to the exact printed namespace, `RISK_ORACLE_FINALIZATION_CLEANUP_ONLY=true` and `RISK_ORACLE_FINALIZATION_WORKERS_STOPPED=true`, then select only `OracleFinalizationFixtureCleanupTest`. Missing/invalid namespaces reject before connecting; there is no wildcard fallback. No JWT key or lease-duration variable is needed for these direct-library tests; the two-minute lease is a technical fixture setting.
+
+User-run live verification from PowerShell (Oracle writes are intentional only when you run this):
+
+```powershell
+Set-Location 'C:\risk_assessment\Risk_Assessment'
+$riskFinalPassword = Read-Host 'D2_RISK password' -AsSecureString
+$riskFinalPasswordPointer = [IntPtr]::Zero
+try {
+    $riskFinalPasswordPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($riskFinalPassword)
+    $env:RISK_DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($riskFinalPasswordPointer)
+    $env:RISK_DB_USERNAME = 'D2_RISK'
+    $env:RISK_DB_URL = 'jdbc:oracle:thin:@//localhost:1521/FREEPDB1'
+    $env:RISK_VERIFY_ORACLE_FINALIZATION_WRITES = 'true'
+    mvn -f developer2-pom.xml -pl risk-assessment-service -am '-Dtest=OracleFinalizationPersistenceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+    if ($LASTEXITCODE -ne 0) { throw 'Live verification failed; retain the printed fixture namespace and Surefire reports.' }
+} finally {
+    if ($riskFinalPasswordPointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($riskFinalPasswordPointer) }
+    $riskFinalPassword.Dispose()
+    Remove-Item Env:RISK_DB_PASSWORD, Env:RISK_DB_USERNAME, Env:RISK_DB_URL, Env:RISK_VERIFY_ORACLE_FINALIZATION_WRITES, Env:RISK_ORACLE_FINALIZATION_CLEANUP_ONLY, Env:RISK_ORACLE_FINALIZATION_WORKERS_STOPPED, Env:RISK_ORACLE_FINALIZATION_NAMESPACE -ErrorAction SilentlyContinue
+    Remove-Variable riskFinalPassword, riskFinalPasswordPointer -ErrorAction SilentlyContinue
+}
+```
 
 ## Work claiming and fencing contract
 

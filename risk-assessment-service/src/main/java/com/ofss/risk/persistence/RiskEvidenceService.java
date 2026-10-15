@@ -40,7 +40,7 @@ public final class RiskEvidenceService {
                 var existing=evidence.children(parent.id());
                 if(header.hash()!=null) {
                     if(!header.hash().equals(input.hash())) throw conflict();
-                    var expected=verify(request,stored,input,header,existing);
+                    var expected=verifyStored(request,stored,input,header,existing);
                     evidence.reuse(parent,header); // Final expiry/fence check, even on a read-only logical retry.
                     return result(parent,header,expected,input,request.input());
                 }
@@ -57,13 +57,13 @@ public final class RiskEvidenceService {
                 var expected=new RiskWorkRepository.Row(parent.id(),parent.snapshot(),parent.state(),parent.token(),parent.epoch(),parent.attempt(),
                     parent.revision()+1,parent.expiry(),parent.created(),parent.cutoff(),parent.errorCode(),parent.errorMessage());
                 if(!expected.equals(after) || !frozen.equals(evidence.header(parent.id()))) throw unavailable();
-                var verified=verify(request,stored,input,frozen,evidence.children(parent.id()));
+                var verified=verifyStored(request,stored,input,frozen,evidence.children(parent.id()));
                 return result(after,frozen,verified,input,request.input());
             });
         } catch(FreezeFailure | WorkFailure e) { throw e; }
         catch(RuntimeException e) { throw unavailable(); }
     }
-    private RiskEvidenceRepository.Stored verify(EvidenceFreezeRequest request,AcceptedAssessment accepted,
+    static RiskEvidenceRepository.Stored verifyStored(EvidenceFreezeRequest request,AcceptedAssessment accepted,
             CanonicalEvidence.Document input,RiskEvidenceRepository.Header header,List<RiskEvidenceRepository.Stored> saved) {
         var byKey=new HashMap<String,RiskEvidenceRepository.Stored>();
         for(var row:saved) if(byKey.put(row.key(),row)!=null) throw unavailable();
@@ -76,7 +76,8 @@ public final class RiskEvidenceService {
         var expected=manifest(request,input,children,header.frozenAt()); var row=byKey.get("ENGINE_INPUT");
         if(row==null || row.id()!=header.manifest() || !expected.withId(row.id()).equals(row)) throw unavailable(); return row;
     }
-    private List<RiskEvidenceRepository.Stored> inputs(EvidenceFreezeRequest request,AcceptedAssessment stored,Instant now) {
+    static List<RiskEvidenceRepository.Stored> inputs(EvidenceFreezeRequest request,AcceptedAssessment stored,Instant now) {
+        var canonical=new CanonicalEvidence();
         var input=request.input(); var result=new ArrayList<RiskEvidenceRepository.Stored>();
         var currentSource=new Source("risk-assessment-service",stored.assessmentId(),null);
         var current=canonical.evidence(Kind.CURRENT_INPUT,currentSource,CanonicalEvidence.map("current",input.current(),
@@ -96,10 +97,10 @@ public final class RiskEvidenceService {
         }
         return result;
     }
-    private RiskEvidenceRepository.Stored manifest(EvidenceFreezeRequest request,CanonicalEvidence.Document input,
+    static RiskEvidenceRepository.Stored manifest(EvidenceFreezeRequest request,CanonicalEvidence.Document input,
             List<RiskEvidenceRepository.Stored> children,Instant now) {
         return row("MANIFEST","ENGINE_INPUT","INPUT_MANIFEST",new Source("risk-assessment-service",null,null),input.hash(),
-            CanonicalEvidence.MANIFEST_FORMAT,request.input().cutoff(),null,children.size(),"COMPLETE",canonical.manifest(input,children),now);
+            CanonicalEvidence.MANIFEST_FORMAT,request.input().cutoff(),null,children.size(),"COMPLETE",new CanonicalEvidence().manifest(input,children),now);
     }
     private static RiskEvidenceRepository.Stored row(String recordClass,String key,String kind,Source source,String snapshot,
             String format,Instant cutoff,Instant coveredFrom,int count,String availability,CanonicalEvidence.Document document,Instant now) {

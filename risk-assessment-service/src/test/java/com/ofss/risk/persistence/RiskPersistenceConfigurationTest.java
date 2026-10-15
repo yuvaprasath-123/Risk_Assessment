@@ -30,6 +30,9 @@ class RiskPersistenceConfigurationTest {
             context.register(RiskPersistenceConfiguration.class); context.refresh();
             assertNotNull(context.getBean(RiskWorkService.class));
             assertNotNull(context.getBean(RiskEvidenceService.class));
+            assertNotNull(context.getBean(RiskFinalizationService.class));
+            assertNotNull(context.getBean(RiskFinalizationRepository.class));
+            assertNotNull(context.getBean(PinnedRiskEvaluators.class));
             assertInstanceOf(OracleLeaseClock.class,context.getBean("riskLeaseClock"));
             var ds=context.getBean(com.zaxxer.hikari.HikariDataSource.class);
             assertSame(ds,context.getBean(org.springframework.jdbc.support.JdbcTransactionManager.class).getDataSource());

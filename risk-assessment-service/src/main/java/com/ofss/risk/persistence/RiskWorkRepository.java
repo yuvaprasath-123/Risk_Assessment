@@ -42,7 +42,11 @@ public class RiskWorkRepository {
     private final JdbcTemplate jdbc;
     public RiskWorkRepository(JdbcTemplate jdbc) { this.jdbc = Objects.requireNonNull(jdbc); }
     Row lock(long id) { writable(); return read(LOCK, id); }
-    Row read(long id) { writable(); return read(READ, id); }
+    Row read(long id) {
+        if(!TransactionSynchronizationManager.isActualTransactionActive() || !TransactionSynchronizationManager.hasResource(jdbc.getDataSource()))
+            throw new IllegalStateException("Work reads require their bound transaction");
+        return read(READ,id);
+    }
     private Row read(String sql, long id) {
         var rows = jdbc.query(sql, ps -> ps.setLong(1, id), (rs, n) -> {
             long attempt = number(rs, "ATTEMPT_COUNT", false);
