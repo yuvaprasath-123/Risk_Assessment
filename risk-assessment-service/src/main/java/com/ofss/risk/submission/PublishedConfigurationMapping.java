@@ -19,6 +19,11 @@ public final class PublishedConfigurationMapping {
         try { return verified(snapshot); }
         catch(Exception e){throw new SubmissionFailure(SubmissionFailure.Code.DEPENDENCY_UNAVAILABLE);}
     }
+    /** Canonicalizes the complete exact-number HTTP object without discarding fields or changing array order. */
+    public String canonicalContent(Object content) {
+        try {return canonical(content);}
+        catch(RuntimeException e){throw new SubmissionFailure(SubmissionFailure.Code.DEPENDENCY_UNAVAILABLE);}
+    }
     @SuppressWarnings("unchecked") RiskConfiguration verified(SubmissionAdapters.PublishedSnapshot snapshot) throws Exception {
             if(snapshot==null || !"PUBLISHED".equals(snapshot.publicationState()) || !"configuration-content-v1".equals(snapshot.hashFormat())
                 || snapshot.contentHash()==null || !snapshot.contentHash().matches("[0-9a-f]{64}"))throw new IllegalArgumentException();

@@ -7,6 +7,13 @@ risk-submission:
   enabled: ${RISK_SUBMISSION_ENABLED:false}
   sources: ${RISK_SUBMISSION_SOURCES:}
   dependency-budget: ${RISK_SUBMISSION_DEPENDENCY_BUDGET:}
+risk-configuration-client:
+  enabled: ${RISK_CONFIGURATION_CLIENT_ENABLED:false}
+  base-url: ${RISK_CONFIGURATION_BASE_URL:}
+  connect-timeout: ${RISK_CONFIGURATION_CONNECT_TIMEOUT:}
+  request-timeout: ${RISK_CONFIGURATION_REQUEST_TIMEOUT:}
+  max-response-bytes: ${RISK_CONFIGURATION_MAX_RESPONSE_BYTES:}
+  service-token: ${RISK_CONFIGURATION_SERVICE_TOKEN:}
 internal-access:
   enabled: ${RISK_INTERNAL_ENABLED:false}
   issuer: ${RISK_INTERNAL_ISSUER:}

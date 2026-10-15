@@ -8,6 +8,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /** Actual opt-in bean path, no socket or database connection. */
 class SubmissionWiringTest {
@@ -36,4 +37,15 @@ class SubmissionWiringTest {
         });
     }
     @Test void missingLeaseConfigurationFailsStartup(){context().withPropertyValues("risk-submission.enabled=true","risk-submission.sources={\"payment-service\":[\"payment.v1\"]}","risk-submission.dependency-budget=PT2S").run(c->assertNotNull(c.getStartupFailure()));}
+    @Test void explicitHttpConfigurationWiresRealAdapterWithoutConnecting()throws Exception{
+        var client=mock(java.net.http.HttpClient.class);when(client.awaitTermination(java.time.Duration.ofSeconds(5))).thenReturn(true);
+        var builder=mock(java.net.http.HttpClient.Builder.class,RETURNS_SELF);when(builder.build()).thenReturn(client);
+        try(var construction=mockStatic(java.net.http.HttpClient.class)){construction.when(java.net.http.HttpClient::newBuilder).thenReturn(builder);
+        enabled().withPropertyValues("risk-configuration-client.enabled=true",
+        "risk-configuration-client.base-url=https://configuration.test","risk-configuration-client.connect-timeout=PT1S","risk-configuration-client.request-timeout=PT2S",
+        "risk-configuration-client.max-response-bytes=65536","risk-configuration-client.service-token=header.fixture.signature").run(c->{
+            assertNull(c.getStartupFailure());assertInstanceOf(com.ofss.risk.configuration.BusinessConfigurationHttpAdapter.class,c.getBean(PublishedConfiguration.class));
+            assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());assertThrows(SubmissionFailure.class,()->c.getBean(Facts.class).verify(null,null,c.getBean(DependencyCalls.class).deadline()));
+        });verify(client).shutdownNow();verify(client).awaitTermination(java.time.Duration.ofSeconds(5));}}
+    @Test void enabledIncompleteHttpConfigurationFailsActualBeanPath(){enabled().withPropertyValues("risk-configuration-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
 }

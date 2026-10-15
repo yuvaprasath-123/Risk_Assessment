@@ -1,5 +1,42 @@
 # Risk assessment service
 
+## Production Business Configuration read adapter
+
+When submission is enabled, the configuration resolver can use the existing authenticated internal APIs: `GET /internal/v1/configuration/active` for a new submission without an explicit choice, or `GET /internal/v1/configuration/versions/{versionId}` for an explicit pinned version. It verifies the complete `configuration-content-v1` document/hash before using `PublishedConfigurationMapping`. The engine revision is **versionRowVersion**, never pointerRowVersion. Existing accepted submissions restore their immutable snapshot/hash/cutoff; retries do not reselect active configuration, and a failed pinned read never falls back to active.
+
+Explicit runtime settings (all required when enabled):
+
+| Process environment variable | Value/requirement |
+| --- | --- |
+| `RISK_CONFIGURATION_CLIENT_ENABLED` | `true`; default `false` retains ADAPTER_UNAVAILABLE |
+| `RISK_CONFIGURATION_BASE_URL` | Trusted origin only, e.g. `https://configuration.example`; no path/query/userinfo; plain HTTP allowed only for explicit loopback development |
+| `RISK_CONFIGURATION_CONNECT_TIMEOUT` | ISO duration, e.g. `PT2S`; 1 ms–30 seconds |
+| `RISK_CONFIGURATION_REQUEST_TIMEOUT` | ISO duration, e.g. `PT5S`; 1 ms–30 seconds; additionally bounded by the submission dependency deadline |
+| `RISK_CONFIGURATION_MAX_RESPONSE_BYTES` | Positive byte limit, e.g. `262144`; at most 4194304; applies to actual streamed bytes as well as Content-Length |
+| `RISK_CONFIGURATION_SERVICE_TOKEN` | Externally provisioned **raw service JWT**; never a user token, private key or `Bearer ` prefixed value |
+
+Provision the credential outside source control through the agreed secret-management/issuer process. Business Configuration must independently enable internal access, trust the dedicated issuer/public key/kid and exact configuration receiver audience, and grant the authenticated risk-service identity `CONFIGURATION_ACTIVE_READ` and `CONFIGURATION_VERSION_READ`. Existing user HMAC keys and manager credentials are unrelated. This adapter issues no tokens, propagates no caller Authorization header and fetches no keys. The token provider is read per request; ordinary Process environment replacement/expiry requires a newly provisioned token and process restart. Receiver key overlap/rotation follows the existing internal-service contract. Do not print tokens, paste them into chat, store them in project files or enable HTTP header/body debug logging with real credentials.
+
+Disabled/absent configuration preserves the unavailable resolver, including in the demo profile. Explicitly enabled but incomplete/invalid settings fail startup with a sanitized error; runtime missing credentials fail ADAPTER_UNAVAILABLE. Unauthorized/unavailable/non-200, redirect, timeout, malformed, oversized or hash-invalid responses fail DEPENDENCY_UNAVAILABLE without response payloads or token values. Only UTF-8 application/json and identity encoding are accepted, duplicate/unknown fields and lossy numeric coercions are rejected, and JSON nesting/canonical expansion are bounded. No redirects, fallback, cache or automatic retry is implemented. Calls are rejected inside database transactions; HTTP work shares the existing bounded dependency executor. Client shutdown cancels outstanding work and waits at most five seconds.
+
+Offline tests exercise the real request/body-handler/decoder against an in-memory HTTP transport and the actual service-principal verifier with ephemeral credentials; they open no receiver or database. Controlled published-shaped documents establish mapping/hash mechanics, **not readiness-approved publication or genuine issuer/receiver interoperability**. Real endpoint/TLS, credential provisioning/rotation, transport cancellation and Oracle-backed snapshot interoperability remain pending. Facts/evidence adapters and existing publication policy blockers remain unchanged.
+
+`NativeConfigurationHttpContractTest` additionally uses the real configured JDK client/production Spring bean and mapper against a temporary IPv4 loopback HTTP listener with ephemeral RSA credentials and the actual internal-service verifier. It opens no Oracle connection or application service. It covers active/pinned selection and version revision, exact decimals/Unicode, credentials/rotation/denial, hash/malformed/redirect rejection, declared/chunked byte limits, header/body timeout cancellation, client reuse and bounded receiver/client shutdown. This is native transport verification with a **test issuer**, separate from mocked transport and genuine cross-team/TLS/Oracle interoperability.
+
+Local JDK diagnostic: Oracle JDK 21.0.12.1 on this Windows host fails constructing its WEPoll selector's AF_UNIX wakeup pipe in the default profile TEMP directory (`Invalid argument: connect`), even outside the sandbox; ordinary TCP loopback and Pipe.open pass. The same native client and Unix-domain connect pass with a workspace socket directory, including a short directory containing spaces. This isolates the failure to the local default socket-directory/OS/JDK interaction; it does not establish its lower-level filesystem/security cause. No application transport fallback or global settings change is made. Startup now distinguishes sanitized transport-initialization failure from invalid external settings.
+
+Run just the offline native test from the repository root using a **process-local JVM socket-directory override**, after `target` exists (Maven compilation creates it). The directory must be writable and short enough for Windows Unix-domain paths:
+
+```powershell
+$env:JAVA_HOME = 'C:\jdk21'
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+mvn -f developer2-pom.xml '-Dtest=NativeConfigurationHttpContractTest' '-Dsurefire.failIfNoSpecifiedTests=false' '-DargLine=-Djdk.net.unixdomain.tmpdir=C:\risk_assessment\Risk_Assessment\risk-assessment-service\target' test
+```
+
+This flag affects only forked test JVMs; native tests do not skip or substitute mocks when construction fails. Standalone JDK-only diagnosis (no credentials) is available with `C:\jdk21\bin\java.exe risk-assessment-service/src/test/java/com/ofss/risk/configuration/NativeClientDiagnostics.java`; repeat with `-Djdk.net.unixdomain.tmpdir=C:\risk_assessment\Risk_Assessment\risk-assessment-service\target` before the source path for comparison. A deployment on this same host may require the equivalent explicit JVM launch option after local verification; no code changes the JVM socket directory automatically.
+
+Checkpoint verification: **1,753 offline reactor tests passed**, including **11 native HTTP tests**, with zero failures/errors/skips and live Oracle classes excluded. Native clients/listeners shut down successfully. The passing run used a **test-JVM-only workspace Unix-domain socket directory**; the underlying directory-dependent OS/JDK cause remains unconfirmed. Genuine issuer provisioning, TLS and Oracle-backed receiver interoperability remain pending. Publication blockers remain unchanged. Existing results are reused because implementation is unchanged; this checkpoint adds only this verification note.
+
 ## Prepared submission HTTP-to-Oracle verification
 
 `OracleSubmissionHttpTest` is opt-in (`RISK_VERIFY_ORACLE_SUBMISSION_HTTP_WRITES=true`) and contains **11 live test methods**, prepared but **not executed by the agent**. It starts real loopback risk receivers on ephemeral ports with the actual JWT, submission, acceptance, lease, freeze, finalization, status and stored-read paths. A test-only issuer generates ephemeral RSA/user keys in JVM memory; explicit test-only adapters supply deterministic PASS facts, supplier-wide evidence and controlled published-shaped configuration. The user-run passing suite verifies contract mechanics only: **not genuine Developer 1/3 integration, issuer provisioning, or readiness-approved publication**. No Developer 1/Configuration service is contacted or started. Production fallback adapters/readiness blockers are unchanged; no production issuer exists.

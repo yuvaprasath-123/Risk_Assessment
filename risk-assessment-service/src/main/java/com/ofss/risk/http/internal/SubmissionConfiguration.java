@@ -17,7 +17,7 @@ public class SubmissionConfiguration {
     @Bean SubmissionSources submissionSources(@Value("${risk-submission.sources}")String json){return new SubmissionSources(json);}
     @Bean(destroyMethod="close") DependencyCalls dependencyCalls(@Value("${risk-submission.dependency-budget}")String duration){return new DependencyCalls(Duration.parse(duration));}
     @Bean @ConditionalOnMissingBean(PublishedConfiguration.class)
-    PublishedConfiguration unavailablePublishedConfiguration(){return (version,deadline)->{throw SubmissionAdapters.unavailable();};}
+    PublishedConfiguration configuredPublishedConfiguration(org.springframework.core.env.Environment environment){return com.ofss.risk.configuration.BusinessConfigurationHttpAdapter.configured(environment);}
     static JdbcTemplate jdbc(DataSource ds){var jdbc=new JdbcTemplate(ds);jdbc.setQueryTimeout(5);return jdbc;}
     @Bean RiskAcceptanceRepository submissionAcceptanceRepository(DataSource ds){return new RiskAcceptanceRepository(jdbc(ds));}
     @Bean RiskWorkRepository submissionWorkRepository(DataSource ds){return new RiskWorkRepository(jdbc(ds));}
