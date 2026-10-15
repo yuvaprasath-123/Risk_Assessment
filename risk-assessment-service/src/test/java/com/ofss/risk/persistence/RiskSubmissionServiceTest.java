@@ -109,6 +109,17 @@ class RiskSubmissionServiceTest {
         when(snapshots.frozenHash(any())).thenReturn(null);when(evidence.retrieve(any(),any())).thenReturn(bundle);when(freeze.freeze(any())).thenThrow(new FreezeFailure(FreezeFailure.Code.EVIDENCE_NOT_READY));
         when(reads.get("1")).thenReturn(SubmissionFixtures.view("RETRYABLE_FAILURE"));assertNull(service.submit("payment-service",command).result());verify(work).fail(lease,WorkDiagnostic.TRANSIENT_FAILURE);verifyNoInteractions(finalization);
     }
+    @Test void durableLocalCapacityFailureRequiresInterventionUsingUpdatedCaptureFence(){
+        var upstream=mock(UpstreamEvidence.class);var captures=mock(PriorHistoryCaptureService.class);var base=FinalizationFixtures.input(false);
+        var sources=new EnumMap<EvidenceFreezeRequest.Kind,EvidenceFreezeRequest.Source>(EvidenceFreezeRequest.Kind.class);
+        for(var kind:List.of(EvidenceFreezeRequest.Kind.PAYMENT_HISTORY,EvidenceFreezeRequest.Kind.SUPPLIER,EvidenceFreezeRequest.Kind.SUPPLIER_TRANSITIONS))sources.put(kind,new EvidenceFreezeRequest.Source("fixture-upstream",kind.name(),null));
+        when(upstream.retrieve(any(),any())).thenReturn(new UpstreamBundle(base.payments(),base.supplier(),base.supplierTransitions(),sources,Set.of()));
+        var incomplete=new PriorAssessmentHistory(new com.ofss.risk.engine.RiskInput.Evidence<>(com.ofss.risk.engine.RiskInput.Availability.INCOMPLETE,null,"456","INR",original.cutoff(),original.cutoff().minusSeconds(7776000),List.of()),new EvidenceFreezeRequest.Source("risk-assessment-service","supplier-completed-history/456",null));
+        when(captures.loadOrCollect(any(),any())).thenReturn(incomplete);var refreshed=new WorkLease("1",lease.token(),1,1,"2",lease.expiresAt());when(captures.persist(eq(lease),any(),same(incomplete))).thenReturn(new PriorHistoryCaptureService.Captured(refreshed,incomplete));
+        when(snapshots.frozenHash(any())).thenReturn(null);when(reads.get("1")).thenReturn(SubmissionFixtures.view("BLOCKED"));
+        service=new RiskSubmissionService(new SubmissionSources("{\"payment-service\":[\"developer1\"]}"),facts,new ProductionEvidenceAdapter(upstream,captures),config,acceptance,work,freeze,finalization,snapshots,reads,calls,Clock.fixed(original.cutoff(),ZoneOffset.UTC),tx);
+        var response=service.submit("payment-service",command);assertEquals("BLOCKED",response.status());assertFalse(response.retryAllowed());assertNull(response.result());verify(work).fail(refreshed,WorkDiagnostic.INTERVENTION_REQUIRED);verifyNoInteractions(freeze,finalization);
+    }
     @Test void freezeReturnsRefreshedFenceForFinalization(){
         var bundle=DemoSubmissionAdapters.evidence(new AcceptanceRequest(new SubmissionIdentity("demo.test","x"),original.paymentId(),original.requesterId(),original.validationReference(),null,
             original.current(),original.cutoff(),original.currentAndRetrySubmissionIds(),PinnedRiskEvaluators.CURRENT,original.configuration(),null),calls.deadline());

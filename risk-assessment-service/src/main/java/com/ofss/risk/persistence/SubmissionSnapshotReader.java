@@ -37,7 +37,7 @@ public class SubmissionSnapshotReader {
         try{return reads.execute(status->{
             var stored=acceptance.find(identity).orElseThrow(AcceptanceFailure::unavailable);
             var header=evidence.header(PersistenceValues.id(stored.assessmentId()));
-            if(header.hash()==null){if(!evidence.children(PersistenceValues.id(stored.assessmentId())).isEmpty())throw AcceptanceFailure.unavailable();return null;}
+            if(header.hash()==null){PriorHistoryCaptureCodec.partial(evidence.children(PersistenceValues.id(stored.assessmentId())),stored);return null;}
             return loader.loadStored(stored).header().hash();
         });}catch(RuntimeException e){throw AcceptanceFailure.unavailable();}
     }

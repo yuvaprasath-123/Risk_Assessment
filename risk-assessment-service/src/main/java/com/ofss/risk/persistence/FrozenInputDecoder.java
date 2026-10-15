@@ -29,6 +29,7 @@ final class FrozenInputDecoder {
             text(value,"supplierId"),text(value,"currencyCode"),time(value,"cutoff"),optionalTime(value,"coveredFrom"),
             list(value.get("records")).stream().map(v->records.apply(object(v))).toList());
     }
+    static Evidence<PriorAssessment> priorEvidence(Map<?,?> value){return evidence(value,FrozenInputDecoder::prior);}
     private static Payment payment(Map<?,?> value) {
         keys(value,"evidenceId","submissionId","invoiceId","invoiceNumber","supplierId","currencyCode","amount","submittedAt","completedAt","statusAsOfCutoff","validated");
         if(!(value.get("validated") instanceof Boolean validated)) throw invalid();

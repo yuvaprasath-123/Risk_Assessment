@@ -15,6 +15,24 @@ public final class SubmissionAdapters {
     public interface Facts { VerifiedFacts verify(SubmissionCommand command,Instant cutoff,Deadline deadline); }
     /** Must reproduce original cutoff supplier-wide across requesters, including completeness/exclusions/source revisions. */
     public interface Evidence { Bundle retrieve(AcceptanceRequest accepted,Deadline deadline); }
+    /** Trusted integration seam. Supplies ONLY three upstream dependencies; D2 owns local history capture/replay.
+     * The legacy optional expectedPriorPopulationHash is ignored; it cannot authorize or replace D2 evidence. */
+    public interface UpstreamEvidence { UpstreamBundle retrieve(AcceptanceRequest accepted,Deadline deadline); }
+    public record UpstreamBundle(RiskInput.Evidence<RiskInput.Payment> payments,RiskInput.Evidence<RiskInput.Supplier> supplier,
+            RiskInput.Evidence<RiskInput.StatusTransition> transitions,Map<EvidenceFreezeRequest.Kind,EvidenceFreezeRequest.Source> sources,
+            Set<SubmissionIdentity> retryIdentities,String expectedPriorPopulationHash) {
+        public UpstreamBundle(RiskInput.Evidence<RiskInput.Payment> payments,RiskInput.Evidence<RiskInput.Supplier> supplier,
+                RiskInput.Evidence<RiskInput.StatusTransition> transitions,Map<EvidenceFreezeRequest.Kind,EvidenceFreezeRequest.Source> sources,Set<SubmissionIdentity> retryIdentities){
+            this(payments,supplier,transitions,sources,retryIdentities,null);
+        }
+        public UpstreamBundle {
+            Objects.requireNonNull(payments);Objects.requireNonNull(supplier);Objects.requireNonNull(transitions);
+            sources=Map.copyOf(sources);retryIdentities=Set.copyOf(retryIdentities);
+            if(!sources.keySet().equals(Set.of(EvidenceFreezeRequest.Kind.PAYMENT_HISTORY,EvidenceFreezeRequest.Kind.SUPPLIER,EvidenceFreezeRequest.Kind.SUPPLIER_TRANSITIONS)))
+                throw new IllegalArgumentException("Exactly three upstream source contracts required");
+            if(expectedPriorPopulationHash!=null&&!expectedPriorPopulationHash.matches("[0-9a-f]{64}"))throw new IllegalArgumentException("Invalid prior population receipt");
+        }
+    }
     /** Must fetch a verified real published active/pinned full snapshot; no DRAFT or demo fallback. */
     public interface PublishedConfiguration { PublishedSnapshot resolve(String explicitVersionId,Deadline deadline); }
     public record VerifiedFacts(SubmissionIdentity identity,long paymentId,long requesterId,String validationReference,

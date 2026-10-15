@@ -32,6 +32,10 @@ public class SubmissionConfiguration {
     @Bean RiskFinalizationService submissionFinalization(RiskAcceptanceRepository a,RiskWorkRepository w,RiskEvidenceRepository e,
             RiskFinalizationRepository r,JdbcTransactionManager tx,@Qualifier("submissionLeaseClock")Clock clock){return new RiskFinalizationService(a,w,e,r,PinnedRiskEvaluators.current(),tx,clock);}
     @Bean SubmissionSnapshotReader submissionSnapshots(RiskAcceptanceRepository a,RiskWorkRepository w,RiskEvidenceRepository e,JdbcTransactionManager tx){return new SubmissionSnapshotReader(a,w,e,tx);}
+    @Bean PriorAssessmentHistoryReader priorAssessmentHistory(DataSource ds,JdbcTransactionManager tx,
+            @Value("${risk-history.max-assessments:1000}")int capacity){return new PriorAssessmentHistoryReader(new PriorAssessmentHistoryRepository(jdbc(ds)),tx,capacity);}
+    @Bean PriorHistoryCaptureService priorHistoryCapture(PriorAssessmentHistoryReader reader,RiskAcceptanceRepository a,RiskWorkRepository w,RiskEvidenceRepository e,
+            JdbcTransactionManager tx,@Qualifier("submissionLeaseClock")Clock clock){return new PriorHistoryCaptureService(reader,a,w,e,tx,clock);}
     @Bean RiskSubmissionService riskSubmissionService(SubmissionSources sources,Facts facts,Evidence evidence,PublishedConfiguration config,
             RiskAcceptanceService a,RiskWorkService w,RiskEvidenceService e,RiskFinalizationService f,SubmissionSnapshotReader s,
             AssessmentReadService reads,DependencyCalls calls,JdbcTransactionManager tx){return new RiskSubmissionService(sources,facts,evidence,config,a,w,e,f,s,reads,calls,Clock.systemUTC(),tx);}
@@ -39,7 +43,8 @@ public class SubmissionConfiguration {
     @ConditionalOnProperty(name="risk-submission.enabled",havingValue="true")
     static class ProductionAdapters {
         @Bean @ConditionalOnMissingBean(Facts.class) Facts unavailableFacts(){return (command,cutoff,deadline)->{throw SubmissionAdapters.unavailable();};}
-        @Bean @ConditionalOnMissingBean(Evidence.class) Evidence unavailableEvidence(){return (accepted,deadline)->{throw SubmissionAdapters.unavailable();};}
+        @Bean @ConditionalOnMissingBean(UpstreamEvidence.class) UpstreamEvidence unavailableUpstreamEvidence(){return (accepted,deadline)->{throw SubmissionAdapters.unavailable();};}
+        @Bean @ConditionalOnMissingBean(Evidence.class) Evidence productionEvidence(UpstreamEvidence upstream,PriorHistoryCaptureService history){return new ProductionEvidenceAdapter(upstream,history);}
     }
     @Configuration(proxyBeanMethods=false) @Profile("risk-submission-demo")
     @ConditionalOnProperty(name="risk-submission.enabled",havingValue="true")

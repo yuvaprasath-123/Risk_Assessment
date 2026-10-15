@@ -32,7 +32,7 @@ public class AssessmentReadRepository {
             || !accepted.configurationSnapshotId().equals(Long.toString(parent.snapshot()))) throw unavailable();
         var header=evidence.header(id); FrozenAssessmentLoader.Snapshot frozen=null;
         if(header.hash()!=null) frozen=loader.loadStored(accepted);
-        else if(!evidence.children(id).isEmpty()) throw unavailable();
+        else PriorHistoryCaptureCodec.partial(evidence.children(id),accepted);
         var metadata=jdbc.query(METADATA,ps->ps.setLong(1,id),(rs,n)-> {
             if(PersistenceValues.number(rs.getObject("ROW_VERSION"),false)!=parent.revision() || !parent.state().equals(rs.getString("WORK_STATE"))) throw unavailable();
             if(!parent.state().equals("COMPLETED")) for(String name:List.of("TOTAL_RAW_SCORE","FINAL_SCORE","RISK_BAND","FINAL_FACTOR_COUNT","EVALUATED_AT","COMPLETED_AT"))

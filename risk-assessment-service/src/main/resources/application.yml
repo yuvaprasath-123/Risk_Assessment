@@ -7,6 +7,8 @@ risk-submission:
   enabled: ${RISK_SUBMISSION_ENABLED:false}
   sources: ${RISK_SUBMISSION_SOURCES:}
   dependency-budget: ${RISK_SUBMISSION_DEPENDENCY_BUDGET:}
+risk-history:
+  max-assessments: ${RISK_HISTORY_MAX_ASSESSMENTS:1000}
 risk-configuration-client:
   enabled: ${RISK_CONFIGURATION_CLIENT_ENABLED:false}
   base-url: ${RISK_CONFIGURATION_BASE_URL:}

@@ -30,6 +30,7 @@ public class RiskEvidenceRepository {
         """+FENCE+" AND INPUT_HASH IS NULL AND FROZEN_INPUT_EVIDENCE_ID IS NULL AND INPUT_FROZEN_AT IS NULL";
     static final String REUSE="UPDATE D2_RISK.RISK_ASSESSMENTS SET ROW_VERSION=ROW_VERSION "+FENCE+
         " AND INPUT_HASH=? AND FROZEN_INPUT_EVIDENCE_ID=? AND INPUT_FROZEN_AT=?";
+    static final String CAPTURE_FENCE="UPDATE D2_RISK.RISK_ASSESSMENTS SET ROW_VERSION=? "+FENCE;
     record Header(String hash,Long manifest,Instant frozenAt) {}
     record Stored(long id,String recordClass,String key,String kind,EvidenceFreezeRequest.Source source,String snapshot,
                   String format,String hashFormat,Instant cutoff,Instant coveredFrom,Instant windowEnd,Integer count,
@@ -104,6 +105,10 @@ public class RiskEvidenceRepository {
             fence(ps,1,parent); ps.setString(7,header.hash()); ps.setLong(8,header.manifest()); time(ps,9,header.frozenAt());
         });
         if(count!=1) throw new WorkFailure(WorkFailure.Code.LEASE_REJECTED);
+    }
+    void captureFence(RiskWorkRepository.Row parent,long revision){
+        bound();int count=jdbc.update(CAPTURE_FENCE,ps->{ps.setLong(1,revision);fence(ps,2,parent);});
+        if(count!=1)throw new WorkFailure(WorkFailure.Code.LEASE_REJECTED);
     }
     private static void fence(PreparedStatement ps,int start,RiskWorkRepository.Row row) throws SQLException {
         ps.setLong(start,row.id()); ps.setString(start+1,row.token()); ps.setLong(start+2,row.epoch());

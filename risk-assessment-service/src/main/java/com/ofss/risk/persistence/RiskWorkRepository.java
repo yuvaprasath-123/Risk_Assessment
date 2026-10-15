@@ -10,6 +10,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /** Parent-row locking plus conditional updates: no mutation of acceptance, snapshots or frozen inputs. */
 public class RiskWorkRepository {
+    void beginSnapshot(){new RiskFinalizationRepository(jdbc).beginSnapshot();}
     static final String READ = """
         SELECT ASSESSMENT_ID, CONFIGURATION_SNAPSHOT_ID, WORK_STATE, LEASE_TOKEN,
                LEASE_EPOCH, ATTEMPT_COUNT, ROW_VERSION, LEASE_EXPIRES_AT, CREATED_AT,

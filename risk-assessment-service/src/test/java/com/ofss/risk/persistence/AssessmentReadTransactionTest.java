@@ -66,6 +66,14 @@ class AssessmentReadTransactionTest {
         state("ACCEPTED"); when(evidence.header(17)).thenReturn(new RiskEvidenceRepository.Header(null,null,null)); when(evidence.children(17)).thenReturn(List.of());
         var v=service.get("17"); assertNull(v.result()); assertEquals(s.accepted().configurationSnapshotId(),v.snapshotId());
     }
+    @Test void knownDurablePriorCaptureIsReadableAsUnfinishedAndIsNotMistakenForFrozenInput(){
+        state("IN_PROGRESS");var bridge=new SubmissionSnapshotReader(acceptance,work,evidence,manager);var original=bridge.restore(s.accepted());
+        var request=new PriorAssessmentHistory.Request(original,Set.of(),null);var capture=PriorHistoryCaptureCodec.encode(request,PriorCaptureFixtures.history(request,1),FreezeFixtures.NOW).withId(100);
+        when(evidence.header(17)).thenReturn(new RiskEvidenceRepository.Header(null,null,null));when(evidence.children(17)).thenReturn(List.of(capture));
+        when(acceptance.find(s.accepted().identity())).thenReturn(Optional.of(s.accepted()));
+        var view=service.get("17");assertEquals("IN_PROGRESS",view.status());assertNull(view.result());assertNull(view.factors());assertNull(bridge.frozenHash(s.accepted().identity()));
+        assertFalse(view.toString().contains("old-ಕನ್ನಡ"));verify(results,never()).readPersisted(any());
+    }
     @ParameterizedTest @NullSource @ValueSource(strings={"0","-1","1.0","1e2","bad","9223372036854775808","17 OR 1=1"}) void invalidIdsNeverOpenConnection(String id) {
         assertEquals(AssessmentReadFailure.Code.INVALID_ASSESSMENT_ID,assertThrows(AssessmentReadFailure.class,()->service.get(id)).code()); verifyNoInteractions(ds,acceptance,results);
     }

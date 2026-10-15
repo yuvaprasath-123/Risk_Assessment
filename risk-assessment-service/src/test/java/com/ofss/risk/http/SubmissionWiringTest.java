@@ -20,6 +20,7 @@ class SubmissionWiringTest {
     @Test void disabledPreservesReadHostAndDoesNotWireWriteServices(){context().run(c->{assertNull(c.getStartupFailure());assertTrue(c.getBeansOfType(RiskSubmissionService.class).isEmpty());assertNotNull(c.getBean(AssessmentReadService.class));assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());});}
     @Test void productionAdaptersExplicitlyFailUnavailableWithoutCreatingMockData(){enabled().run(c->{
         assertNull(c.getStartupFailure());assertNotNull(c.getBean(RiskSubmissionService.class));assertNotNull(c.getBean(RiskWorkService.class));
+        assertInstanceOf(ProductionEvidenceAdapter.class,c.getBean(Evidence.class));assertNotNull(c.getBean(PriorAssessmentHistoryReader.class));
         var d=c.getBean(DependencyCalls.class).deadline();assertEquals(SubmissionFailure.Code.ADAPTER_UNAVAILABLE,assertThrows(SubmissionFailure.class,()->c.getBean(Facts.class).verify(null,null,d)).code());
         assertThrows(SubmissionFailure.class,()->c.getBean(Evidence.class).retrieve(null,d));assertThrows(SubmissionFailure.class,()->c.getBean(PublishedConfiguration.class).resolve(null,d));
         assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());
@@ -48,4 +49,10 @@ class SubmissionWiringTest {
             assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());assertThrows(SubmissionFailure.class,()->c.getBean(Facts.class).verify(null,null,c.getBean(DependencyCalls.class).deadline()));
         });verify(client).shutdownNow();verify(client).awaitTermination(java.time.Duration.ofSeconds(5));}}
     @Test void enabledIncompleteHttpConfigurationFailsActualBeanPath(){enabled().withPropertyValues("risk-configuration-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
+    @Test void explicitUpstreamBeanIsComposedWithLocalHistoryWithoutConnecting(){
+        UpstreamEvidence supplied=(accepted,deadline)->{throw SubmissionAdapters.unavailable();};
+        enabled().withBean(UpstreamEvidence.class,()->supplied).run(c->{assertNull(c.getStartupFailure());assertSame(supplied,c.getBean(UpstreamEvidence.class));
+            assertInstanceOf(ProductionEvidenceAdapter.class,c.getBean(Evidence.class));assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());});
+    }
+    @Test void invalidHistoryCapacityFailsStartup(){enabled().withPropertyValues("risk-history.max-assessments=0").run(c->assertNotNull(c.getStartupFailure()));}
 }

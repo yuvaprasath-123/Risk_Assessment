@@ -7,7 +7,7 @@ import org.springframework.transaction.*;
 import org.springframework.transaction.support.TransactionTemplate;
 import static com.ofss.risk.persistence.EvidenceFreezeRequest.*;
 
-/** Full-bundle freeze only. No partial capture, external calls, scoring or diagnostic writes. */
+/** Full-bundle final freeze. May reference a separately committed prior capture; never exposes partial inputs to scoring. */
 public final class RiskEvidenceService {
     private final RiskWorkRepository work;
     private final RiskAcceptanceRepository acceptance;
@@ -44,9 +44,11 @@ public final class RiskEvidenceService {
                     evidence.reuse(parent,header); // Final expiry/fence check, even on a read-only logical retry.
                     return result(parent,header,expected,input,request.input());
                 }
-                if(!existing.isEmpty()) throw unavailable(); // Never overwrite orphan partial capture.
+                var capture=PriorHistoryCaptureCodec.partial(existing,stored).orElse(null);
+                if(capture!=null)PriorHistoryCaptureCodec.matches(capture,stored,request.input().previousAssessments(),request.sources().get(Kind.PRIOR_ASSESSMENTS));
                 if(parent.revision()==Long.MAX_VALUE) throw new WorkFailure(WorkFailure.Code.WORK_COUNTER_EXHAUSTED);
                 var children=new ArrayList<RiskEvidenceRepository.Stored>();
+                if(capture!=null)children.add(capture); // Already committed immutable collection; never reinsert or overwrite.
                 for(var child:inputs(request,stored,now)) children.add(evidence.insert(parent.id(),child));
                 var manifest=manifest(request,input,children,now); var saved=evidence.insert(parent.id(),manifest);
                 var frozen=new RiskEvidenceRepository.Header(input.hash(),saved.id(),now);
@@ -67,8 +69,13 @@ public final class RiskEvidenceService {
             CanonicalEvidence.Document input,RiskEvidenceRepository.Header header,List<RiskEvidenceRepository.Stored> saved) {
         var byKey=new HashMap<String,RiskEvidenceRepository.Stored>();
         for(var row:saved) if(byKey.put(row.key(),row)!=null) throw unavailable();
-        if(saved.size()!=6 || header.frozenAt().isBefore(accepted.createdAt())) throw unavailable();
+        var capture=PriorHistoryCaptureCodec.find(saved,accepted);
+        if(saved.size()!=(capture==null?6:7) || header.frozenAt().isBefore(accepted.createdAt())) throw unavailable();
         var children=new ArrayList<RiskEvidenceRepository.Stored>();
+        if(capture!=null){
+            if(capture.captured().isAfter(header.frozenAt()))throw unavailable();
+            PriorHistoryCaptureCodec.matches(capture,accepted,request.input().previousAssessments(),request.sources().get(Kind.PRIOR_ASSESSMENTS));children.add(capture);
+        }
         for(var expected:inputs(request,accepted,header.frozenAt())) {
             var row=byKey.get(expected.key());
             if(row==null || !expected.withId(row.id()).equals(row)) throw unavailable(); children.add(row);

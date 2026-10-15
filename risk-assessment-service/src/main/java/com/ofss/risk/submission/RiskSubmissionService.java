@@ -64,7 +64,14 @@ public class RiskSubmissionService {
         try {
             var pinned=snapshots.restore(stored);String inputHash=snapshots.frozenHash(command.identity());
             if(inputHash==null) {
-                var bundle=calls.call(deadline,()->evidence.retrieve(pinned,deadline));
+                Bundle bundle;
+                if(evidence instanceof ProductionEvidenceAdapter production){
+                    var collected=production.retrieveWithCapture(pinned,lease,calls,deadline);lease=collected.lease();bundle=collected.bundle();
+                    // A retained capacity failure is immutable; promising fresh retries could never repair it safely.
+                    if(bundle.input().previousAssessments().availability()==com.ofss.risk.engine.RiskInput.Availability.INCOMPLETE){
+                        failSafely(lease,WorkDiagnostic.INTERVENTION_REQUIRED);return current(command.identity());
+                    }
+                }else bundle=calls.call(deadline,()->evidence.retrieve(pinned,deadline));
                 if(bundle==null || calls.exhausted(deadline))throw failure(SubmissionFailure.Code.DEPENDENCY_UNAVAILABLE);
                 int records=bundle.input().payments().records().size()+bundle.input().supplier().records().size()
                     +bundle.input().supplierTransitions().records().size()+bundle.input().previousAssessments().records().size();
