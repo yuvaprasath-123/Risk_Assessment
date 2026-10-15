@@ -2,6 +2,8 @@ package com.ofss.service;
 
 import com.ofss.dto.LoginRequest;
 import com.ofss.dto.LoginResponse;
+import com.ofss.dto.MfaChallengeResponse;
+import com.ofss.dto.VerifyOtpRequest;
 
 import com.ofss.entity.User;
 import com.ofss.entity.UserStatus;
@@ -22,27 +24,46 @@ import java.util.List;
 @Service
 public class AuthService {
 
-    private final UserRepository userRepository;
+    private final UserRepository
+            userRepository;
 
-    private final UserService userService;
+    private final UserService
+            userService;
 
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder
+            passwordEncoder;
 
-    private final AuthUtil authUtil;
+    private final AuthUtil
+            authUtil;
+
+    private final MfaService
+            mfaService;
 
     public AuthService(
             UserRepository userRepository,
             UserService userService,
             PasswordEncoder passwordEncoder,
-            AuthUtil authUtil
+            AuthUtil authUtil,
+            MfaService mfaService
     ) {
-        this.userRepository = userRepository;
-        this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
-        this.authUtil = authUtil;
+
+        this.userRepository =
+                userRepository;
+
+        this.userService =
+                userService;
+
+        this.passwordEncoder =
+                passwordEncoder;
+
+        this.authUtil =
+                authUtil;
+
+        this.mfaService =
+                mfaService;
     }
 
-    public LoginResponse login(
+    public MfaChallengeResponse startLogin(
             LoginRequest request
     ) {
 
@@ -81,15 +102,86 @@ public class AuthService {
         }
 
         List<String> roles =
-                userService.getRoles(
-                        user.getId()
+                userService
+                        .getRoles(
+                                user.getId()
+                        );
+
+        if (
+                roles == null
+                        ||
+                        roles.isEmpty()
+        ) {
+
+            throw new BadCredentialsException(
+                    "User does not have any assigned role"
+            );
+        }
+
+        return mfaService
+                .createChallenge(
+                        user.getId(),
+                        user.getUsername()
                 );
+    }
+
+    public LoginResponse verifyOtp(
+            VerifyOtpRequest request
+    ) {
+
+        Long userId =
+                mfaService
+                        .verifyChallenge(
+                                request.challengeId(),
+                                request.otp()
+                        );
+
+        User user =
+                userRepository
+                        .findById(
+                                userId
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new BadCredentialsException(
+                                                "User not found"
+                                        )
+                        );
+
+        if (
+                user.getStatus()
+                        != UserStatus.ACTIVE
+        ) {
+
+            throw new DisabledException(
+                    "User account is inactive"
+            );
+        }
+
+        List<String> roles =
+                userService
+                        .getRoles(
+                                user.getId()
+                        );
+
+        if (
+                roles == null
+                        ||
+                        roles.isEmpty()
+        ) {
+
+            throw new BadCredentialsException(
+                    "User does not have any assigned role"
+            );
+        }
 
         String accessToken =
-                authUtil.generateJwtToken(
-                        user,
-                        roles
-                );
+                authUtil
+                        .generateJwtToken(
+                                user.getId(),
+                                user.getUsername(),
+                                roles
+                        );
 
         return new LoginResponse(
                 accessToken,

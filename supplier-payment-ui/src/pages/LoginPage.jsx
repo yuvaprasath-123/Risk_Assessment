@@ -65,17 +65,35 @@ export default function LoginPage() {
 
     event.preventDefault();
 
+    if (loading) {
+      return;
+    }
+
     setError("");
     setLoading(true);
 
     try {
 
-      await login(
-        username,
-        password
-      );
+      const response =
+        await login(
+          username,
+          password
+        );
 
-      navigate("/");
+      if (
+        response.mfaRequired
+      ) {
+
+        navigate(
+          "/verify-otp"
+        );
+
+        return;
+      }
+
+      setError(
+        "MFA verification could not be started."
+      );
 
     } catch (err) {
 
@@ -182,6 +200,7 @@ export default function LoginPage() {
                   event.target.value
                 )
             }
+            autoComplete="username"
             required
             disabled={
               loading
@@ -210,6 +229,7 @@ export default function LoginPage() {
                   event.target.value
                 )
             }
+            autoComplete="current-password"
             required
             disabled={
               loading
@@ -224,9 +244,7 @@ export default function LoginPage() {
           >
             {
               loading
-                ? t(
-                    "login.loggingIn"
-                  )
+                ? "Verifying..."
                 : t(
                     "login.button"
                   )

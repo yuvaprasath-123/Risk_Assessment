@@ -7,8 +7,10 @@ import com.ofss.dto.*;
 import com.ofss.entity.PaymentRequest;
 import com.ofss.entity.PaymentStatus;
 import com.ofss.entity.PaymentStatusHistory;
+import com.ofss.event.PaymentSubmittedEvent;
 import com.ofss.exception.BadRequestException;
 import com.ofss.exception.ResourceNotFoundException;
+import com.ofss.kafka.PaymentEventProducer;
 import com.ofss.repository.PaymentRequestRepository;
 import com.ofss.repository.PaymentStatusHistoryRepository;
 import com.ofss.security.AuthUtil;
@@ -23,211 +25,225 @@ import java.util.List;
 @Service
 public class PaymentRequestService {
 
-	private final PaymentRequestRepository
-    paymentRequestRepository;
+    private final PaymentRequestRepository
+            paymentRequestRepository;
 
-private final PaymentStatusHistoryRepository
-    paymentStatusHistoryRepository;
+    private final PaymentStatusHistoryRepository
+            paymentStatusHistoryRepository;
 
-private final SupplierInvoiceClient
-    supplierInvoiceClient;
+    private final SupplierInvoiceClient
+            supplierInvoiceClient;
 
-private final AuthUtil authUtil;
+    private final AuthUtil
+            authUtil;
 
-public PaymentRequestService(
-    PaymentRequestRepository paymentRequestRepository,
-    PaymentStatusHistoryRepository paymentStatusHistoryRepository,
-    SupplierInvoiceClient supplierInvoiceClient,
-    AuthUtil authUtil
-) {
+    private final PaymentEventProducer
+            paymentEventProducer;
 
-this.paymentRequestRepository =
-        paymentRequestRepository;
+    public PaymentRequestService(
+            PaymentRequestRepository paymentRequestRepository,
+            PaymentStatusHistoryRepository paymentStatusHistoryRepository,
+            SupplierInvoiceClient supplierInvoiceClient,
+            AuthUtil authUtil,
+            PaymentEventProducer paymentEventProducer) {
 
-this.paymentStatusHistoryRepository =
-        paymentStatusHistoryRepository;
+        this.paymentRequestRepository =
+                paymentRequestRepository;
 
-this.supplierInvoiceClient =
-        supplierInvoiceClient;
+        this.paymentStatusHistoryRepository =
+                paymentStatusHistoryRepository;
 
-this.authUtil =
-        authUtil;
-}
+        this.supplierInvoiceClient =
+                supplierInvoiceClient;
 
-@Transactional
-public PaymentRequestResponse createPayment(
-        CreatePaymentRequest request
-) {
+        this.authUtil =
+                authUtil;
 
-    Long requesterId =
-            authUtil.getCurrentUserId();
-
-    InvoiceClientResponse invoice =
-            supplierInvoiceClient
-                    .getInvoice(
-                            request.invoiceId()
-                    );
-
-    SupplierClientResponse supplier =
-            supplierInvoiceClient
-                    .getSupplier(
-                            invoice.supplierId()
-                    );
-
-    if (
-            !"ACTIVE".equalsIgnoreCase(
-                    supplier.status()
-            )
-    ) {
-
-        throw new BadRequestException(
-                "Payment request cannot be created for an inactive supplier"
-        );
+        this.paymentEventProducer =
+                paymentEventProducer;
     }
 
-    if (
-            paymentRequestRepository
-                    .existsByInvoiceId(
-                            request.invoiceId()
-                    )
-    ) {
+    @Transactional
+    public PaymentRequestResponse createPayment(
+            CreatePaymentRequest request) {
 
-        throw new BadRequestException(
-                "A payment request already exists for this invoice"
-        );
-    }
+        Long requesterId =
+                authUtil.getCurrentUserId();
 
-    PaymentRequest payment =
-            new PaymentRequest();
+        InvoiceClientResponse invoice =
+                supplierInvoiceClient
+                        .getInvoice(
+                                request.invoiceId()
+                        );
 
-    payment.setInvoiceId(
-            invoice.invoiceId()
-    );
+        SupplierClientResponse supplier =
+                supplierInvoiceClient
+                        .getSupplier(
+                                invoice.supplierId()
+                        );
 
-    payment.setSupplierId(
-            invoice.supplierId()
-    );
+        if (
+                !"ACTIVE".equalsIgnoreCase(
+                        supplier.status()
+                )
+        ) {
 
-    payment.setPaymentAmount(
-            request.paymentAmount()
-    );
-
-    payment.setRequesterId(
-            requesterId
-    );
-
-    payment.setStatus(
-            PaymentStatus.DRAFT
-    );
-
-    payment =
-            paymentRequestRepository
-                    .save(payment);
-
-    saveStatusHistory(
-            payment.getId(),
-            null,
-            PaymentStatus.DRAFT,
-            requesterId,
-            "Payment request created"
-    );
-
-    return mapToResponse(
-            payment
-    );
-}
-
-@Transactional(readOnly = true)
-public PaymentRequestResponse getPayment(
-        Long paymentId
-) {
-
-    PaymentRequest payment =
-            getPaymentEntity(
-                    paymentId
+            throw new BadRequestException(
+                    "Payment request cannot be created for an inactive supplier"
             );
+        }
 
-    Long currentRequesterId =
-            authUtil.getCurrentUserId();
+        if (
+                paymentRequestRepository
+                        .existsByInvoiceId(
+                                request.invoiceId()
+                        )
+        ) {
 
-    if (
-            !payment.getRequesterId()
-                    .equals(currentRequesterId)
-    ) {
+            throw new BadRequestException(
+                    "A payment request already exists for this invoice"
+            );
+        }
 
-        throw new AccessDeniedException(
-                "You are not authorized to view this payment request"
+        PaymentRequest payment =
+                new PaymentRequest();
+
+        payment.setInvoiceId(
+                invoice.invoiceId()
+        );
+
+        payment.setSupplierId(
+                invoice.supplierId()
+        );
+
+        payment.setPaymentAmount(
+                request.paymentAmount()
+        );
+
+        payment.setRequesterId(
+                requesterId
+        );
+
+        payment.setStatus(
+                PaymentStatus.DRAFT
+        );
+
+        payment =
+                paymentRequestRepository
+                        .save(
+                                payment
+                        );
+
+        saveStatusHistory(
+                payment.getId(),
+                null,
+                PaymentStatus.DRAFT,
+                requesterId,
+                "Payment request created"
+        );
+
+        return mapToResponse(
+                payment
         );
     }
 
-    return mapToResponse(
-            payment
-    );
-}
+    @Transactional(readOnly = true)
+    public PaymentRequestResponse getPayment(
+            Long paymentId) {
 
-@Transactional(readOnly = true)
-public List<PaymentRequestResponse> getPayments(
-        Long supplierId,
-        PaymentStatus status
-) {
+        PaymentRequest payment =
+                getPaymentEntity(
+                        paymentId
+                );
 
-    Long currentRequesterId =
-            authUtil.getCurrentUserId();
+        Long currentRequesterId =
+                authUtil.getCurrentUserId();
 
-    List<PaymentRequest> payments;
-
-    if (
-            supplierId != null
-            &&
-            status != null
-    ) {
-
-        payments =
-                paymentRequestRepository
-                        .findByRequesterIdAndSupplierIdAndStatus(
-                                currentRequesterId,
-                                supplierId,
-                                status
-                        );
-
-    } else if (supplierId != null) {
-
-        payments =
-                paymentRequestRepository
-                        .findByRequesterIdAndSupplierId(
-                                currentRequesterId,
-                                supplierId
-                        );
-
-    } else if (status != null) {
-
-        payments =
-                paymentRequestRepository
-                        .findByRequesterIdAndStatus(
-                                currentRequesterId,
-                                status
-                        );
-
-    } else {
-
-        payments =
-                paymentRequestRepository
-                        .findByRequesterId(
+        if (
+                !payment
+                        .getRequesterId()
+                        .equals(
                                 currentRequesterId
-                        );
+                        )
+        ) {
+
+            throw new AccessDeniedException(
+                    "You are not authorized to view this payment request"
+            );
+        }
+
+        return mapToResponse(
+                payment
+        );
     }
 
-    return payments
-            .stream()
-            .map(this::mapToResponse)
-            .toList();
-}
+    @Transactional(readOnly = true)
+    public List<PaymentRequestResponse> getPayments(
+            Long supplierId,
+            PaymentStatus status) {
+
+        Long currentRequesterId =
+                authUtil.getCurrentUserId();
+
+        List<PaymentRequest> payments;
+
+        if (
+                supplierId != null
+                        &&
+                        status != null
+        ) {
+
+            payments =
+                    paymentRequestRepository
+                            .findByRequesterIdAndSupplierIdAndStatus(
+                                    currentRequesterId,
+                                    supplierId,
+                                    status
+                            );
+
+        } else if (
+                supplierId != null
+        ) {
+
+            payments =
+                    paymentRequestRepository
+                            .findByRequesterIdAndSupplierId(
+                                    currentRequesterId,
+                                    supplierId
+                            );
+
+        } else if (
+                status != null
+        ) {
+
+            payments =
+                    paymentRequestRepository
+                            .findByRequesterIdAndStatus(
+                                    currentRequesterId,
+                                    status
+                            );
+
+        } else {
+
+            payments =
+                    paymentRequestRepository
+                            .findByRequesterId(
+                                    currentRequesterId
+                            );
+        }
+
+        return payments
+                .stream()
+                .map(
+                        this::mapToResponse
+                )
+                .toList();
+    }
 
     @Transactional
     public PaymentRequestResponse updateDraftPayment(
             Long paymentId,
-            UpdatePaymentRequest request
-    ) {
+            UpdatePaymentRequest request) {
 
         PaymentRequest payment =
                 getPaymentEntity(
@@ -238,18 +254,22 @@ public List<PaymentRequestResponse> getPayments(
                 authUtil.getCurrentUserId();
 
         if (
-                !payment.getRequesterId()
-                        .equals(currentUserId)
+                !payment
+                        .getRequesterId()
+                        .equals(
+                                currentUserId
+                        )
         ) {
 
-        	throw new AccessDeniedException(
-        	        "You are not authorized to modify this payment request"
-        	);
+            throw new AccessDeniedException(
+                    "You are not authorized to modify this payment request"
+            );
         }
 
         if (
                 payment.getStatus()
-                        != PaymentStatus.DRAFT
+                        !=
+                        PaymentStatus.DRAFT
         ) {
 
             throw new BadRequestException(
@@ -263,7 +283,9 @@ public List<PaymentRequestResponse> getPayments(
 
         payment =
                 paymentRequestRepository
-                        .save(payment);
+                        .save(
+                                payment
+                        );
 
         return mapToResponse(
                 payment
@@ -272,8 +294,7 @@ public List<PaymentRequestResponse> getPayments(
 
     @Transactional
     public SubmitPaymentResponse submitPayment(
-            Long paymentId
-    ) {
+            Long paymentId) {
 
         PaymentRequest payment =
                 getPaymentEntity(
@@ -284,20 +305,22 @@ public List<PaymentRequestResponse> getPayments(
                 authUtil.getCurrentUserId();
 
         if (
-                !payment.getRequesterId()
+                !payment
+                        .getRequesterId()
                         .equals(
                                 currentUserId
                         )
         ) {
 
-        	throw new AccessDeniedException(
+            throw new AccessDeniedException(
                     "You are not authorized to submit this payment request"
             );
         }
 
         if (
                 payment.getStatus()
-                        != PaymentStatus.DRAFT
+                        !=
+                        PaymentStatus.DRAFT
         ) {
 
             throw new BadRequestException(
@@ -331,16 +354,22 @@ public List<PaymentRequestResponse> getPayments(
         PaymentStatus previousStatus =
                 payment.getStatus();
 
+        LocalDateTime submittedAt =
+                LocalDateTime.now();
+
         payment.setStatus(
                 PaymentStatus.PENDING_VALIDATION
         );
 
         payment.setSubmittedAt(
-                LocalDateTime.now()
+                submittedAt
         );
 
-        paymentRequestRepository
-                .save(payment);
+        payment =
+                paymentRequestRepository
+                        .save(
+                                payment
+                        );
 
         saveStatusHistory(
                 paymentId,
@@ -349,6 +378,32 @@ public List<PaymentRequestResponse> getPayments(
                 currentUserId,
                 "Payment submitted for validation"
         );
+
+        PaymentSubmittedEvent event =
+                new PaymentSubmittedEvent(
+                        payment.getId(),
+                        payment.getInvoiceId(),
+                        payment.getPaymentAmount(),
+                        payment.getStatus().name(),
+                        currentUserId,
+                        submittedAt
+                );
+        
+        System.out.println(
+                ">>> ABOUT TO PUBLISH KAFKA EVENT FOR PAYMENT ID = "
+                        + payment.getId()
+        );
+
+        paymentEventProducer
+                .publishPaymentSubmitted(
+                        event
+                );
+        
+        System.out.println(
+                ">>> RETURNED FROM KAFKA PRODUCER FOR PAYMENT ID = "
+                        + payment.getId()
+        );
+
 
         return new SubmitPaymentResponse(
                 paymentId,
@@ -360,8 +415,7 @@ public List<PaymentRequestResponse> getPayments(
     @Transactional(readOnly = true)
     public List<PaymentStatusHistoryResponse>
     getTimeline(
-            Long paymentId
-    ) {
+            Long paymentId) {
 
         PaymentRequest payment =
                 getPaymentEntity(
@@ -372,8 +426,11 @@ public List<PaymentRequestResponse> getPayments(
                 authUtil.getCurrentUserId();
 
         if (
-                !payment.getRequesterId()
-                        .equals(currentRequesterId)
+                !payment
+                        .getRequesterId()
+                        .equals(
+                                currentRequesterId
+                        )
         ) {
 
             throw new AccessDeniedException(
@@ -400,9 +457,9 @@ public List<PaymentRequestResponse> getPayments(
                 )
                 .toList();
     }
+
     public PaymentRequest getPaymentEntity(
-            Long paymentId
-    ) {
+            Long paymentId) {
 
         return paymentRequestRepository
                 .findById(
@@ -424,8 +481,7 @@ public List<PaymentRequestResponse> getPayments(
             PaymentStatus previousStatus,
             PaymentStatus newStatus,
             Long changedBy,
-            String reason
-    ) {
+            String reason) {
 
         PaymentStatusHistory history =
                 new PaymentStatusHistory();
@@ -451,12 +507,13 @@ public List<PaymentRequestResponse> getPayments(
         );
 
         paymentStatusHistoryRepository
-                .save(history);
+                .save(
+                        history
+                );
     }
 
     private PaymentRequestResponse mapToResponse(
-            PaymentRequest payment
-    ) {
+            PaymentRequest payment) {
 
         return new PaymentRequestResponse(
                 payment.getId(),

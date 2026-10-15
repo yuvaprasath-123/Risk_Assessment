@@ -53,26 +53,26 @@ public class JwtAuthFilter
 
         try {
 
-            String authHeader =
-                    request.getHeader(
-                            "Authorization"
-                    );
+        	String authHeader =
+        	        request.getHeader(
+        	                "Authorization"
+        	        );
 
-            if (
-                    authHeader == null
-                            ||
-                            !authHeader.startsWith(
-                                    "Bearer "
-                            )
-            ) {
+        	if (
+        	        authHeader == null
+        	        ||
+        	        !authHeader.startsWith(
+        	                "Bearer "
+        	        )
+        	) {
 
-                filterChain.doFilter(
-                        request,
-                        response
-                );
+        	    filterChain.doFilter(
+        	            request,
+        	            response
+        	    );
 
-                return;
-            }
+        	    return;
+        	}
 
             String token =
                     authHeader.substring(7);

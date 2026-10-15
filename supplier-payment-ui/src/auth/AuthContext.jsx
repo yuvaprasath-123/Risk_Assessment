@@ -7,17 +7,22 @@ import {
 } from "react";
 
 import {
-  apiRequest
-} from "../api/apiClient";
+  getCurrentUser,
+  login as loginRequest,
+  verifyOtp as verifyOtpRequest
+} from "../api/authApi";
 
 const AuthContext =
   createContext(null);
 
-const SECURITY_BASE_URL =
-  "/security-api/api/v1/auth";
-
 const TOKEN_KEY =
   "accessToken";
+
+const MFA_CHALLENGE_KEY =
+  "mfaChallengeId";
+
+const MFA_USERNAME_KEY =
+  "mfaUsername";
 
 export function AuthProvider({
   children
@@ -58,12 +63,8 @@ export function AuthProvider({
     try {
 
       const currentUser =
-        await apiRequest(
-          `${SECURITY_BASE_URL}/me`,
-          {
-            token:
-              currentToken
-          }
+        await getCurrentUser(
+          currentToken
         );
 
       setUser(
@@ -102,17 +103,54 @@ export function AuthProvider({
   ) {
 
     const response =
-      await apiRequest(
-        `${SECURITY_BASE_URL}/login`,
-        {
-          method:
-            "POST",
+      await loginRequest(
+        username,
+        password
+      );
 
-          body: {
-            username,
-            password
-          }
-        }
+    if (
+      !response.mfaRequired ||
+      !response.challengeId
+    ) {
+
+      throw new Error(
+        "MFA challenge was not returned by the server."
+      );
+    }
+
+    sessionStorage.setItem(
+      MFA_CHALLENGE_KEY,
+      response.challengeId
+    );
+
+    sessionStorage.setItem(
+      MFA_USERNAME_KEY,
+      username
+    );
+
+    return response;
+  }
+
+  async function verifyOtp(
+    otp
+  ) {
+
+    const challengeId =
+      sessionStorage.getItem(
+        MFA_CHALLENGE_KEY
+      );
+
+    if (!challengeId) {
+
+      throw new Error(
+        "MFA challenge is missing. Please login again."
+      );
+    }
+
+    const response =
+      await verifyOtpRequest(
+        challengeId,
+        otp
       );
 
     const accessToken =
@@ -130,6 +168,14 @@ export function AuthProvider({
       accessToken
     );
 
+    sessionStorage.removeItem(
+      MFA_CHALLENGE_KEY
+    );
+
+    sessionStorage.removeItem(
+      MFA_USERNAME_KEY
+    );
+
     setToken(
       accessToken
     );
@@ -137,12 +183,8 @@ export function AuthProvider({
     try {
 
       const currentUser =
-        await apiRequest(
-          `${SECURITY_BASE_URL}/me`,
-          {
-            token:
-              accessToken
-          }
+        await getCurrentUser(
+          accessToken
         );
 
       setUser(
@@ -164,10 +206,45 @@ export function AuthProvider({
     }
   }
 
+  function cancelMfa() {
+
+    sessionStorage.removeItem(
+      MFA_CHALLENGE_KEY
+    );
+
+    sessionStorage.removeItem(
+      MFA_USERNAME_KEY
+    );
+  }
+
+  function getPendingMfaUsername() {
+
+    return sessionStorage.getItem(
+      MFA_USERNAME_KEY
+    );
+  }
+
+  function hasPendingMfaChallenge() {
+
+    return Boolean(
+      sessionStorage.getItem(
+        MFA_CHALLENGE_KEY
+      )
+    );
+  }
+
   function logout() {
 
     sessionStorage.removeItem(
       TOKEN_KEY
+    );
+
+    sessionStorage.removeItem(
+      MFA_CHALLENGE_KEY
+    );
+
+    sessionStorage.removeItem(
+      MFA_USERNAME_KEY
     );
 
     setToken(null);
@@ -200,6 +277,10 @@ export function AuthProvider({
         user,
         loading,
         login,
+        verifyOtp,
+        cancelMfa,
+        getPendingMfaUsername,
+        hasPendingMfaChallenge,
         logout,
         hasRole,
         isAuthenticated:

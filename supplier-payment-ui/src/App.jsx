@@ -22,6 +22,9 @@ import Navbar
 import LoginPage
   from "./pages/LoginPage";
 
+import OtpVerificationPage
+  from "./pages/OtpVerificationPage";
+
 import DashboardPage
   from "./pages/DashboardPage";
 
@@ -43,6 +46,9 @@ import PaymentSubmissionSuccessPage
 import PaymentSubmissionFailurePage
   from "./pages/PaymentSubmissionFailurePage";
 
+import CreateRequesterPage
+  from "./pages/CreateRequesterPage";
+
 function AppRoutes() {
 
   return (
@@ -57,6 +63,13 @@ function AppRoutes() {
             path="/login"
             element={
               <LoginPage />
+            }
+          />
+
+          <Route
+            path="/verify-otp"
+            element={
+              <OtpVerificationPage />
             }
           />
 
@@ -149,6 +162,20 @@ function AppRoutes() {
                 ]}
               >
                 <PaymentSubmissionFailurePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/users/create-requester"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "FINANCE_APPROVER",
+                  "FINANCE_MANAGER"
+                ]}
+              >
+                <CreateRequesterPage />
               </ProtectedRoute>
             }
           />

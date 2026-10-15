@@ -70,6 +70,30 @@ export default function PaymentDetailsPage() {
     setSubmitting
   ] = useState(false);
 
+  function formatDateTime(
+    value
+  ) {
+
+    if (!value) {
+      return "-";
+    }
+
+    const date =
+      new Date(
+        value
+      );
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return value;
+    }
+
+    return date.toLocaleString();
+  }
+
   async function loadPayment() {
 
     try {
@@ -336,6 +360,22 @@ export default function PaymentDetailsPage() {
 
         <p>
           <strong>
+            Payment Amount:
+          </strong>
+
+          {" "}
+
+          ₹{
+            Number(
+              payment.paymentAmount
+            ).toLocaleString(
+              "en-IN"
+            )
+          }
+        </p>
+
+        <p>
+          <strong>
             Status:
           </strong>
 
@@ -408,7 +448,161 @@ export default function PaymentDetailsPage() {
           )
         }
 
+        {
+          payment.transactionReference &&
+          (
+            <p>
+
+              <strong>
+                Transaction Reference:
+              </strong>
+
+              {" "}
+
+              {
+                payment.transactionReference
+              }
+
+            </p>
+          )
+        }
+
+        {
+          payment.completedAt &&
+          (
+            <p>
+
+              <strong>
+                Completed At:
+              </strong>
+
+              {" "}
+
+              {
+                formatDateTime(
+                  payment.completedAt
+                )
+              }
+
+            </p>
+          )
+        }
+
+        {
+          payment.failedAt &&
+          (
+            <p>
+
+              <strong>
+                Failed At:
+              </strong>
+
+              {" "}
+
+              {
+                formatDateTime(
+                  payment.failedAt
+                )
+              }
+
+            </p>
+          )
+        }
+
+        {
+          payment.failureReason &&
+          (
+            <p>
+
+              <strong>
+                Failure Reason:
+              </strong>
+
+              {" "}
+
+              {
+                payment.failureReason
+              }
+
+            </p>
+          )
+        }
+
       </div>
+
+      {
+        payment.status ===
+        "COMPLETE" &&
+        (
+          <div className="card">
+
+            <h2>
+              Payment Completed
+            </h2>
+
+            <p>
+              The payment has been processed successfully.
+            </p>
+
+            {
+              payment.transactionReference &&
+              (
+                <p>
+
+                  <strong>
+                    Stripe Transaction Reference:
+                  </strong>
+
+                  {" "}
+
+                  {
+                    payment.transactionReference
+                  }
+
+                </p>
+              )
+            }
+
+          </div>
+        )
+      }
+
+      {
+        payment.status ===
+        "FAILED" &&
+        (
+          <div className="card">
+
+            <h2>
+              Payment Failed
+            </h2>
+
+            <p>
+              The payment could not be completed.
+            </p>
+
+            {
+              payment.failureReason &&
+              (
+                <p>
+
+                  <strong>
+                    Reason:
+                  </strong>
+
+                  {" "}
+
+                  {
+                    payment.failureReason
+                  }
+
+                </p>
+              )
+            }
+
+          </div>
+        )
+      }
 
       {
         payment.status ===
@@ -553,7 +747,9 @@ export default function PaymentDetailsPage() {
 
                           <td>
                             {
-                              history.changedAt
+                              formatDateTime(
+                                history.changedAt
+                              )
                             }
                           </td>
 
