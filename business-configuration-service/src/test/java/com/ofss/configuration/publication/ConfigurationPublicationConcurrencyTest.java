@@ -23,8 +23,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static com.ofss.configuration.publication.PublicationFixtures.*;
 
-/** Two callers through a real transaction manager with an emulated row lock; NOT Oracle locking proof.
- * Ready=true is explicitly mocked because real policy blockers remain unresolved. */
+/** Real readiness and transaction manager with an emulated row lock; NOT Oracle locking proof. */
 class ConfigurationPublicationConcurrencyTest {
     @Test void twoPublishersProduceOneUpdateAndSecondCannotReplacePublicationMetadata() throws Exception {
         var source=mock(DataSource.class); var lock=new ReentrantLock(); var state=new AtomicReference<>(parent("DRAFT",8));
@@ -36,12 +35,11 @@ class ConfigurationPublicationConcurrencyTest {
         });
         var versions=mock(DraftRiskRuleRepository.class); var rules=mock(PublicationReadinessRuleRepository.class);
         var bands=mock(DraftRiskBandRepository.class);var tiers=mock(DraftApprovalThresholdRepository.class);var slas=mock(DraftApprovalSlaRepository.class);
-        var validator=mock(PublicationReadinessValidator.class);var repository=mock(ConfigurationPublicationRepository.class);
+        var validator=new PublicationReadinessValidator();var repository=mock(ConfigurationPublicationRepository.class);
         when(versions.findVersion(7,true)).thenAnswer(i->{if(!lock.tryLock(5,TimeUnit.SECONDS))throw new AssertionError("Mock row lock timed out");return Optional.of(state.get());});
         when(versions.findVersion(7,false)).thenAnswer(i->Optional.of(state.get()));
-        when(rules.list(7)).thenReturn(rules());when(bands.list(7)).thenReturn(bands());when(tiers.list(7)).thenReturn(thresholds());when(slas.list(7)).thenReturn(slas());
-        when(validator.validate(any(),anyList(),anyList(),anyList(),anyList())).thenReturn(new PublicationReadiness("7","8","DRAFT",true,true,true,List.of()));
-        var hashes=new ConfigurationContentHash(JsonMapper.builder().build());var hash=hashes.compute(parent("DRAFT",8),42,rules(),bands(),thresholds(),slas()).hash();
+        when(rules.list(7)).thenReturn(rules());when(bands.list(7)).thenReturn(bands());when(tiers.list(7)).thenReturn(thresholds());when(slas.list(7)).thenReturn(approvedSlas());
+        var hashes=new ConfigurationContentHash(JsonMapper.builder().build());var hash=hashes.computePublished(parent("DRAFT",8),42,rules(),bands(),thresholds(),approvedSlas()).hash();
         var actor=new AtomicLong();
         when(repository.metadata(7)).thenAnswer(i->new ConfigurationPublicationRepository.Metadata(42,state.get().rowVersion()==8?null:NOW,actor.get()==0?null:actor.get(),state.get().rowVersion()==8?null:hash));
         doAnswer(i->{assertThat(lock.isHeldByCurrentThread()).isTrue();actor.set(i.getArgument(2));state.set(parent("PUBLISHED",9));return null;})

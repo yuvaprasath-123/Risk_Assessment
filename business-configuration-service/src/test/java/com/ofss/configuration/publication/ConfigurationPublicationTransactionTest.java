@@ -49,9 +49,9 @@ class ConfigurationPublicationTransactionTest {
         when(versions.findVersion(7,true)).thenReturn(Optional.of(parent("DRAFT",8)));
         when(versions.findVersion(7,false)).thenReturn(Optional.of(parent("PUBLISHED",9)));
         when(rules.list(7)).thenReturn(rules()); when(bands.list(7)).thenReturn(bands());
-        when(thresholds.list(7)).thenReturn(thresholds()); when(slas.list(7)).thenReturn(slas());
+        when(thresholds.list(7)).thenReturn(thresholds()); when(slas.list(7)).thenReturn(approvedSlas());
         when(validator.validate(any(),anyList(),anyList(),anyList(),anyList())).thenReturn(new PublicationReadiness("7","8","DRAFT",true,true,true,List.of()));
-        hash=hashes.compute(parent("DRAFT",8),42,rules(),bands(),thresholds(),slas()).hash();
+        hash=hashes.computePublished(parent("DRAFT",8),42,rules(),bands(),thresholds(),approvedSlas()).hash();
         var before=metadataRows(false); var after=metadataRows(true); when(metadata.executeQuery()).thenReturn(before,after);
         repository=new ConfigurationPublicationRepository(new JdbcTemplate(source));
         service=proxy(new ConfigurationPublicationService(versions,rules,bands,thresholds,slas,validator,hashes,repository,Clock.fixed(NOW.toInstant().plusNanos(789),ZoneOffset.UTC)));
@@ -71,6 +71,28 @@ class ConfigurationPublicationTransactionTest {
         return rows;
     }
     private ConfigurationPublicationService.PublishedVersion publish() { return service.publish(7,new PublishConfigurationRequest(8),99); }
+    private void useConcreteReadiness() throws Exception {
+        when(slas.list(7)).thenReturn(approvedSlas());
+        hash=hashes.computePublished(parent("DRAFT",8),42,rules(),bands(),thresholds(),approvedSlas()).hash();
+        var before=metadataRows(false);var after=metadataRows(true);
+        when(metadata.executeQuery()).thenReturn(before,after);
+        service=proxy(new ConfigurationPublicationService(versions,rules,bands,thresholds,slas,new PublicationReadinessValidator(),hashes,repository,Clock.fixed(NOW.toInstant(),ZoneOffset.UTC)));
+    }
+    @Test void concreteReadinessCommitsActualPublicationSqlAndReadback() throws Exception {
+        useConcreteReadiness();var saved=publish();assertThat(saved.contentHash()).isEqualTo(hash);
+        assertThat(saved.rowVersion()).isEqualTo("9");verify(update).executeUpdate();verify(connection).commit();verify(connection,never()).rollback();
+    }
+    @ParameterizedTest @ValueSource(strings={"update-error","missing-readback","metadata-error"})
+    void concreteReadyPublicationStillRollsBackOnWriteOrReadbackFailure(String stage) throws Exception {
+        useConcreteReadiness();
+        switch(stage){
+            case "update-error"->when(update.executeUpdate()).thenThrow(new SQLException("Synthetic failure","42000",1031));
+            case "missing-readback"->when(versions.findVersion(7,false)).thenReturn(Optional.empty());
+            default->{var before=metadataRows(false);when(metadata.executeQuery()).thenReturn(before).thenThrow(new SQLException("Synthetic readback failure"));}
+        }
+        assertThatThrownBy(this::publish).isInstanceOf(org.springframework.dao.DataAccessException.class);
+        verify(update).executeUpdate();verify(connection).rollback();verify(connection,never()).commit();
+    }
     @Test void lockValidationConditionalUpdateAndReadbackCommitTogetherWithoutPointerChanges() throws Exception {
         var saved=publish(); assertThat(saved.rowVersion()).isEqualTo("9"); assertThat(saved.publishedByUserId()).isEqualTo("99");
         assertThat(saved.contentHash()).isEqualTo(hash); assertThat(saved.publishedAt()).isEqualTo(NOW.toInstant().toString());
@@ -85,11 +107,12 @@ class ConfigurationPublicationTransactionTest {
         var sql=org.mockito.ArgumentCaptor.forClass(String.class); verify(connection,times(3)).prepareStatement(sql.capture());
         assertThat(sql.getAllValues()).noneMatch(statement->statement.contains("CURRENT_CONFIGURATION"));
     }
-    @Test void realReadinessRetainsAllUnresolvedPolicyBlockersAndRollsBackWithoutUpdate() throws Exception {
+    @Test void realReadinessRejectsUnsupportedPolicyAndRollsBackWithoutUpdate() throws Exception {
+        when(slas.list(7)).thenReturn(slas());
         service=proxy(new ConfigurationPublicationService(versions,rules,bands,thresholds,slas,new PublicationReadinessValidator(),hashes,repository));
         var failure=catchThrowableOfType(this::publish,PublicationNotReadyException.class);
-        assertThat(failure.readiness().structurallyValid()).isTrue(); assertThat(failure.readiness().ready()).isFalse();
-        assertThat(failure.readiness().issues()).extracting(PublicationReadiness.Issue::code).containsExactly("SLA_POLICY_SEMANTICS_UNRESOLVED","APPROVAL_POLICY_UNRESOLVED","HISTORY_POLICY_UNRESOLVED");
+        assertThat(failure.readiness().structurallyValid()).isFalse(); assertThat(failure.readiness().ready()).isFalse();
+        assertThat(failure.readiness().issues()).extracting(PublicationReadiness.Issue::code).contains("INVALID_APPROVAL_POLICY_CONTRACT");
         rollbackWithoutWrite();
     }
     @ParameterizedTest @ValueSource(strings={"stale","published","missing","overflow"})

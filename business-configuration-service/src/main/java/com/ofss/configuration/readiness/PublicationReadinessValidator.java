@@ -8,6 +8,7 @@ import com.ofss.configuration.sla.ApprovalSla;
 import com.ofss.configuration.threshold.ApprovalThreshold;
 import com.ofss.risk.contract.RuleCode;
 import com.ofss.risk.contract.RuleParameterContracts;
+import com.ofss.risk.contract.ApprovalPolicyContracts;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -28,12 +29,6 @@ public class PublicationReadinessValidator {
         bands(bands, maximum, issues);
         thresholds(thresholds, issues);
         slas(slas, issues);
-        blocker(issues, "HISTORY_POLICY_UNRESOLVED", "/risk-rules/history",
-                "Agree Developer 1 history eligibility certification, resubmission identity and as-of evidence contracts");
-        blocker(issues, "APPROVAL_POLICY_UNRESOLVED", "/approval-thresholds",
-                "Agree risk-band authority mappings and level-one approval behavior; demonstration currency is INR");
-        blocker(issues, "SLA_POLICY_SEMANTICS_UNRESOLVED", "/approval-slas",
-                "Agree supported start events, escalation/backup order and terminal-level behavior");
         issues.sort(Comparator.comparing((PublicationReadiness.Issue issue) -> issue.category().ordinal())
                 .thenComparing(PublicationReadiness.Issue::path).thenComparing(PublicationReadiness.Issue::code));
         boolean structural = issues.stream().noneMatch(issue -> issue.category() == CONFIGURATION_ERROR);
@@ -61,7 +56,7 @@ public class PublicationReadinessValidator {
             if (DraftRiskRuleRequest.RULE_CODES.contains(rule.ruleCode()) && rule.parameters() != null) {
                 try {
                     var typed = RuleParameterContracts.parse(RuleCode.valueOf(rule.ruleCode()), rule.parameterSchemaVersion(), rule.parameters());
-                    if (rule.enabled()) {
+                    {
                         var unresolved = RuleParameterContracts.unresolved(typed);
                         if (!unresolved.isEmpty()) blocker(issues, "RULE_POLICY_UNRESOLVED", path + "/parameters", String.join("; ", unresolved));
                     }
@@ -86,6 +81,7 @@ public class PublicationReadinessValidator {
                 error(issues, "AGGREGATE_SCORE_OVERFLOW", "/score-policy", "Enabled weight sum exceeds the supported final-score range");
                 return null;
             }
+            if (aggregate.signum() == 0) error(issues, "INVALID_SCORE_POLICY", "/score-policy", "SUM requires a positive supported score maximum");
             return aggregate.intValueExact();
         }
         if ("CAP_AT_MAX".equals(parent.scorePolicyCode()) && parent.maxFinalScore() != null && parent.maxFinalScore() > 0) {
@@ -102,6 +98,8 @@ public class PublicationReadinessValidator {
             String path = "/risk-bands/" + band.bandCode();
             if (!BAND_CODES.contains(band.bandCode())) error(issues, "UNSUPPORTED_BAND_CODE", path, "Unsupported risk band");
             if (byCode.putIfAbsent(band.bandCode(), band) != null) error(issues, "DUPLICATE_BAND_CODE", path, "Band code must be unique within a version");
+            if (BAND_CODES.contains(band.bandCode()) && !Objects.equals(ApprovalPolicyContracts.BAND_LEVELS.get(band.bandCode()), band.approvalLevel()))
+                error(issues, "INVALID_AUTHORITY_MAPPING", path, "approval-policy-v1 requires LOW/L1, MEDIUM/L2, HIGH/L3");
             if (band.minScoreInclusive() < 0 || (band.maxScoreInclusive() != null && band.maxScoreInclusive() < band.minScoreInclusive())
                     || !LEVELS.contains(band.approvalLevel())) {
                 error(issues, "INVALID_BAND_STRUCTURE", path, "Band bounds or approval level are invalid");
@@ -180,6 +178,12 @@ public class PublicationReadinessValidator {
                     || !text(sla.startEventCode(), 32) || !text(sla.escalationPolicyCode(), 32)
                     || (sla.terminalLevelPolicyCode() != null && !text(sla.terminalLevelPolicyCode(), 32))) {
                 error(issues, "INVALID_SLA_STRUCTURE", path, "SLA duration or policy text is invalid");
+            }
+            try {
+                ApprovalPolicyContracts.validateSla(new ApprovalPolicyContracts.Sla(sla.approvalLevel(), sla.durationSeconds(),
+                        sla.startEventCode(), sla.escalationPolicyCode(), sla.terminalLevelPolicyCode()));
+            } catch (IllegalArgumentException exception) {
+                error(issues, "INVALID_APPROVAL_POLICY_CONTRACT", path, exception.getMessage());
             }
         }
         for (int level = 1; level <= 3; level++) {

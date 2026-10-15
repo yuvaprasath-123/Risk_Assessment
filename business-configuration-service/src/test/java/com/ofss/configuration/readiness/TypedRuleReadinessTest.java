@@ -22,11 +22,11 @@ class TypedRuleReadinessTest {
         assertThat(result.issues()).anyMatch(i -> i.code().equals("INVALID_RULE_PARAMETER_CONTRACT") && i.path().contains(code));
         assertThat(result.structurallyValid()).isFalse(); assertThat(result.ready()).isFalse();
     }
-    @Test void validTypedContractsRemoveGenericRiskBlockersButRetainSlaAndIntegrationBlockers() {
+    @Test void validTypedContractsAndApprovalContractsAreReady() {
         var result = check(rules());
-        assertThat(result.structurallyValid()).isTrue(); assertThat(result.ready()).isFalse();
+        assertThat(result.structurallyValid()).isTrue(); assertThat(result.ready()).isTrue();
         assertThat(result.issues()).noneMatch(i -> i.code().equals("RULE_PARAMETER_CONTRACTS_UNRESOLVED") || i.code().equals("SCORING_CONTRACT_UNRESOLVED"));
-        assertThat(result.issues()).anyMatch(i -> i.code().equals("SLA_POLICY_SEMANTICS_UNRESOLVED"));
+        assertThat(result.issues()).isEmpty();
     }
     @Test void unresolvedNearDuplicateAndZeroBaselineRemainSpecificPolicyBlockers() {
         var near = new HashMap<>(parameters("NEAR_DUPLICATE_INVOICE"));
@@ -35,7 +35,7 @@ class TypedRuleReadinessTest {
         assertThat(result.issues()).anyMatch(i -> i.code().equals("RULE_POLICY_UNRESOLVED") && i.path().contains("NEAR_DUPLICATE_INVOICE"));
         var amount = new HashMap<>(parameters("UNUSUAL_AMOUNT")); amount.put("zeroBaselinePolicy", "UNRESOLVED");
         assertThat(check(replace("UNUSUAL_AMOUNT", "risk-policy-v1", amount, true)).issues()).anyMatch(i -> i.code().equals("RULE_POLICY_UNRESOLVED"));
-        assertThat(check(replace("NEAR_DUPLICATE_INVOICE", "risk-policy-v1", near, false)).issues()).noneMatch(i -> i.code().equals("RULE_POLICY_UNRESOLVED"));
+        assertThat(check(replace("NEAR_DUPLICATE_INVOICE", "risk-policy-v1", near, false)).issues()).anyMatch(i -> i.code().equals("RULE_POLICY_UNRESOLVED"));
     }
     @Test void arbitrarySchemasAndRecursivePreviousFlagsCannotPass() {
         assertThat(check(replace("NEW_SUPPLIER", "made-up-approved", parameters("NEW_SUPPLIER"), true)).structurallyValid()).isFalse();

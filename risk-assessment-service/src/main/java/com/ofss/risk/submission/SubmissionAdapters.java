@@ -46,7 +46,7 @@ public final class SubmissionAdapters {
     public record Bundle(RiskInput input,Map<EvidenceFreezeRequest.Kind,EvidenceFreezeRequest.Source> sources) {
         public Bundle { Objects.requireNonNull(input);sources=Map.copyOf(sources); }
     }
-    /** Canonical configuration-content-v1 JSON from the existing manager/internal read projection. */
+    /** Canonical configuration-content-v2 JSON from the existing manager/internal read projection. */
     public record PublishedSnapshot(String versionId,String rowVersion,String publicationState,String hashFormat,
             String contentHash,String canonicalConfiguration) {}
     public static SubmissionFailure unavailable(){return new SubmissionFailure(SubmissionFailure.Code.ADAPTER_UNAVAILABLE);}

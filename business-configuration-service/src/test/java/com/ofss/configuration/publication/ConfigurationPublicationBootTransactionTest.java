@@ -59,7 +59,7 @@ class ConfigurationPublicationBootTransactionTest {
             .expiration(Date.from(Instant.now().plusSeconds(300))).signWith(Keys.hmacShaKeyFor(KEY.getBytes(java.nio.charset.StandardCharsets.UTF_8))).compact();
         mvc.perform(post("/api/v1/configuration/versions/7/publish").header("Authorization","Bearer "+token).contentType("application/json").content("{\"expectedRowVersion\":8}"))
             .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CONFIGURATION_NOT_READY"))
-            .andExpect(jsonPath("$.readiness.structurallyValid").value(true)).andExpect(jsonPath("$.readiness.ready").value(false));
+            .andExpect(jsonPath("$.readiness.structurallyValid").value(false)).andExpect(jsonPath("$.readiness.ready").value(false));
         var order=inOrder(versions,rules,bands,thresholds,slas,connection);order.verify(versions).findVersion(7,true);order.verify(rules).list(7);
         order.verify(bands).list(7);order.verify(thresholds).list(7);order.verify(slas).list(7);order.verify(connection).rollback();
         verify(connection,never()).commit();verifyNoInteractions(repository);

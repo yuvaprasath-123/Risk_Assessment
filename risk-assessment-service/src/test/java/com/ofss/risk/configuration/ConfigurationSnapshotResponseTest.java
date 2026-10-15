@@ -12,6 +12,28 @@ import static com.ofss.risk.configuration.ConfigurationHttpFixtures.*;
 
 class ConfigurationSnapshotResponseTest {
     PublishedSnapshotResponse decoder=new PublishedSnapshotResponse();
+    @ParameterizedTest @ValueSource(strings={"humanAuthorizationLevels","authority","timerStart","viewingResetsDeadline","ordinaryReassignmentResetsDeadline","newTaskDuration","maximumSameLevelBackups","backupCountScope","backupRequiresSameLevelAuthorization","developer3AuditEvents","automaticApproval","automaticPaymentProcessing","version"})
+    void changedSemanticExpansionCannotBeReinterpretedEvenWithARecomputedHash(String field){
+        var root=content("1");
+        @SuppressWarnings("unchecked") var policy=new TreeMap<>((Map<String,Object>)root.get("approvalPolicy"));
+        policy.put(field,field.equals("version")?"approval-policy-v2":"changed");root.put("approvalPolicy",policy);
+        rejected(bytes(envelope(root,true)));
+    }
+    @Test void legacySnapshotsNeverAcquireNewApprovalSemantics(){
+        var root=content("1");root.remove("approvalPolicy");root.put("hashFormat","configuration-content-v1");
+        var reply=envelope(root,true);reply.put("hashFormat","configuration-content-v1");rejected(bytes(reply));
+    }
+    @ParameterizedTest @ValueSource(strings={"unknown-version","auto-approve","missing-terminal","wrong-authority"})
+    void rehashedButUnsupportedPoliciesStillFailClosed(String fault){
+        var root=content("1");var terminal=rows(root,"approvalSlas").get(2);
+        switch(fault){
+            case "unknown-version"->terminal.put("startEventCode","APPROVAL_PENDING_V2");
+            case "auto-approve"->terminal.put("escalationPolicyCode","AUTO_APPROVE");
+            case "missing-terminal"->terminal.put("terminalLevelPolicyCode",null);
+            default->rows(root,"riskBands").getFirst().put("approvalLevel",new BigInteger("3"));
+        }
+        rejected(bytes(envelope(root,true)));
+    }
     void rejected(byte[] body){var e=assertThrows(SubmissionFailure.class,()->decoder.decode(body,null));assertEquals(SubmissionFailure.Code.DEPENDENCY_UNAVAILABLE,e.code());assertNull(e.getCause());}
     @Test void completeActiveDocumentHasExactIdentityAndVersionRevisionNotPointerRevision(){
         var root=content("9007199254740993");var snapshot=decoder.decode(bytes(envelope(root,true)),null);
@@ -23,7 +45,7 @@ class ConfigurationSnapshotResponseTest {
     @Test void pinnedShapeAcceptedOnlyForExactRequestedVersion(){var body=response(false);assertEquals("9",decoder.decode(body,"9007199254740993").rowVersion());assertThrows(SubmissionFailure.class,()->decoder.decode(body,"8"));rejected(body);}
     @ParameterizedTest @ValueSource(strings={"riskRules","riskBands","approvalThresholds","approvalSlas"})
     void completeHashIncludesEveryChildSection(String section){var root=content("1");var body=envelope(root,true);rows(root,section).getFirst().put(section.equals("riskRules")?"displayName":section.equals("riskBands")?"approvalLevel":section.equals("approvalThresholds")?"minAmountInclusive":"durationSeconds",section.equals("riskRules")?"changed":new BigInteger("2"));rejected(bytes(body));}
-    @Test void unknownHashFormatAndHashCorruptionRejected(){var b=envelope(content("1"),true);b.put("hashFormat","future-format");rejected(bytes(b));b.put("hashFormat","configuration-content-v1");b.put("contentHash","0".repeat(64));rejected(bytes(b));}
+    @Test void unknownHashFormatAndHashCorruptionRejected(){var b=envelope(content("1"),true);b.put("hashFormat","future-format");rejected(bytes(b));b.put("hashFormat","configuration-content-v2");b.put("contentHash","0".repeat(64));rejected(bytes(b));}
     @ParameterizedTest @ValueSource(strings={"ruleConfigId","displayName","parameterSchemaVersion","parameters"})
     void missingCompleteRuleFieldsRejectedEvenWithRecomputedHash(String field){var root=content("1");rows(root,"riskRules").getFirst().remove(field);rejected(bytes(envelope(root,true)));}
     @Test void exactIntegersNeverRoundOrTruncate(){

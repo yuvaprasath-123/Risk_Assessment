@@ -63,6 +63,13 @@
     </dependencies>
     <build>
         <plugins>
+            <!-- Plain classes for cross-backend verification; keep the executable jar independent. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId><artifactId>maven-jar-plugin</artifactId>
+                <executions><execution><id>cross-backend-verification</id><phase>process-classes</phase>
+                    <goals><goal>jar</goal></goals><configuration><classifier>verification-classes</classifier></configuration>
+                </execution></executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

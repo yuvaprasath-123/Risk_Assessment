@@ -13,6 +13,19 @@ import static com.ofss.configuration.publication.PublicationFixtures.*;
 
 class ConfigurationContentHashTest {
     private final ConfigurationContentHash hashes = new ConfigurationContentHash(JsonMapper.builder().build());
+    @Test void newHashCoversExplicitSemanticsWhileHistoricalV1RemainsUnexpanded(){
+        var old=hashes.compute(parent("DRAFT",8),42,rules(),bands(),thresholds(),approvedSlas());
+        var current=hashes.computePublished(parent("DRAFT",8),42,rules(),bands(),thresholds(),approvedSlas());
+        assertThat(old.json()).contains("\"hashFormat\":\"configuration-content-v1\"").doesNotContain("\"approvalPolicy\"");
+        assertThat(current.json()).contains("\"hashFormat\":\"configuration-content-v2\"","\"approvalPolicy\"","\"humanAuthorizationLevels\":[1,2,3]",
+            "\"authority\":\"MAX_AMOUNT_TIER_AND_RISK_LEVEL\"","\"automaticApproval\":false","\"automaticPaymentProcessing\":false",
+            "\"backupRequiresSameLevelAuthorization\":true","\"backupCountScope\":\"APPROVAL_CHAIN\"","\"developer3AuditEvents\"");
+        assertThat(current.hash()).isNotEqualTo(old.hash());
+        var changed=new ArrayList<>(approvedSlas());var first=changed.getFirst();
+        changed.set(0,new ApprovalSla(first.slaConfigId(),7,1,86401,first.startEventCode(),first.escalationPolicyCode(),null));
+        assertThat(hashes.computePublished(parent("DRAFT",8),42,rules(),bands(),thresholds(),changed).hash()).isNotEqualTo(current.hash());
+        assertThat(hashes.computePublished(parent("PUBLISHED",9),42,rules(),bands(),thresholds(),approvedSlas())).isEqualTo(current);
+    }
     private ConfigurationContentHash.Document hash(List<RiskRule> rules) { return hashes.compute(parent("DRAFT",8),42,rules,bands(),thresholds(),slas()); }
     @Test void canonicalHashIsStableAcrossChildAndObjectOrderingAndExactNumericRepresentations() {
         var a=new LinkedHashMap<String,Object>(); a.put("z",new BigInteger("9007199254740993"));

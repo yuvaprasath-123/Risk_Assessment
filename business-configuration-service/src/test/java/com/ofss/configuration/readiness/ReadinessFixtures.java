@@ -37,8 +37,8 @@ final class ReadinessFixtures {
         return rules;
     }
     static List<RiskBand> bands() {
-        return List.of(new RiskBand(1, 7, "LOW", 0, 0, 3), new RiskBand(2, 7, "MEDIUM", 1, 1, 1),
-                new RiskBand(3, 7, "HIGH", 2, null, 2));
+        return List.of(new RiskBand(1, 7, "LOW", 0, 0, 1), new RiskBand(2, 7, "MEDIUM", 1, 1, 2),
+                new RiskBand(3, 7, "HIGH", 2, null, 3));
     }
     static ApprovalThreshold threshold(int level, String min, String max) {
         return new ApprovalThreshold(level, 7, level, new BigDecimal(min), max == null ? null : new BigDecimal(max));
@@ -49,5 +49,5 @@ final class ReadinessFixtures {
     static List<ApprovalSla> slas() {
         return List.of(sla(1), sla(2), sla(3));
     }
-    static ApprovalSla sla(int level) { return new ApprovalSla(level, 7, level, 1, "UNAGREED_START", "UNAGREED_ESCALATION", null); }
+    static ApprovalSla sla(int level) { return new ApprovalSla(level, 7, level, 1, "APPROVAL_PENDING_V1", level < 3 ? "NEXT_LEVEL_V1" : "SAME_LEVEL_BACKUP_ONCE_V1", level < 3 ? null : "MANUAL_REVIEW_V1"); }
 }

@@ -56,7 +56,7 @@ class PublicationReadinessApiTest {
         when(thresholds.list(7)).thenReturn(ReadinessFixtures.thresholds());
         when(slas.list(7)).thenReturn(ReadinessFixtures.slas());
     }
-    @Test void completeStructureReturnsTypedBlockersAndNeverReadyWithoutWrites() throws Exception {
+    @Test void completeSupportedPoliciesAreReadyWithoutWrites() throws Exception {
         complete();
         mvc.perform(get(PATH).header("Authorization", "Bearer " + manager())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.versionId").value("7"))
@@ -64,10 +64,8 @@ class PublicationReadinessApiTest {
                 .andExpect(jsonPath("$.publicationState").value("DRAFT"))
                 .andExpect(jsonPath("$.isDemonstration").value(true))
                 .andExpect(jsonPath("$.structurallyValid").value(true))
-                .andExpect(jsonPath("$.ready").value(false))
-                .andExpect(jsonPath("$.issues", hasSize(3)))
-                .andExpect(jsonPath("$.issues[*].category", everyItem(is("POLICY_BLOCKER"))))
-                .andExpect(jsonPath("$.issues[0].code").value("SLA_POLICY_SEMANTICS_UNRESOLVED"));
+                .andExpect(jsonPath("$.ready").value(true))
+                .andExpect(jsonPath("$.issues", hasSize(0)));
         var order = inOrder(versionsAndRules, rules, bands, thresholds, slas);
         order.verify(versionsAndRules).findVersion(7, false);
         order.verify(rules).list(7);
@@ -81,7 +79,7 @@ class PublicationReadinessApiTest {
         mvc.perform(get(PATH).header("Authorization", "Bearer " + manager())).andExpect(status().isOk())
                 .andExpect(jsonPath("$.structurallyValid").value(false)).andExpect(jsonPath("$.ready").value(false))
                 .andExpect(jsonPath("$.issues[?(@.code=='SECTION_MISSING')]", hasSize(4)))
-                .andExpect(jsonPath("$.issues[?(@.category=='POLICY_BLOCKER')]", hasSize(3)))
+                .andExpect(jsonPath("$.issues[?(@.category=='POLICY_BLOCKER')]", hasSize(0)))
                 .andExpect(jsonPath("$.issues[0].category").value("CONFIGURATION_ERROR"));
     }
     @Test void absentVersionIs404WithoutChildReads() throws Exception {

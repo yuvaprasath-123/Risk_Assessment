@@ -20,15 +20,17 @@ final class ConfigurationHttpFixtures {
         for(var row:rows(root,"approvalThresholds"))row.put("thresholdConfigId",Integer.toString(id++));
         for(var row:rows(root,"approvalSlas")){
             row.put("slaConfigId",Integer.toString(id++));row.put("durationSeconds",new BigInteger("999999999999"));
-            row.put("startEventCode","TEST_START");row.put("escalationPolicyCode","TEST_ESCALATION");row.put("terminalLevelPolicyCode",null);
+            // Preserve supported versioned policy codes from the base fixture.
         }
+        root.put("approvalPolicy",com.ofss.risk.contract.ApprovalPolicyContracts.snapshot(com.ofss.risk.contract.ApprovalPolicyContracts.BAND_LEVELS,
+            java.util.stream.IntStream.rangeClosed(1,3).mapToObj(level->new com.ofss.risk.contract.ApprovalPolicyContracts.Sla(level,999999999999L,"APPROVAL_PENDING_V1",level<3?"NEXT_LEVEL_V1":"SAME_LEVEL_BACKUP_ONCE_V1",level<3?null:"MANUAL_REVIEW_V1")).toList()));
         return root;
     }
     @SuppressWarnings("unchecked") static List<Map<String,Object>> rows(Map<String,Object> root,String field){return (List<Map<String,Object>>)root.get(field);}
     static Map<String,Object> envelope(Map<String,Object> content,boolean active){
         var body=new TreeMap<String,Object>();body.put("versionId",content.get("versionId"));body.put("versionRowVersion","9");
         body.put("publishedAt","2026-10-14T00:00:00.123456789Z");body.put("publishedByUserId","42");
-        body.put("hashFormat","configuration-content-v1");body.put("contentHash",hash(content));body.put("configuration",content);
+        body.put("hashFormat","configuration-content-v2");body.put("contentHash",hash(content));body.put("configuration",content);
         if(active){body.put("pointerRowVersion","9007199254740993");body.put("activatedAt","2026-10-15T00:00:00.987654321Z");body.put("activatedByUserId","43");}
         return body;
     }

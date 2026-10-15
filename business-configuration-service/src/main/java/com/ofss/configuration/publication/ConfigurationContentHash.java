@@ -4,6 +4,7 @@ import com.ofss.configuration.band.RiskBand;
 import com.ofss.configuration.rule.*;
 import com.ofss.configuration.sla.ApprovalSla;
 import com.ofss.configuration.threshold.ApprovalThreshold;
+import com.ofss.risk.contract.ApprovalPolicyContracts;
 import java.math.*;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -19,6 +20,17 @@ public class ConfigurationContentHash {
     private final JsonMapper mapper;
     public ConfigurationContentHash(JsonMapper mapper) { this.mapper = mapper; }
     public record Document(String json, String hash) {}
+    /** V1 stays byte-for-byte stable for historical verification; only new publications use V2. */
+    public Document computePublished(ConfigurationVersionDetails parent,long creator,List<RiskRule> rules,
+            List<RiskBand> bands,List<ApprovalThreshold> thresholds,List<ApprovalSla> slas) {
+        var levels=new HashMap<String,Integer>();for(var band:bands)if(levels.put(band.bandCode(),band.approvalLevel())!=null)throw ConfigurationPublicationRepository.invalid();
+        var semantics=ApprovalPolicyContracts.snapshot(levels,slas.stream().map(s->new ApprovalPolicyContracts.Sla(s.approvalLevel(),s.durationSeconds(),s.startEventCode(),s.escalationPolicyCode(),s.terminalLevelPolicyCode())).toList());
+        var root=new TreeMap<String,Object>();
+        // Reparse with exact types: generic mapper defaults must not round rule parameter decimals.
+        var exact=tools.jackson.databind.json.JsonMapper.builder().enable(tools.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS,tools.jackson.databind.DeserializationFeature.USE_BIG_INTEGER_FOR_INTS).build();
+        exact.readValue(compute(parent,creator,rules,bands,thresholds,slas).json(),Map.class).forEach((k,v)->root.put((String)k,v));
+        root.put("hashFormat",ApprovalPolicyContracts.SNAPSHOT_FORMAT);root.put("approvalPolicy",semantics);return document(root);
+    }
     public Document compute(ConfigurationVersionDetails parent, long creator, List<RiskRule> rules,
             List<RiskBand> bands, List<ApprovalThreshold> thresholds, List<ApprovalSla> slas) {
         var v = parent.version();
@@ -44,6 +56,9 @@ public class ConfigurationContentHash {
                 "approvalSlas", slas.stream().sorted(Comparator.comparingInt(ApprovalSla::approvalLevel))
                     .map(s -> object("slaConfigId", Long.toString(s.slaConfigId()), "approvalLevel", s.approvalLevel(), "durationSeconds", s.durationSeconds(),
                         "startEventCode", s.startEventCode(), "escalationPolicyCode", s.escalationPolicyCode(), "terminalLevelPolicyCode", s.terminalLevelPolicyCode())).toList());
+        return document(root);
+    }
+    private Document document(Object root) {
         String json = canonical(root);
         try { return new Document(json, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.getBytes(StandardCharsets.UTF_8)))); }
         catch (NoSuchAlgorithmException exception) { throw new IllegalStateException("SHA-256 is required"); }

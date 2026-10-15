@@ -68,7 +68,7 @@ class OracleConfigurationPublicationTest {
     @Test void actualPolicyBlockersAndMissingSectionsRejectWithoutPublicationOrActivation() {
         var exception=catchThrowableOfType(()->service.publish(id,new PublishConfigurationRequest(0),OraclePublicationFixtures.ACTOR),PublicationNotReadyException.class);
         assertThat(exception.readiness().ready()).isFalse();assertThat(exception.readiness().structurallyValid()).isFalse();
-        assertThat(exception.readiness().issues()).extracting(PublicationReadiness.Issue::code).contains("SECTION_MISSING","SLA_POLICY_SEMANTICS_UNRESOLVED","APPROVAL_POLICY_UNRESOLVED","HISTORY_POLICY_UNRESOLVED");
+        assertThat(exception.readiness().issues()).extracting(PublicationReadiness.Issue::code).contains("SECTION_MISSING","REQUIRED_SLA_MISSING");
     }
     @Test void staleExpectedRevisionRollsBackAndPreservesAllMetadata() {
         var exception=catchThrowableOfType(()->service.publish(id,new PublishConfigurationRequest(1),OraclePublicationFixtures.ACTOR),DraftRuleConflictException.class);

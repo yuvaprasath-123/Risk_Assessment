@@ -38,5 +38,9 @@ final class PublicationFixtures {
     static List<ApprovalThreshold> thresholds() { return List.of(tier(1,"0.00","0.10"),tier(2,"0.10","0.20"),tier(3,"0.20",null)); }
     private static ApprovalThreshold tier(int level,String min,String max) { return new ApprovalThreshold(20+level,7,level,new BigDecimal(min),max==null?null:new BigDecimal(max)); }
     static List<ApprovalSla> slas() { return List.of(sla(1),sla(2),sla(3)); }
+    static List<ApprovalSla> approvedSlas() {
+        return java.util.stream.IntStream.rangeClosed(1,3).mapToObj(level->new ApprovalSla(30+level,7,level,86400,
+            "APPROVAL_PENDING_V1",level<3?"NEXT_LEVEL_V1":"SAME_LEVEL_BACKUP_ONCE_V1",level<3?null:"MANUAL_REVIEW_V1")).toList();
+    }
     private static ApprovalSla sla(int level) { return new ApprovalSla(30+level,7,level,1,"UNAGREED_START","UNAGREED_ESCALATION",null); }
 }

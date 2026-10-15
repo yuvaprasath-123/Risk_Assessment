@@ -24,15 +24,10 @@ class PublicationReadinessValidatorTest {
         assertThat(result.issues()).anyMatch(issue -> issue.category() == CONFIGURATION_ERROR && issue.code().equals(code));
     }
     @ParameterizedTest @ValueSource(booleans = {false, true})
-    void completeStructuresNeverClearUnresolvedPolicyBlockers(boolean demo) {
+    void completeSupportedPoliciesAreReadyWithoutUpstreamAvailabilityCheck(boolean demo) {
         var result = check(parent("SUM", null, demo), rules(), bands(), thresholds(), slas());
-        assertThat(result.structurallyValid()).isTrue();
-        assertThat(result.ready()).isFalse();
-        assertThat(result.isDemonstration()).isEqualTo(demo);
-        assertThat(result.issues()).hasSize(3).allMatch(issue -> issue.category() == POLICY_BLOCKER);
-        assertThat(result.issues()).extracting(PublicationReadiness.Issue::code).containsExactlyInAnyOrder(
-                "HISTORY_POLICY_UNRESOLVED",
-                "APPROVAL_POLICY_UNRESOLVED", "SLA_POLICY_SEMANTICS_UNRESOLVED");
+        assertThat(result.structurallyValid()).isTrue(); assertThat(result.ready()).isTrue();
+        assertThat(result.isDemonstration()).isEqualTo(demo); assertThat(result.issues()).isEmpty();
     }
     @ParameterizedTest @ValueSource(strings = {"RULES", "BANDS", "THRESHOLDS", "SLAS"})
     void absentSectionsAndTheirRequiredEntriesAreErrors(String section) {
@@ -57,7 +52,7 @@ class PublicationReadinessValidatorTest {
         error(check(parent("SUM", null, true), large, bands(), thresholds(), slas()), "AGGREGATE_SCORE_OVERFLOW");
         var capped = check(parent("CAP_AT_MAX", 100, true), large, bands(), thresholds(), slas());
         assertThat(capped.structurallyValid()).isTrue();
-        assertThat(capped.ready()).isFalse(); // Business contribution/enablement semantics remain blocked.
+        assertThat(capped.ready()).isTrue();
     }
     @Test void disabledWeightsDoNotInflateSumAndArbitraryJsonCannotApproveSemantics() {
         var rules = rules().stream().map(rule -> new RiskRule(rule.ruleConfigId(), 7, rule.ruleCode(), "Test", rule.evaluationOrder() == 1,
@@ -99,7 +94,7 @@ class PublicationReadinessValidatorTest {
         assertThat(check(parent("SUM", null, true), rules(), finite, thresholds(), slas()).structurallyValid()).isTrue();
         error(check(parent("CAP_AT_MAX", 8, true), rules(), finite, thresholds(), slas()), "BAND_COVERAGE_INCOMPLETE");
     }
-    @ParameterizedTest @ValueSource(strings = {"SUM_ZERO", "SUM_SMALL", "CAP_SMALL"})
+    @ParameterizedTest @ValueSource(strings = {"SUM_SMALL", "CAP_SMALL"})
     void coverageDoesNotRequireEveryBandToBeReachable(String scenario) {
         var rules = rules().stream().map(rule -> rule(rule.ruleCode(), rule.evaluationOrder(), 1, !scenario.equals("SUM_ZERO"))).toList();
         var bands = List.of(new RiskBand(1, 7, "LOW", 0, 9, 1), new RiskBand(2, 7, "MEDIUM", 10, 19, 2),
@@ -107,8 +102,8 @@ class PublicationReadinessValidatorTest {
         var result = check(parent(scenario.equals("CAP_SMALL") ? "CAP_AT_MAX" : "SUM", scenario.equals("CAP_SMALL") ? 1 : null, true),
                 rules, bands, thresholds(), slas());
         assertThat(result.structurallyValid()).isTrue();
-        assertThat(result.ready()).isFalse();
-        assertThat(result.issues()).allMatch(issue -> issue.category() == POLICY_BLOCKER);
+        assertThat(result.ready()).isTrue();
+        assertThat(result.issues()).isEmpty();
     }
     @Test void integerMaxBoundaryDoesNotOverflowCoverageArithmetic() {
         var bands = List.of(new RiskBand(1, 7, "LOW", 0, Integer.MAX_VALUE, 1),

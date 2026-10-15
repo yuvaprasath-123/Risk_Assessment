@@ -43,6 +43,13 @@ class ConfigurationActivationServiceTest {
         return new ConfigurationVersionDetails(new ConfigurationVersion(7,1,"mechanics fixture",state,true,PUBLISHED.minusDays(1),PUBLISHED),null,"SUM",null,revision);
     }
     ConfigurationActivationRepository.Pointer pointer(long id,long revision) { return new ConfigurationActivationRepository.Pointer(id,NOW,43,revision); }
+    @Test void historicalHashNeverGainsNewPolicyFieldsOrFormat(){
+        when(repository.pointer()).thenReturn(Optional.of(pointer(7,0)));
+        var historical=service.active();assertThat(historical.hashFormat()).isEqualTo("configuration-content-v1");
+        assertThat(historical.contentHash()).isEqualTo(hash);assertThat(historical.configuration()).doesNotContain("\"approvalPolicy\"");
+        assertThat(service.published(7).hashFormat()).isEqualTo("configuration-content-v1");
+        verify(repository,never()).save(any(),anyLong(),anyLong(),any());
+    }
     @Test void firstActivationVerifiesHashWritesAndReadsBackBeforeReturning() {
         when(repository.pointer()).thenReturn(Optional.empty(),Optional.of(pointer(7,0)));
         var result=service.activate(7,new ActivationRequest(null),43);

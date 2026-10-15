@@ -2,6 +2,8 @@ package com.ofss.risk.submission;
 
 import com.ofss.risk.engine.RiskConfiguration;
 import com.ofss.risk.contract.RuleCode;
+import com.ofss.risk.contract.ApprovalPolicyContracts;
+import com.ofss.risk.contract.RuleParameterContracts;
 import java.math.*;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -10,7 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.core.StreamReadFeature;
 
-/** Exact configuration-content-v1 mapping. Transport provenance is the adapter's responsibility. */
+/** Exact configuration-content-v2 mapping. Transport provenance is the adapter's responsibility. */
 public final class PublishedConfigurationMapping {
     private final JsonMapper json=JsonMapper.builder().enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
         .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS,DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS,
@@ -25,11 +27,11 @@ public final class PublishedConfigurationMapping {
         catch(RuntimeException e){throw new SubmissionFailure(SubmissionFailure.Code.DEPENDENCY_UNAVAILABLE);}
     }
     @SuppressWarnings("unchecked") RiskConfiguration verified(SubmissionAdapters.PublishedSnapshot snapshot) throws Exception {
-            if(snapshot==null || !"PUBLISHED".equals(snapshot.publicationState()) || !"configuration-content-v1".equals(snapshot.hashFormat())
+            if(snapshot==null || !"PUBLISHED".equals(snapshot.publicationState()) || !ApprovalPolicyContracts.SNAPSHOT_FORMAT.equals(snapshot.hashFormat())
                 || snapshot.contentHash()==null || !snapshot.contentHash().matches("[0-9a-f]{64}"))throw new IllegalArgumentException();
             var root=json.readValue(snapshot.canonicalConfiguration(),Map.class);
             if(!root.keySet().equals(Set.of("hashFormat","versionId","versionNumber","versionLabel","description","isDemonstration",
-                "scorePolicyCode","maxFinalScore","createdAt","createdByUserId","riskRules","riskBands","approvalThresholds","approvalSlas")))throw new IllegalArgumentException();
+                "scorePolicyCode","maxFinalScore","createdAt","createdByUserId","riskRules","riskBands","approvalThresholds","approvalSlas","approvalPolicy")))throw new IllegalArgumentException();
             String canonical=canonical(root);
             String hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
             if(!canonical.equals(snapshot.canonicalConfiguration()) || !hash.equals(snapshot.contentHash())
@@ -41,6 +43,7 @@ public final class PublishedConfigurationMapping {
                 return RiskConfiguration.Rule.from(RuleCode.valueOf((String)r.get("ruleCode")),enabled,integer(r.get("weight")),integer(r.get("evaluationOrder")),
                     (String)r.get("parameterSchemaVersion"),(Map<String,Object>)r.get("parameters"));
             }).toList();
+            if(rules.stream().anyMatch(r->!RuleParameterContracts.unresolved(r.parameters()).isEmpty()))throw new IllegalArgumentException();
             var bands=((List<Map<String,Object>>)root.get("riskBands")).stream().map(b->new RiskConfiguration.Band((String)b.get("bandCode"),
                 integer(b.get("minScoreInclusive")),b.get("maxScoreInclusive")==null?null:integer(b.get("maxScoreInclusive")))).toList();
             var tiers=(List<Map<String,Object>>)root.get("approvalThresholds");var boundaries=new TreeMap<Integer,BigDecimal>();
@@ -55,6 +58,12 @@ public final class PublishedConfigurationMapping {
             if(!levels.equals(Set.of(1,2,3)))throw new IllegalArgumentException();
             var slas=(List<Map<String,Object>>)root.get("approvalSlas");
             if(slas.size()!=3 || !slas.stream().map(s->integer(s.get("approvalLevel"))).collect(java.util.stream.Collectors.toSet()).equals(Set.of(1,2,3)))throw new IllegalArgumentException();
+            var authority=new HashMap<String,Integer>();
+            for(var band:(List<Map<String,Object>>)root.get("riskBands"))
+                if(authority.put((String)band.get("bandCode"),integer(band.get("approvalLevel")))!=null)throw new IllegalArgumentException();
+            var policy=ApprovalPolicyContracts.snapshot(authority,slas.stream().map(s->new ApprovalPolicyContracts.Sla(integer(s.get("approvalLevel")),
+                longInteger(s.get("durationSeconds")),(String)s.get("startEventCode"),(String)s.get("escalationPolicyCode"),(String)s.get("terminalLevelPolicyCode"))).toList());
+            if(!canonical(policy).equals(canonical(root.get("approvalPolicy"))))throw new IllegalArgumentException();
             int cap;
             if("CAP_AT_MAX".equals(root.get("scorePolicyCode")))cap=integer(root.get("maxFinalScore"));
             else if("SUM".equals(root.get("scorePolicyCode")) && root.get("maxFinalScore")==null)
@@ -63,11 +72,12 @@ public final class PublishedConfigurationMapping {
             return new RiskConfiguration(snapshot.versionId(),snapshot.rowVersion(),hash,"INR",cap,rules,bands,boundaries);
     }
     private static int integer(Object value){if(value instanceof BigInteger b)return b.intValueExact();if(value instanceof Integer i)return i;throw new IllegalArgumentException();}
+    private static long longInteger(Object value){if(value instanceof BigInteger b)return b.longValueExact();if(value instanceof Integer i)return i.longValue();throw new IllegalArgumentException();}
     private static BigDecimal money(Object value){if(!(value instanceof String s) || !s.matches("[0-9]+\\.[0-9]{2}"))throw new IllegalArgumentException();var n=new BigDecimal(s);if(n.precision()>15)throw new IllegalArgumentException();return n;}
     private String canonical(Object value) {
         if(value==null)return "null";if(value instanceof String s)return json.writeValueAsString(s);if(value instanceof Boolean b)return b.toString();
         if(value instanceof BigDecimal b)return b.signum()==0?"0":b.stripTrailingZeros().toPlainString();
-        if(value instanceof BigInteger || value instanceof Integer)return value.toString();
+        if(value instanceof BigInteger || value instanceof Integer || value instanceof Long)return value.toString();
         if(value instanceof List<?> l)return "["+String.join(",",l.stream().map(this::canonical).toList())+"]";
         if(value instanceof Map<?,?> m){var sorted=new TreeMap<String,Object>();m.forEach((k,v)->{if(!(k instanceof String s))throw new IllegalArgumentException();sorted.put(s,v);});
             return "{"+String.join(",",sorted.entrySet().stream().map(e->canonical(e.getKey())+":"+canonical(e.getValue())).toList())+"}";}

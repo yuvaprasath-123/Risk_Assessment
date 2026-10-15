@@ -5,6 +5,8 @@
   <groupId>com.ofss</groupId><artifactId>risk-assessment-service</artifactId><version>1</version>
   <properties><java.version>21</java.version><jjwt.version>0.12.6</jjwt.version></properties>
   <dependencies>
+    <!-- Cross-backend publication/readiness/security contract verification only; not a runtime coupling. -->
+    <dependency><groupId>com.ofss</groupId><artifactId>business-configuration-service</artifactId><version>1</version><classifier>verification-classes</classifier><scope>test</scope></dependency>
     <dependency><groupId>com.ofss</groupId><artifactId>internal-service-security</artifactId><version>1</version></dependency>
     <dependency><groupId>com.ofss</groupId><artifactId>internal-service-security</artifactId><version>1</version><type>test-jar</type><classifier>tests</classifier><scope>test</scope></dependency>
     <dependency><groupId>com.ofss</groupId><artifactId>risk-rule-contracts</artifactId><version>1</version></dependency>

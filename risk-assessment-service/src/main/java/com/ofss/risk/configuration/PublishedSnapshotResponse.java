@@ -32,7 +32,7 @@ final class PublishedSnapshotResponse {
             if(explicitVersion==null){id(body.get("pointerRowVersion"),false);id(body.get("activatedByUserId"),true);if(time(body.get("activatedAt")).isBefore(published))throw invalid();}
             Map<?,?> content=object(body.get("configuration"));
             keys(content,Set.of("hashFormat","versionId","versionNumber","versionLabel","description","isDemonstration","scorePolicyCode","maxFinalScore",
-                "createdAt","createdByUserId","riskRules","riskBands","approvalThresholds","approvalSlas"));
+                "createdAt","createdByUserId","riskRules","riskBands","approvalThresholds","approvalSlas","approvalPolicy"));
             if(!version.equals(id(content.get("versionId"),true)) || published.isBefore(time(content.get("createdAt"))))throw invalid();
             id(content.get("createdByUserId"),true);integer(content.get("versionNumber"),1,Integer.MAX_VALUE);label(content.get("versionLabel"),100);
             if(content.get("description")!=null)optionalText(content.get("description"),1000);

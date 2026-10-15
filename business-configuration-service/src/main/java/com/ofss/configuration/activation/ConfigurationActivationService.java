@@ -71,9 +71,9 @@ public class ConfigurationActivationService {
         if (!"PUBLISHED".equals(parent.version().publicationState())) throw new ActivationFailure(ActivationFailure.Reason.VERSION_NOT_PUBLISHED);
         var verified=verify(parent);
         return new PublishedSnapshot(Long.toString(versionId),Long.toString(parent.rowVersion()),verified.metadata().publishedAt().toInstant().toString(),
-                Long.toString(verified.metadata().publisher()),verified.content().hash(),ConfigurationContentHash.FORMAT,verified.content().json());
+                Long.toString(verified.metadata().publisher()),verified.content().hash(),verified.format(),verified.content().json());
     }
-    private record Verified(ConfigurationActivationRepository.Metadata metadata, ConfigurationContentHash.Document content) {}
+    private record Verified(ConfigurationActivationRepository.Metadata metadata, ConfigurationContentHash.Document content,String format) {}
     private Verified verify(ConfigurationVersionDetails parent) {
         long id = parent.version().versionId();
         var metadata = repository.metadata(id);
@@ -81,14 +81,21 @@ public class ConfigurationActivationService {
                 || metadata.hash() == null || !metadata.hash().matches("[0-9a-f]{64}") || metadata.publisher() < 1
                 || parent.version().createdAt() == null || metadata.publishedAt().isBefore(parent.version().createdAt())
                 || !metadata.publishedAt().equals(parent.version().publishedAt())) throw ConfigurationActivationRepository.invalid();
-        var content = hashes.compute(parent, metadata.creator(), versions.listRules(id), bands.list(id), thresholds.list(id), slas.list(id));
+        var rules=versions.listRules(id);var bandRows=bands.list(id);var tiers=thresholds.list(id);var slaRows=slas.list(id);
+        var content = hashes.compute(parent, metadata.creator(), rules,bandRows,tiers,slaRows);
+        String format=ConfigurationContentHash.FORMAT;
+        if(!content.hash().equals(metadata.hash())) {
+            try{content=hashes.computePublished(parent,metadata.creator(),rules,bandRows,tiers,slaRows);}
+            catch(RuntimeException invalid){throw ConfigurationActivationRepository.invalid();}
+            format=com.ofss.risk.contract.ApprovalPolicyContracts.SNAPSHOT_FORMAT;
+        }
         if (!content.hash().equals(metadata.hash())) throw ConfigurationActivationRepository.invalid();
-        return new Verified(metadata, content);
+        return new Verified(metadata, content,format);
     }
     private ActiveSnapshot response(ConfigurationActivationRepository.Pointer pointer, ConfigurationVersionDetails parent, Verified verified) {
         if (pointer.versionId() != parent.version().versionId() || pointer.activatedAt().isBefore(verified.metadata().publishedAt())) throw ConfigurationActivationRepository.invalid();
         return new ActiveSnapshot(Long.toString(pointer.versionId()), Long.toString(parent.rowVersion()), Long.toString(pointer.rowVersion()),
                 pointer.activatedAt().toInstant().toString(), Long.toString(pointer.activatedBy()), verified.metadata().publishedAt().toInstant().toString(),
-                Long.toString(verified.metadata().publisher()), verified.content().hash(), ConfigurationContentHash.FORMAT, verified.content().json());
+                Long.toString(verified.metadata().publisher()), verified.content().hash(), verified.format(), verified.content().json());
     }
 }

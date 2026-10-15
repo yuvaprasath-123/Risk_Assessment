@@ -65,7 +65,7 @@ class PublicationReadinessBootTransactionTest {
         String token = Jwts.builder().subject("manager").claim("userId", "42").claim("roles", List.of("FINANCE_MANAGER"))
                 .expiration(Date.from(Instant.now().plusSeconds(300))).signWith(key).compact();
         mvc.perform(get(PATH).header("Authorization", "Bearer " + token)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.structurallyValid").value(true)).andExpect(jsonPath("$.ready").value(false));
+                .andExpect(jsonPath("$.structurallyValid").value(true)).andExpect(jsonPath("$.ready").value(true));
         var order = inOrder(connection, versions, rules, bands, thresholds, slas);
         order.verify(connection).setReadOnly(true);
         order.verify(connection).setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);

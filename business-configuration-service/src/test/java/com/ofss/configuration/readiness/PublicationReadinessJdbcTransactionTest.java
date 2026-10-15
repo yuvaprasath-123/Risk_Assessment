@@ -76,7 +76,7 @@ class PublicationReadinessJdbcTransactionTest {
         var slaRows = new ArrayList<Map<String, Object>>();
         for (var sla : ReadinessFixtures.slas()) slaRows.add(row("SLA_CONFIG_ID", sla.slaConfigId(), "VERSION_ID", 7L,
                 "APPROVAL_LEVEL", sla.approvalLevel(), "DURATION_SECONDS", sla.durationSeconds(), "START_EVENT_CODE", sla.startEventCode(),
-                "ESCALATION_POLICY_CODE", sla.escalationPolicyCode(), "TERMINAL_LEVEL_POLICY_CODE", null));
+                "ESCALATION_POLICY_CODE", sla.escalationPolicyCode(), "TERMINAL_LEVEL_POLICY_CODE", sla.terminalLevelPolicyCode()));
         doReturn(rows(slaRows)).when(slas).executeQuery();
         var jdbc = new JdbcTemplate(dataSource);
         jdbc.setExceptionTranslator(new SQLExceptionSubclassTranslator());
@@ -125,7 +125,7 @@ class PublicationReadinessJdbcTransactionTest {
     @Test void readsEverySectionOnOneSerializableReadOnlyConnectionAndRestoresIt() throws Exception {
         var mvc = mvc();
         mvc.perform(get(PATH)).andExpect(status().isOk()).andExpect(jsonPath("$.structurallyValid").value(true))
-                .andExpect(jsonPath("$.ready").value(false)).andExpect(jsonPath("$.rowVersion").value(Long.toString(Long.MAX_VALUE)));
+                .andExpect(jsonPath("$.ready").value(true)).andExpect(jsonPath("$.rowVersion").value(Long.toString(Long.MAX_VALUE)));
         var order = inOrder(connection, parent, rules, bands, thresholds, slas);
         order.verify(connection).setReadOnly(true);
         order.verify(connection).setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);

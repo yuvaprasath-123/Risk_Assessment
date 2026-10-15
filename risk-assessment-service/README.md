@@ -1,5 +1,28 @@
 # Risk assessment service
 
+## Concrete publication verification
+
+The production published-configuration mapper now also resolves the shared `approval-policy-v1` code family, fixed LOW/L1→MEDIUM/L2→HIGH/L3 mapping and all SLA levels; unknown/rehashed unsupported policies fail closed. New `configuration-content-v2` snapshots explicitly include and hash the complete human-authorization, MAX authority, timer-retention, escalation, one authorized eligible L3 backup per approval chain, manual-review and Developer 3 audit obligations in `approvalPolicy`. The mapper validates that full expansion against the supported contract, not only its code names. Legacy V1 documents cannot acquire this meaning implicitly: new submission mapping rejects them, while the configuration read API preserves their original format/hash and existing accepted engine snapshots remain unchanged. The engine itself is unchanged; upstream evidence certification and integration remain required at runtime.
+
+Current verification after review fixes: **1,872 offline reactor tests passed**, zero failures/errors/skips, with live Oracle/cleanup classes explicitly excluded. The concrete supported policy validators supersede historical notes below about unconditional readiness blockers; unsupported/unresolved configured semantics still block publication. Genuine issuer, Developer 1 evidence provisioning and Developer 3 workflow/audit interoperability remain separate dependencies.
+
+User-run Oracle verification: **3 real-readiness publication tests passed, zero failures/errors/skips**. Concurrent workers terminated; all guarded cleanups left zero fixture parents. The tests verify real readiness-approved publication and V2 semantic hash coverage, not genuine cross-team issuer interoperability. Legacy V1 reads preserve historical meaning; new submissions reject unsupported legacy semantics. Genuine issuer provisioning and Developer 1/3 interoperability remain pending. Existing results are reused because implementation is unchanged.
+
+`ConcretePublicationFlowTest` exercises real readiness → publication → activation → authenticated internal snapshot → production decoder/engine mapper, with mocked persistence, no Oracle/listener. The configuration backend is a **test-scope dependency only**, not packaged into the risk service. Ephemeral test credentials do not establish genuine issuer interoperability.
+
+Prepared `OracleConcretePublicationFlowTest` is opt-in and uses real Oracle repositories/transactions, real readiness and MockMvc security/read paths (no application listener). Three cases cover publication/activation/immutable snapshot consumption, competing publishers, and actual rollback after an injected post-update failure. It requires **no current pointer** and exclusive configuration-writer use; it never replaces/restores an existing pointer. Synthetic versions use exact `D2_CFG_READY_<UUID>` labels and a fixed description/actor marker. Committed fixtures are required for concurrency. Cleanup locks/validates only owned parents, validates any pointer belongs to that fixture with expected actor/revision, verifies published hashes before deletion, deletes only owned children/parent/pointer, and never resets identities. Cleanup is deferred if a worker remains; later fixtures cannot reset that failure or start until the suite is stopped/recovered. Concurrent publishers capture fixed fixture IDs/revisions. Retain the exact printed namespace/reports if a guard refuses cleanup; do not run a broad deletion. The fixtures' tiny monetary tiers are test data, not approved business thresholds.
+
+User-run command (hidden local password prompt, all touched Process variables restored, no genuine JWT/signing key required):
+
+```powershell
+Set-Location 'C:\risk_assessment\Risk_Assessment'
+$env:JAVA_HOME = 'C:\jdk21'
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+.\risk-assessment-service\scripts\verify-concrete-publication.ps1 -ConfirmIsolated
+```
+
+This selects only `OracleConcretePublicationFlowTest` through the Developer 2 reactor. Its two required flags are `CONFIG_VERIFY_ORACLE_CONCRETE_PUBLICATION=true` and `CONFIG_ORACLE_PUBLICATION_ISOLATED=true`; the script sets these temporarily, reads `CONFIG_DB_PASSWORD` through hidden input and targets D2_CONFIGURATION at localhost:1521/FREEPDB1. It generates ephemeral keys in test memory; no production token issuance is added. The passing Oracle result above was user-run; the agent did not execute live tests.
+
 ## Local prior-assessment history (PREVIOUS_RISK_FLAGS)
 
 Production evidence composition now combines an explicit `SubmissionAdapters.UpstreamEvidence` bean (Developer 1 payment/supplier/transition envelopes and their three source contracts) with the D2-owned history capture/replay service. Missing upstream provisioning still returns ADAPTER_UNAVAILABLE; no Developer 1 endpoint, authoritative empty history or demo fallback is assumed. Existing full `Evidence` integration beans and the explicit demo profile remain separate overrides. No history HTTP endpoint is added.

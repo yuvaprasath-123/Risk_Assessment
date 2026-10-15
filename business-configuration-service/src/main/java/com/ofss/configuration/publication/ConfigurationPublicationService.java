@@ -54,7 +54,7 @@ public class ConfigurationPublicationService {
         if (!readiness.structurallyValid() || !readiness.issues().isEmpty()) throw ConfigurationPublicationRepository.invalid();
         var before = repository.metadata(versionId);
         if (before.publishedAt() != null || before.publishedByUserId() != null || before.contentHash() != null) throw ConfigurationPublicationRepository.invalid();
-        var content = hashes.compute(parent, before.createdByUserId(), ruleRows, bandRows, thresholdRows, slaRows);
+        var content = hashes.computePublished(parent, before.createdByUserId(), ruleRows, bandRows, thresholdRows, slaRows);
         var now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS);
         if (parent.version().createdAt() == null || now.isBefore(parent.version().createdAt())) throw ConfigurationPublicationRepository.invalid();
         repository.publish(versionId, parent.rowVersion(), actorId, now, content.hash());
@@ -66,6 +66,6 @@ public class ConfigurationPublicationService {
                 || !after.equals(new ConfigurationPublicationRepository.Metadata(before.createdByUserId(), now, actorId, content.hash())))
             throw ConfigurationPublicationRepository.invalid();
         return new PublishedVersion(Long.toString(versionId), Long.toString(saved.rowVersion()), "PUBLISHED", content.hash(),
-                ConfigurationContentHash.FORMAT, now.toInstant().toString(), Long.toString(actorId));
+                com.ofss.risk.contract.ApprovalPolicyContracts.SNAPSHOT_FORMAT, now.toInstant().toString(), Long.toString(actorId));
     }
 }
