@@ -6,7 +6,7 @@ This service implements the configuration-version list (M2a), draft-version crea
 
 `GET http://localhost:8086/api/v1/configuration/versions`
 
-Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST creates a draft only; PUT manages one draft risk rule, risk band, approval threshold or approval SLA. General version editing, publication, activation and login endpoints are absent; other methods/paths are denied.
+Supply an `Authorization: Bearer <access-token>` header. All supported endpoints require FINANCE_MANAGER as an **approved prototype policy supplied by the user**, not a requirement attributed to the scope document. POST on the collection creates a draft; PUT manages one draft risk rule, risk band, approval threshold or approval SLA. The publication endpoint below is separate. General version editing, activation and login endpoints remain absent; other methods/paths are denied.
 
 Successful requests return HTTP 200 and a JSON array ordered by VERSION_NUMBER ascending, then VERSION_ID ascending. An empty table returns `[]`; it does not create defaults or activate configuration.
 
@@ -23,6 +23,44 @@ Successful requests return HTTP 200 and a JSON array ordered by VERSION_NUMBER a
 Errors consistently contain `status` (integer HTTP status), `code`, `message`, `timestamp` (UTC ISO-8601), and `path`. Missing/invalid authentication returns 401/UNAUTHORIZED; authenticated users without FINANCE_MANAGER return 403/FORBIDDEN; JDBC/transaction failures return 503/CONFIGURATION_UNAVAILABLE; unexpected application failures return 500/INTERNAL_ERROR. Messages do not expose SQL, database diagnostics, claims, tokens or secrets. A database failure never becomes a successful empty list.
 
 401 responses include a `WWW-Authenticate` Bearer challenge with realm `business-configuration-service`. Missing/empty credentials and unsupported schemes receive no OAuth token-error attribute. Invalid or expired tokens receive `error="invalid_token"`; no token/exception details are reflected. FINANCE_MANAGER-only access and 403 responses for insufficient roles are preserved.
+
+## Publish a configuration version (mechanics only; policy-blocked)
+
+`POST /api/v1/configuration/versions/{versionId}/publish` on port 8086 accepts only `{"expectedRowVersion":"8"}` (illustrative revision; fetch the actual version first). The revision may also be an exact nonnegative JSON integer within Java Long range; decimal/exponent/boolean values, unknown fields and caller-supplied publication metadata are rejected. Publisher identity comes only from the verified manager JWT.
+
+The service locks the parent using the same lock as every draft child writer, reads all four child sections and calls the unchanged readiness validator within one writable Spring transaction. Any configuration errors or unresolved policy blockers produce HTTP 409 `CONFIGURATION_NOT_READY`, with the standard status/code/message/timestamp/path fields plus `readiness` containing the existing complete readiness response. **Real readiness still always includes history/identity certification, approval mapping and SLA-policy blockers. No real publishable fixture exists yet; this endpoint does not approve demonstration policies or bypass those blockers.**
+
+If readiness eventually passes, one conditional UPDATE records PUBLISHED, the verified publisher, application-clock UTC publication time at Oracle TIMESTAMP(6) precision, the locally computed SHA-256 content hash and rowVersion+1. Verified readback precedes commit. HTTP 200 then returns `versionId`, `rowVersion`, `publicationState`, `contentHash`, `hashFormat` (`configuration-content-v1`), `publishedAt` (UTC ISO-8601) and `publishedByUserId`; all IDs/revisions are strings. Failures roll back the update; there is no current-pointer access, activation, seeding or external call.
+
+The hash is domain/version separated by an explicit `hashFormat` in canonical UTF-8 JSON. It covers version identity/number/label/description, demonstration flag, score policy/cap, creation time/actor, and every rule/band/threshold/SLA field and child identity. Keys are sorted; child collections have deterministic semantic order; nested parameter arrays retain order, Unicode is preserved, nulls are explicit, decimal/integer parameter values are exact, and money is normalized to scale-two strings. Publication state/time/actor, rowVersion and the hash itself are excluded to avoid mutation-dependent/self-referential content. This is distinct from risk acceptance/configuration/evidence hashes. Retain the v1 canonicalizer for future compatibility.
+
+Repeated publication of any PUBLISHED version returns 409 `VERSION_ALREADY_PUBLISHED` without changing content, publisher, timestamp or revision, even when the request contains its original revision. A stale DRAFT revision returns 409 `STALE_VERSION`; revision exhaustion returns 409 `ROW_VERSION_EXHAUSTED`. Missing versions return 404 `VERSION_NOT_FOUND`, invalid bodies/IDs return 400 `INVALID_REQUEST`, and database/readback/transaction failures use sanitized 503 `CONFIGURATION_UNAVAILABLE`. All existing child write paths lock/check DRAFT and refuse published edits. These are application invariants, not protection against arbitrary privileged SQL.
+
+Offline success/rollback and competing-publication tests explicitly mock readiness=true; actual-validator tests retain all policy blockers. Verification: **1,319 offline reactor tests passed, zero failures/errors/skips, including 73 new publication tests**; all live Oracle classes were explicitly excluded. `OracleConfigurationPublicationTest` is disabled unless `CONFIG_VERIFY_ORACLE_PUBLICATION_WRITES=true`. It uses the real Spring/JDBC path with the real readiness validator, creates committed empty demonstration drafts under unique `D2_CFG_PUBLISH_<UUID>` labels, and checks blocked/repeated/stale/concurrent rejection with unchanged metadata. It cannot prove successful live publication while policies remain unresolved. It starts no server and requires no JWT key. Authentication is covered separately by automated HTTP token-fixture tests.
+
+User-run Oracle verification (do not run until those synthetic writes are intended):
+
+```powershell
+Set-Location 'C:\risk_assessment\Risk_Assessment'
+$publicationPassword = Read-Host 'D2_CONFIGURATION password' -AsSecureString
+$publicationPointer = [IntPtr]::Zero
+$publicationPriorPassword = [Environment]::GetEnvironmentVariable('CONFIG_DB_PASSWORD', 'Process')
+$publicationPriorOptIn = [Environment]::GetEnvironmentVariable('CONFIG_VERIFY_ORACLE_PUBLICATION_WRITES', 'Process')
+try {
+    $publicationPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($publicationPassword)
+    $env:CONFIG_DB_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($publicationPointer)
+    $env:CONFIG_VERIFY_ORACLE_PUBLICATION_WRITES = 'true'
+    mvn -f developer2-pom.xml -pl business-configuration-service -am '-Dtest=OracleConfigurationPublicationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+} finally {
+    if ($publicationPointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($publicationPointer) }
+    $publicationPassword.Dispose()
+    [Environment]::SetEnvironmentVariable('CONFIG_DB_PASSWORD', $publicationPriorPassword, 'Process')
+    [Environment]::SetEnvironmentVariable('CONFIG_VERIFY_ORACLE_PUBLICATION_WRITES', $publicationPriorOptIn, 'Process')
+    Remove-Variable publicationPassword, publicationPointer, publicationPriorPassword, publicationPriorOptIn -ErrorAction SilentlyContinue
+}
+```
+
+Cleanup requires worker termination and verifies the exact UUID label, synthetic creator/description, unchanged DRAFT/revision/publication fields and absence of all children/current-pointer references before deleting that one draft. It never resets identities or deletes unrelated records. Unexpected data refuses cleanup transactionally. For interrupted-run recovery only, first confirm workers stopped, then supply the same external password plus `CONFIG_VERIFY_ORACLE_PUBLICATION_WRITES=true`, `CONFIG_PUBLICATION_CLEANUP_ONLY=true`, `CONFIG_PUBLICATION_WORKERS_STOPPED=true` and the exact printed `CONFIG_PUBLICATION_FIXTURE_NAMESPACE`; explicitly select only `OraclePublicationFixtureCleanupTest`. No wildcard recovery is supported. Live successful publication bindings, actual publication-update rollback and publish-vs-edit contention remain pending.
 
 ## Create a draft version (M2b)
 

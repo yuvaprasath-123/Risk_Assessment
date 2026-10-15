@@ -54,6 +54,8 @@ public class SecurityConfiguration {
                         .hasRole("FINANCE_MANAGER")
                         .requestMatchers(HttpMethod.GET, ConfigurationVersionController.PATH + "/*/publication-readiness")
                         .hasRole("FINANCE_MANAGER")
+                        .requestMatchers(HttpMethod.POST, ConfigurationVersionController.PATH + "/*/publish")
+                        .hasRole("FINANCE_MANAGER")
                         .anyRequest().denyAll())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) -> errors.unauthorized(

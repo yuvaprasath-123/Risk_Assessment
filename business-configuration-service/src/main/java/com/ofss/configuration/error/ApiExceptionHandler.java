@@ -9,6 +9,9 @@ import com.ofss.configuration.rule.DraftRuleConflictException;
 import com.ofss.configuration.band.DraftBandConflictException;
 import com.ofss.configuration.threshold.DraftThresholdConflictException;
 import com.ofss.configuration.sla.DraftSlaConflictException;
+import com.ofss.configuration.publication.AlreadyPublishedException;
+import com.ofss.configuration.publication.PublicationNotReadyException;
+import com.ofss.configuration.readiness.PublicationReadiness;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +21,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    public record PublicationRejected(int status, String code, String message, String timestamp, String path, PublicationReadiness readiness) {}
+    @ExceptionHandler(PublicationNotReadyException.class)
+    public ResponseEntity<PublicationRejected> notReady(PublicationNotReadyException exception, HttpServletRequest request) {
+        var error = ApiError.of(409, "CONFIGURATION_NOT_READY", "Configuration is not ready for publication", request.getRequestURI());
+        return ResponseEntity.status(409).body(new PublicationRejected(error.status(), error.code(), error.message(), error.timestamp(), error.path(), exception.readiness()));
+    }
+    @ExceptionHandler(AlreadyPublishedException.class)
+    public ResponseEntity<ApiError> alreadyPublished(HttpServletRequest request) {
+        return ResponseEntity.status(409).body(ApiError.of(409, "VERSION_ALREADY_PUBLISHED", "Configuration version is already published", request.getRequestURI()));
+    }
     @ExceptionHandler(DraftSlaConflictException.class)
     public ResponseEntity<ApiError> slaConflict(HttpServletRequest request) {
         return ResponseEntity.status(409).body(ApiError.of(409, "SLA_LEVEL_CONFLICT",
