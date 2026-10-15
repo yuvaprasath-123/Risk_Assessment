@@ -49,6 +49,9 @@ class SubmissionWiringTest {
             assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());assertThrows(SubmissionFailure.class,()->c.getBean(Facts.class).verify(null,null,c.getBean(DependencyCalls.class).deadline()));
         });verify(client).shutdownNow();verify(client).awaitTermination(java.time.Duration.ofSeconds(5));}}
     @Test void enabledIncompleteHttpConfigurationFailsActualBeanPath(){enabled().withPropertyValues("risk-configuration-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
+    @Test void enabledIncompleteFactsConfigurationFailsActualProductionWiring(){enabled().withPropertyValues("risk-facts-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
+    @Test void disabledSubmissionPreservesManagerReadHostEvenWithUnprovisionedFactsSettings(){context().withPropertyValues("risk-facts-client.enabled=true").run(c->{
+        assertNull(c.getStartupFailure());assertTrue(c.getBeansOfType(Facts.class).isEmpty());assertNotNull(c.getBean(AssessmentReadService.class));assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());});}
     @Test void explicitUpstreamBeanIsComposedWithLocalHistoryWithoutConnecting(){
         UpstreamEvidence supplied=(accepted,deadline)->{throw SubmissionAdapters.unavailable();};
         enabled().withBean(UpstreamEvidence.class,()->supplied).run(c->{assertNull(c.getStartupFailure());assertSame(supplied,c.getBean(UpstreamEvidence.class));

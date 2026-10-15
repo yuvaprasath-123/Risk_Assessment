@@ -8,11 +8,11 @@ import java.util.concurrent.*;
 import java.util.concurrent.Flow;
 
 /** Counts actual body bytes, including chunked responses. Rejects without consuming error/oversized bodies. */
-final class LimitedConfigurationBody implements HttpResponse.BodySubscriber<byte[]> {
+public final class LimitedConfigurationBody implements HttpResponse.BodySubscriber<byte[]> {
     private final int limit;private final long declared;private final boolean acceptable;
     private final ByteArrayOutputStream bytes=new ByteArrayOutputStream();private final CompletableFuture<byte[]> result=new CompletableFuture<>();
     private Flow.Subscription subscription;
-    LimitedConfigurationBody(int limit,long declared,boolean acceptable){this.limit=limit;this.declared=declared;this.acceptable=acceptable;}
+    public LimitedConfigurationBody(int limit,long declared,boolean acceptable){this.limit=limit;this.declared=declared;this.acceptable=acceptable;}
     @Override public CompletionStage<byte[]> getBody(){return result;}
     @Override public void onSubscribe(Flow.Subscription subscription){
         if(this.subscription!=null){subscription.cancel();return;}this.subscription=subscription;

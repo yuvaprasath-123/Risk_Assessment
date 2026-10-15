@@ -9,6 +9,15 @@ risk-submission:
   dependency-budget: ${RISK_SUBMISSION_DEPENDENCY_BUDGET:}
 risk-history:
   max-assessments: ${RISK_HISTORY_MAX_ASSESSMENTS:1000}
+risk-facts-client:
+  enabled: ${RISK_FACTS_CLIENT_ENABLED:false}
+  base-url: ${RISK_FACTS_BASE_URL:}
+  provider-service-id: ${RISK_FACTS_PROVIDER_SERVICE_ID:}
+  connect-timeout: ${RISK_FACTS_CONNECT_TIMEOUT:}
+  header-timeout: ${RISK_FACTS_HEADER_TIMEOUT:}
+  body-timeout: ${RISK_FACTS_BODY_TIMEOUT:}
+  max-response-bytes: ${RISK_FACTS_MAX_RESPONSE_BYTES:}
+  service-token: ${RISK_FACTS_SERVICE_TOKEN:}
 risk-configuration-client:
   enabled: ${RISK_CONFIGURATION_CLIENT_ENABLED:false}
   base-url: ${RISK_CONFIGURATION_BASE_URL:}
