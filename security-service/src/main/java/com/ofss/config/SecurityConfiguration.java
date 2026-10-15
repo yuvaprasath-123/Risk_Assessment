@@ -115,11 +115,11 @@ public class SecurityConfiguration {
 	                        auth ->
 	                                auth
 
-	                                        .requestMatchers(
-	                                                "/api/v1/auth/login",
-	                                                "/api/v1/users"
-	                                        )
-	                                        .permitAll()
+	                                .requestMatchers(
+	                                        "/api/v1/auth/login",
+	                                        "/api/v1/auth/verify-otp"
+	                                ).permitAll()
+	                                        
 
 	                                        .anyRequest()
 	                                        .authenticated()

@@ -22,6 +22,9 @@ import Navbar
 import LoginPage
   from "./pages/LoginPage";
 
+import OtpVerificationPage
+  from "./pages/OtpVerificationPage";
+
 import DashboardPage
   from "./pages/DashboardPage";
 
@@ -37,6 +40,15 @@ import PaymentsPage
 import PaymentDetailsPage
   from "./pages/PaymentDetailsPage";
 
+import PaymentSubmissionSuccessPage
+  from "./pages/PaymentSubmissionSuccessPage";
+
+import PaymentSubmissionFailurePage
+  from "./pages/PaymentSubmissionFailurePage";
+
+import CreateRequesterPage
+  from "./pages/CreateRequesterPage";
+
 function AppRoutes() {
 
   return (
@@ -51,6 +63,13 @@ function AppRoutes() {
             path="/login"
             element={
               <LoginPage />
+            }
+          />
+
+          <Route
+            path="/verify-otp"
+            element={
+              <OtpVerificationPage />
             }
           />
 
@@ -117,6 +136,46 @@ function AppRoutes() {
                 ]}
               >
                 <PaymentDetailsPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payments/:paymentId/submission-success"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "PAYMENT_REQUESTER"
+                ]}
+              >
+                <PaymentSubmissionSuccessPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payments/:paymentId/submission-failure"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "PAYMENT_REQUESTER"
+                ]}
+              >
+                <PaymentSubmissionFailurePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/users/create-requester"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "FINANCE_APPROVER",
+                  "FINANCE_MANAGER"
+                ]}
+              >
+                <CreateRequesterPage />
               </ProtectedRoute>
             }
           />

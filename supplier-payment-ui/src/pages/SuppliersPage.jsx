@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
 
@@ -47,6 +48,11 @@ export default function SuppliersPage() {
     setUpdatingSupplierId
   ] = useState(null);
 
+  const [
+    sortDirection,
+    setSortDirection
+  ] = useState("asc");
+
   async function loadSuppliers() {
 
     try {
@@ -81,6 +87,59 @@ export default function SuppliersPage() {
     },
     [token]
   );
+
+  const sortedSuppliers =
+    useMemo(
+      () => {
+
+        return [
+          ...suppliers
+        ].sort(
+          (supplierA, supplierB) => {
+
+            const supplierIdA =
+              Number(
+                supplierA.supplierId
+              );
+
+            const supplierIdB =
+              Number(
+                supplierB.supplierId
+              );
+
+            if (
+              sortDirection === "asc"
+            ) {
+
+              return (
+                supplierIdA -
+                supplierIdB
+              );
+            }
+
+            return (
+              supplierIdB -
+              supplierIdA
+            );
+          }
+        );
+
+      },
+      [
+        suppliers,
+        sortDirection
+      ]
+    );
+
+  function handleSortById() {
+
+    setSortDirection(
+      currentDirection =>
+        currentDirection === "asc"
+          ? "desc"
+          : "asc"
+    );
+  }
 
   async function handleCreate(
     event
@@ -253,10 +312,42 @@ export default function SuppliersPage() {
           <thead>
 
             <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Action</th>
+
+              <th>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSortById
+                  }
+                  aria-label={
+                    sortDirection === "asc"
+                      ? "Sort supplier ID descending"
+                      : "Sort supplier ID ascending"
+                  }
+                  className="table-sort-button"
+                >
+                  ID {
+                    sortDirection === "asc"
+                      ? "↑"
+                      : "↓"
+                  }
+                </button>
+
+              </th>
+
+              <th>
+                Name
+              </th>
+
+              <th>
+                Status
+              </th>
+
+              <th>
+                Action
+              </th>
+
             </tr>
 
           </thead>
@@ -264,7 +355,7 @@ export default function SuppliersPage() {
           <tbody>
 
             {
-              suppliers.length === 0
+              sortedSuppliers.length === 0
                 ? (
                   <tr>
 
@@ -277,7 +368,7 @@ export default function SuppliersPage() {
                   </tr>
                 )
                 : (
-                  suppliers.map(
+                  sortedSuppliers.map(
                     supplier => (
 
                       <tr

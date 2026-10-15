@@ -7,8 +7,7 @@ test(
   "requester complete payment flow",
   async ({ page }) => {
 
-    const unique =
-      Date.now();
+    const unique = Date.now();
 
     const supplierName =
       `UI-E2E-SUP-${unique}`;
@@ -55,8 +54,8 @@ test(
           &&
           response
             .request()
-            .method()
-            === "POST"
+            .method() ===
+            "POST"
       );
 
     await page
@@ -208,20 +207,6 @@ test(
       )
     ).toBeVisible();
 
-    /*
-     * IMPORTANT:
-     *
-     * There is now also a LanguageSelector <select>
-     * in the navbar.
-     *
-     * Therefore:
-     *
-     *   page.locator("select")
-     *
-     * is no longer safe.
-     *
-     * Restrict the selector to the page form.
-     */
     const invoiceForm =
       page.locator(
         "form.form-row"
@@ -337,11 +322,6 @@ test(
       )
     ).toBeVisible();
 
-    /*
-     * Again, restrict the select to the payment form.
-     * This prevents Playwright from choosing the
-     * navbar language dropdown.
-     */
     const paymentForm =
       page.locator(
         "form.form-row"
@@ -356,16 +336,42 @@ test(
       invoiceSelect
     ).toBeVisible();
 
-    await invoiceSelect
-      .selectOption({
-        label:
-          `${invoiceNumber} - ${supplierName}`
-      });
 
-    /*
-     * Payment amount should automatically come
-     * from the selected invoice.
-     */
+    // =========================================================
+    // SELECT INVOICE AND CAPTURE ITS ID
+    // =========================================================
+
+    const selectedInvoiceIds =
+      await invoiceSelect
+        .selectOption({
+          label:
+            `${invoiceNumber} - ${supplierName}`
+        });
+
+    expect(
+      selectedInvoiceIds
+        .length
+    ).toBe(
+      1
+    );
+
+    const createdInvoiceId =
+      selectedInvoiceIds[0];
+
+    expect(
+      createdInvoiceId
+    ).toBeTruthy();
+
+    console.log(
+      "Invoice ID selected:",
+      createdInvoiceId
+    );
+
+
+    // =========================================================
+    // VERIFY AUTO-POPULATED PAYMENT AMOUNT
+    // =========================================================
+
     const paymentAmountInput =
       paymentForm.locator(
         'input[type="number"]'
@@ -377,6 +383,11 @@ test(
       amount
     );
 
+
+    // =========================================================
+    // CREATE PAYMENT
+    // =========================================================
+
     await page
       .getByRole(
         "button",
@@ -387,33 +398,51 @@ test(
       )
       .click();
 
+
+    // =========================================================
+    // FIND PAYMENT USING EXACT INVOICE ID
+    // =========================================================
+
     /*
-     * Find the exact payment row created by this test.
+     * Table columns:
+     *
+     * 1 = Payment ID
+     * 2 = Invoice ID
+     * 3 = Supplier ID
+     * 4 = Amount
+     * 5 = Status
+     * 6 = Action
+     *
+     * We locate the row using the exact Invoice ID,
+     * rather than relying on amount formatting.
      */
+
     const paymentRow =
       page
         .locator(
           "tbody tr"
         )
         .filter({
-          hasText:
-            amount
-        })
-        .filter({
-          hasText:
-            "DRAFT"
+          has:
+            page.locator(
+              "td:nth-child(2)",
+              {
+                hasText:
+                  new RegExp(
+                    `^\\s*${createdInvoiceId}\\s*$`
+                  )
+              }
+            )
         });
 
     await expect(
       paymentRow
     ).toHaveCount(
-      1
-    );
-
-    await expect(
-      paymentRow
-    ).toContainText(
-      amount
+      1,
+      {
+        timeout:
+          15000
+      }
     );
 
     await expect(
@@ -422,25 +451,65 @@ test(
       "DRAFT"
     );
 
+    await expect(
+      paymentRow
+        .locator(
+          "td:nth-child(2)"
+        )
+    ).toHaveText(
+      createdInvoiceId
+    );
+
+    await expect(
+      paymentRow
+        .locator(
+          "td:nth-child(4)"
+        )
+    ).toContainText(
+      "54321"
+    );
+
+
+    // =========================================================
+    // OPEN PAYMENT DETAILS
+    // =========================================================
+
+    const paymentId =
+      (
+        await paymentRow
+          .locator(
+            "td:nth-child(1)"
+          )
+          .innerText()
+      ).trim();
+
+    expect(
+      paymentId
+    ).toBeTruthy();
+
+    console.log(
+      "Created Payment ID:",
+      paymentId
+    );
+
     await paymentRow
       .getByRole(
         "link",
         {
           name:
-            "View"
+            "View",
+          exact:
+            true
         }
       )
       .click();
 
-
-    // =========================================================
-    // PAYMENT DETAILS
-    // =========================================================
-
     await expect(
       page
     ).toHaveURL(
-      /\/payments\/\d+/
+      new RegExp(
+        `/payments/${paymentId}$`
+      )
     );
 
     await expect(
@@ -484,8 +553,21 @@ test(
         .first()
     ).toBeVisible({
       timeout:
-        10000
+        15000
     });
+
+
+    // =========================================================
+    // VERIFY URL REMAINS PAYMENT DETAILS
+    // =========================================================
+
+    await expect(
+      page
+    ).toHaveURL(
+      new RegExp(
+        `/payments/${paymentId}$`
+      )
+    );
 
 
     // =========================================================

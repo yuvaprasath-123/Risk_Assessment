@@ -100,6 +100,15 @@ public class PaymentRequest {
         nullable = false
     )
     private Long version;
+    
+    @Column(name = "TRANSACTION_REFERENCE")
+    private String transactionReference;
+
+    @Column(name = "FAILED_AT")
+    private LocalDateTime failedAt;
+
+    @Column(name = "FAILURE_REASON")
+    private String failureReason;
 
     public PaymentRequest() {
     }
@@ -251,5 +260,30 @@ public class PaymentRequest {
             LocalDateTime updatedAt
     ) {
         this.updatedAt = updatedAt;
+    }
+    
+    public String getTransactionReference() {
+        return transactionReference;
+    }
+
+    public void setTransactionReference(String transactionReference) {
+        this.transactionReference = transactionReference;
+    }
+    
+    
+    public LocalDateTime getFailedAt() {
+        return failedAt;
+    }
+
+    public void setFailedAt(LocalDateTime failedAt) {
+        this.failedAt = failedAt;
+    }
+
+    public String getFailureReason() {
+        return failureReason;
+    }
+
+    public void setFailureReason(String failureReason) {
+        this.failureReason = failureReason;
     }
 }

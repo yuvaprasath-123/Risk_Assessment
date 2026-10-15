@@ -4,6 +4,7 @@ import {
 
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
 
@@ -58,6 +59,11 @@ export default function PaymentsPage() {
     submitting,
     setSubmitting
   ] = useState(false);
+
+  const [
+    sortDirection,
+    setSortDirection
+  ] = useState("asc");
 
   async function loadData() {
 
@@ -122,6 +128,59 @@ export default function PaymentsPage() {
     },
     [token]
   );
+
+  const sortedPayments =
+    useMemo(
+      () => {
+
+        return [
+          ...payments
+        ].sort(
+          (paymentA, paymentB) => {
+
+            const paymentIdA =
+              Number(
+                paymentA.paymentId
+              );
+
+            const paymentIdB =
+              Number(
+                paymentB.paymentId
+              );
+
+            if (
+              sortDirection === "asc"
+            ) {
+
+              return (
+                paymentIdA -
+                paymentIdB
+              );
+            }
+
+            return (
+              paymentIdB -
+              paymentIdA
+            );
+          }
+        );
+
+      },
+      [
+        payments,
+        sortDirection
+      ]
+    );
+
+  function handleSortById() {
+
+    setSortDirection(
+      currentDirection =>
+        currentDirection === "asc"
+          ? "desc"
+          : "asc"
+    );
+  }
 
   function handleInvoiceChange(
     event
@@ -309,12 +368,50 @@ export default function PaymentsPage() {
           <thead>
 
             <tr>
-              <th>ID</th>
-              <th>Invoice</th>
-              <th>Supplier</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Action</th>
+
+              <th>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSortById
+                  }
+                  aria-label={
+                    sortDirection === "asc"
+                      ? "Sort payment ID descending"
+                      : "Sort payment ID ascending"
+                  }
+                  className="table-sort-button"
+                >
+                  ID {
+                    sortDirection === "asc"
+                      ? "↑"
+                      : "↓"
+                  }
+                </button>
+
+              </th>
+
+              <th>
+                Invoice
+              </th>
+
+              <th>
+                Supplier
+              </th>
+
+              <th>
+                Amount
+              </th>
+
+              <th>
+                Status
+              </th>
+
+              <th>
+                Action
+              </th>
+
             </tr>
 
           </thead>
@@ -322,66 +419,80 @@ export default function PaymentsPage() {
           <tbody>
 
             {
-              payments.map(
-                payment => (
+              sortedPayments.length === 0
+                ? (
+                  <tr>
 
-                  <tr
-                    key={
-                      payment.paymentId
-                    }
-                  >
-
-                    <td>
-                      {
-                        payment.paymentId
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        payment.invoiceId
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        payment.supplierId
-                      }
-                    </td>
-
-                    <td>
-                      {
-                        payment.paymentAmount
-                      }
-                    </td>
-
-                    <td>
-
-                      <span
-                        className="status"
-                      >
-                        {
-                          payment.status
-                        }
-                      </span>
-
-                    </td>
-
-                    <td>
-
-                      <Link
-                        to={
-                          `/payments/${payment.paymentId}`
-                        }
-                      >
-                        View
-                      </Link>
-
+                    <td
+                      colSpan="6"
+                    >
+                      No payment requests available.
                     </td>
 
                   </tr>
                 )
-              )
+                : (
+                  sortedPayments.map(
+                    payment => (
+
+                      <tr
+                        key={
+                          payment.paymentId
+                        }
+                      >
+
+                        <td>
+                          {
+                            payment.paymentId
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            payment.invoiceId
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            payment.supplierId
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            payment.paymentAmount
+                          }
+                        </td>
+
+                        <td>
+
+                          <span
+                            className="status"
+                          >
+                            {
+                              payment.status
+                            }
+                          </span>
+
+                        </td>
+
+                        <td>
+
+                          <Link
+                            to={
+                              `/payments/${payment.paymentId}`
+                            }
+                          >
+                            View
+                          </Link>
+
+                        </td>
+
+                      </tr>
+                    )
+                  )
+                )
             }
 
           </tbody>

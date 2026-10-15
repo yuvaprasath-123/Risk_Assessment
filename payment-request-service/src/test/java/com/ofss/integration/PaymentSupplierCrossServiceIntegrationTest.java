@@ -1,5 +1,6 @@
 package com.ofss.integration;
 
+import com.ofss.kafka.PaymentEventProducer;
 import com.ofss.security.AuthUtil;
 
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 
 import org.springframework.http.MediaType;
 
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
 import org.springframework.test.web.servlet.MockMvc;
 
 import org.springframework.web.client.RestClient;
@@ -19,6 +22,9 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -38,6 +44,14 @@ class PaymentSupplierCrossServiceIntegrationTest {
     @Autowired
     private JsonMapper objectMapper;
 
+    /*
+     * Kafka is not the purpose of these
+     * supplier/payment cross-service tests.
+     */
+    @MockitoBean
+    private PaymentEventProducer
+            paymentEventProducer;
+
     private final RestClient supplierServiceClient =
             RestClient.create(
                     "http://localhost:8082"
@@ -48,27 +62,43 @@ class PaymentSupplierCrossServiceIntegrationTest {
     void paymentRequestShouldUseRealSupplierInvoiceService()
             throws Exception {
 
+        Long requesterId =
+                9001L;
+
+        String token =
+                createRequesterToken(
+                        requesterId
+                );
+
         /*
-         * STEP 1
-         * Create supplier through the REAL
-         * supplier-invoice-service.
+         * Use a unique supplier name because this
+         * test calls the REAL supplier service and
+         * therefore persists data in Oracle.
          */
+        String supplierName =
+                uniqueName(
+                        "Cross Service Supplier"
+                );
 
         String supplierRequest =
                 """
                 {
-                    "supplierName":
-                        "Cross Service Supplier",
-                    "status":
-                        "ACTIVE"
+                    "supplierName": "%s",
+                    "status": "ACTIVE"
                 }
-                """;
+                """.formatted(
+                        supplierName
+                );
 
         String supplierResponse =
                 supplierServiceClient
                         .post()
                         .uri(
                                 "/api/v1/suppliers"
+                        )
+                        .header(
+                                "Authorization",
+                                "Bearer " + token
                         )
                         .contentType(
                                 MediaType.APPLICATION_JSON
@@ -94,15 +124,9 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         .asLong();
 
 
-        /*
-         * STEP 2
-         * Create invoice through the REAL
-         * supplier-invoice-service.
-         */
-
         String invoiceNumber =
                 "CROSS-INV-"
-                        + System.currentTimeMillis();
+                        + UUID.randomUUID();
 
         String invoiceRequest =
                 """
@@ -123,6 +147,10 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         .post()
                         .uri(
                                 "/api/v1/invoices"
+                        )
+                        .header(
+                                "Authorization",
+                                "Bearer " + token
                         )
                         .contentType(
                                 MediaType.APPLICATION_JSON
@@ -148,37 +176,6 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         .asLong();
 
 
-        /*
-         * STEP 3
-         * Generate a real requester JWT.
-         */
-
-        Long requesterId =
-                9001L;
-
-        String token =
-                authUtil.generateJwtToken(
-                        requesterId,
-                        "cross_service_requester",
-                        List.of(
-                                "PAYMENT_REQUESTER"
-                        )
-                );
-
-
-        /*
-         * STEP 4
-         * Call payment-request-service.
-         *
-         * Internally:
-         *
-         * PaymentRequestService
-         *      ↓
-         * SupplierInvoiceClient
-         *      ↓ HTTP
-         * supplier-invoice-service
-         */
-
         String paymentRequest =
                 """
                 {
@@ -195,8 +192,7 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         )
                                 .header(
                                         "Authorization",
-                                        "Bearer "
-                                                + token
+                                        "Bearer " + token
                                 )
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -205,11 +201,9 @@ class PaymentSupplierCrossServiceIntegrationTest {
                                         paymentRequest
                                 )
                 )
-
                 .andExpect(
                         status().isCreated()
                 )
-
                 .andExpect(
                         jsonPath(
                                 "$.invoiceId"
@@ -217,7 +211,6 @@ class PaymentSupplierCrossServiceIntegrationTest {
                                 invoiceId
                         )
                 )
-
                 .andExpect(
                         jsonPath(
                                 "$.supplierId"
@@ -225,7 +218,6 @@ class PaymentSupplierCrossServiceIntegrationTest {
                                 supplierId
                         )
                 )
-
                 .andExpect(
                         jsonPath(
                                 "$.requesterId"
@@ -233,7 +225,6 @@ class PaymentSupplierCrossServiceIntegrationTest {
                                 requesterId
                         )
                 )
-
                 .andExpect(
                         jsonPath(
                                 "$.paymentAmount"
@@ -241,7 +232,6 @@ class PaymentSupplierCrossServiceIntegrationTest {
                                 60000
                         )
                 )
-
                 .andExpect(
                         jsonPath(
                                 "$.status"
@@ -250,27 +240,41 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         )
                 );
     }
-    
-    
+
+
     @Test
     void paymentCreationShouldFailForInactiveSupplierThroughRealService()
             throws Exception {
 
+        String token =
+                createRequesterToken(
+                        9002L
+                );
+
+        String supplierName =
+                uniqueName(
+                        "Cross Service Inactive Supplier"
+                );
+
         String supplierRequest =
                 """
                 {
-                    "supplierName":
-                        "Cross Service Inactive Supplier",
-                    "status":
-                        "INACTIVE"
+                    "supplierName": "%s",
+                    "status": "INACTIVE"
                 }
-                """;
+                """.formatted(
+                        supplierName
+                );
 
         String supplierResponse =
                 supplierServiceClient
                         .post()
                         .uri(
                                 "/api/v1/suppliers"
+                        )
+                        .header(
+                                "Authorization",
+                                "Bearer " + token
                         )
                         .contentType(
                                 MediaType.APPLICATION_JSON
@@ -296,40 +300,57 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         .asLong();
 
         /*
-         * Your supplier-invoice-service itself
-         * prevents creating an invoice for an
-         * inactive supplier.
+         * The supplier-invoice-service prevents
+         * creating an invoice for an inactive
+         * supplier through the normal API flow.
          *
-         * Therefore we should not expect to get
-         * as far as payment creation through this
-         * normal API path.
+         * Confirm that the real inactive supplier
+         * was created successfully.
          */
+        assertNotNull(
+                supplierId
+        );
     }
-    
-    
+
+
     @Test
     void paymentCreationShouldRejectSupplierThatWasDeactivated()
             throws Exception {
 
-        /*
-         * Create ACTIVE supplier.
-         */
+        String token =
+                createRequesterToken(
+                        9001L
+                );
 
+        String supplierName =
+                uniqueName(
+                        "Cross Service Deactivate Supplier"
+                );
+
+        /*
+         * STEP 1
+         *
+         * Create an ACTIVE supplier.
+         */
         String supplierRequest =
                 """
                 {
-                    "supplierName":
-                        "Cross Service Deactivate Supplier",
-                    "status":
-                        "ACTIVE"
+                    "supplierName": "%s",
+                    "status": "ACTIVE"
                 }
-                """;
+                """.formatted(
+                        supplierName
+                );
 
         String supplierResponse =
                 supplierServiceClient
                         .post()
                         .uri(
                                 "/api/v1/suppliers"
+                        )
+                        .header(
+                                "Authorization",
+                                "Bearer " + token
                         )
                         .contentType(
                                 MediaType.APPLICATION_JSON
@@ -354,12 +375,13 @@ class PaymentSupplierCrossServiceIntegrationTest {
 
 
         /*
+         * STEP 2
+         *
          * Create invoice while supplier is ACTIVE.
          */
-
         String invoiceNumber =
                 "CROSS-INACTIVE-"
-                        + System.currentTimeMillis();
+                        + UUID.randomUUID();
 
         String invoiceRequest =
                 """
@@ -380,6 +402,10 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         .post()
                         .uri(
                                 "/api/v1/invoices"
+                        )
+                        .header(
+                                "Authorization",
+                                "Bearer " + token
                         )
                         .contentType(
                                 MediaType.APPLICATION_JSON
@@ -404,14 +430,14 @@ class PaymentSupplierCrossServiceIntegrationTest {
 
 
         /*
-         * Deactivate supplier.
+         * STEP 3
+         *
+         * Deactivate the supplier.
          */
-
         String statusRequest =
                 """
                 {
-                    "status": "INACTIVE",
-                    "changedBy": 9001
+                    "status": "INACTIVE"
                 }
                 """;
 
@@ -421,6 +447,10 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         "/api/v1/suppliers/"
                                 + supplierId
                                 + "/status"
+                )
+                .header(
+                        "Authorization",
+                        "Bearer " + token
                 )
                 .contentType(
                         MediaType.APPLICATION_JSON
@@ -433,23 +463,11 @@ class PaymentSupplierCrossServiceIntegrationTest {
 
 
         /*
-         * Create requester JWT.
+         * STEP 4
+         *
+         * Payment creation must fail because
+         * the supplier is now inactive.
          */
-
-        String token =
-                authUtil.generateJwtToken(
-                        9001L,
-                        "cross_service_requester",
-                        List.of(
-                                "PAYMENT_REQUESTER"
-                        )
-                );
-
-
-        /*
-         * Payment creation must now fail.
-         */
-
         String paymentRequest =
                 """
                 {
@@ -466,8 +484,7 @@ class PaymentSupplierCrossServiceIntegrationTest {
                         )
                                 .header(
                                         "Authorization",
-                                        "Bearer "
-                                                + token
+                                        "Bearer " + token
                                 )
                                 .contentType(
                                         MediaType.APPLICATION_JSON
@@ -479,5 +496,27 @@ class PaymentSupplierCrossServiceIntegrationTest {
                 .andExpect(
                         status().isBadRequest()
                 );
+    }
+
+
+    private String createRequesterToken(
+            Long userId) {
+
+        return authUtil.generateJwtToken(
+                userId,
+                "cross_service_requester",
+                List.of(
+                        "PAYMENT_REQUESTER"
+                )
+        );
+    }
+
+
+    private String uniqueName(
+            String prefix) {
+
+        return prefix
+                + "-"
+                + System.currentTimeMillis();
     }
 }

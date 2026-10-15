@@ -4,6 +4,8 @@ import com.ofss.client.InvoiceClientResponse;
 import com.ofss.client.SupplierClientResponse;
 import com.ofss.client.SupplierInvoiceClient;
 
+import com.ofss.kafka.PaymentEventProducer;
+
 import com.ofss.repository.PaymentRequestRepository;
 import com.ofss.repository.PaymentStatusHistoryRepository;
 
@@ -55,13 +57,32 @@ class PaymentRequestIntegrationTest {
     private JsonMapper objectMapper;
 
     @Autowired
-    private PaymentRequestRepository paymentRequestRepository;
+    private PaymentRequestRepository
+            paymentRequestRepository;
 
     @Autowired
-    private PaymentStatusHistoryRepository paymentStatusHistoryRepository;
+    private PaymentStatusHistoryRepository
+            paymentStatusHistoryRepository;
 
     @MockitoBean
-    private SupplierInvoiceClient supplierInvoiceClient;
+    private SupplierInvoiceClient
+            supplierInvoiceClient;
+
+    /*
+     * Kafka is not the purpose of these HTTP integration tests.
+     *
+     * Mocking the producer keeps these tests focused on:
+     *
+     * Controller
+     * -> Security
+     * -> Service
+     * -> Repository
+     *
+     * Kafka itself can be tested separately.
+     */
+    @MockitoBean
+    private PaymentEventProducer
+            paymentEventProducer;
 
 
     @Test
@@ -120,6 +141,10 @@ class PaymentRequestIntegrationTest {
         verifyNoInteractions(
                 supplierInvoiceClient
         );
+
+        verifyNoInteractions(
+                paymentEventProducer
+        );
     }
 
 
@@ -127,9 +152,14 @@ class PaymentRequestIntegrationTest {
     void requesterShouldCreatePaymentAndRequesterIdShouldComeFromJwt()
             throws Exception {
 
-        Long requesterId = 101L;
-        Long invoiceId = 1001L;
-        Long supplierId = 501L;
+        Long requesterId =
+                101L;
+
+        Long invoiceId =
+                1001L;
+
+        Long supplierId =
+                501L;
 
         mockActiveInvoiceAndSupplier(
                 invoiceId,
@@ -197,6 +227,14 @@ class PaymentRequestIntegrationTest {
                                 "DRAFT"
                         )
                 );
+
+        /*
+         * Creating a payment must NOT publish
+         * the submitted event.
+         */
+        verifyNoInteractions(
+                paymentEventProducer
+        );
     }
 
 
@@ -204,8 +242,11 @@ class PaymentRequestIntegrationTest {
     void inactiveSupplierShouldRejectPaymentCreation()
             throws Exception {
 
-        Long invoiceId = 1002L;
-        Long supplierId = 502L;
+        Long invoiceId =
+                1002L;
+
+        Long supplierId =
+                502L;
 
         InvoiceClientResponse invoice =
                 mock(
@@ -237,14 +278,18 @@ class PaymentRequestIntegrationTest {
 
         when(
                 supplierInvoiceClient
-                        .getInvoice(invoiceId)
+                        .getInvoice(
+                                invoiceId
+                        )
         ).thenReturn(
                 invoice
         );
 
         when(
                 supplierInvoiceClient
-                        .getSupplier(supplierId)
+                        .getSupplier(
+                                supplierId
+                        )
         ).thenReturn(
                 supplier
         );
@@ -282,6 +327,10 @@ class PaymentRequestIntegrationTest {
                 .andExpect(
                         status().isBadRequest()
                 );
+
+        verifyNoInteractions(
+                paymentEventProducer
+        );
     }
 
 
@@ -289,8 +338,11 @@ class PaymentRequestIntegrationTest {
     void duplicateInvoiceShouldRejectSecondPayment()
             throws Exception {
 
-        Long invoiceId = 1003L;
-        Long supplierId = 503L;
+        Long invoiceId =
+                1003L;
+
+        Long supplierId =
+                503L;
 
         mockActiveInvoiceAndSupplier(
                 invoiceId,
@@ -383,13 +435,17 @@ class PaymentRequestIntegrationTest {
         createPayment(
                 requesterOneToken,
                 1101L,
-                new BigDecimal("25000")
+                new BigDecimal(
+                        "25000"
+                )
         );
 
         createPayment(
                 requesterTwoToken,
                 1102L,
-                new BigDecimal("35000")
+                new BigDecimal(
+                        "35000"
+                )
         );
 
         mockMvc.perform(
@@ -433,7 +489,8 @@ class PaymentRequestIntegrationTest {
     void requesterShouldNotReadAnotherRequestersPayment()
             throws Exception {
 
-        Long invoiceId = 1201L;
+        Long invoiceId =
+                1201L;
 
         mockActiveInvoiceAndSupplier(
                 invoiceId,
@@ -458,7 +515,9 @@ class PaymentRequestIntegrationTest {
                 createPayment(
                         requesterOneToken,
                         invoiceId,
-                        new BigDecimal("45000")
+                        new BigDecimal(
+                                "45000"
+                        )
                 );
 
         mockMvc.perform(
@@ -482,8 +541,11 @@ class PaymentRequestIntegrationTest {
     void submitDraftPaymentShouldMoveToPendingValidation()
             throws Exception {
 
-        Long invoiceId = 1301L;
-        Long supplierId = 801L;
+        Long invoiceId =
+                1301L;
+
+        Long supplierId =
+                801L;
 
         mockActiveInvoiceAndSupplier(
                 invoiceId,
@@ -501,7 +563,9 @@ class PaymentRequestIntegrationTest {
                 createPayment(
                         token,
                         invoiceId,
-                        new BigDecimal("55000")
+                        new BigDecimal(
+                                "55000"
+                        )
                 );
 
         mockMvc.perform(
@@ -531,27 +595,40 @@ class PaymentRequestIntegrationTest {
                                 "PENDING_VALIDATION"
                         )
                 );
+
+        /*
+         * Verify that the successful submit action
+         * publishes exactly one Kafka event.
+         */
+        verify(
+                paymentEventProducer,
+                times(
+                        1
+                )
+        ).publishPaymentSubmitted(
+                any()
+        );
     }
 
 
     private String createToken(
             Long userId,
             String username,
-            String role
-    ) {
+            String role) {
 
         return authUtil.generateJwtToken(
                 userId,
                 username,
-                List.of(role)
+                List.of(
+                        role
+                )
         );
     }
 
 
     private void mockActiveInvoiceAndSupplier(
             Long invoiceId,
-            Long supplierId
-    ) {
+            Long supplierId) {
 
         InvoiceClientResponse invoice =
                 mock(
@@ -589,14 +666,18 @@ class PaymentRequestIntegrationTest {
 
         when(
                 supplierInvoiceClient
-                        .getInvoice(invoiceId)
+                        .getInvoice(
+                                invoiceId
+                        )
         ).thenReturn(
                 invoice
         );
 
         when(
                 supplierInvoiceClient
-                        .getSupplier(supplierId)
+                        .getSupplier(
+                                supplierId
+                        )
         ).thenReturn(
                 supplier
         );
@@ -606,8 +687,7 @@ class PaymentRequestIntegrationTest {
     private Long createPayment(
             String token,
             Long invoiceId,
-            BigDecimal amount
-    )
+            BigDecimal amount)
             throws Exception {
 
         String requestBody =

@@ -49,6 +49,20 @@ export default function Navbar() {
       "PAYMENT_REQUESTER"
     );
 
+  const isFinanceApprover =
+    hasRole(
+      "FINANCE_APPROVER"
+    );
+
+  const isFinanceManager =
+    hasRole(
+      "FINANCE_MANAGER"
+    );
+
+  const canCreateRequester =
+    isFinanceApprover ||
+    isFinanceManager;
+
   function handleLogout() {
 
     logout();
@@ -124,6 +138,18 @@ export default function Navbar() {
                   }
                 </Link>
               </>
+            )
+          }
+
+          {
+            canCreateRequester &&
+            (
+              <Link
+                to="/users/create-requester"
+                className="nav-link"
+              >
+                Create Requester
+              </Link>
             )
           }
 

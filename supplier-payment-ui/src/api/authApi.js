@@ -9,15 +9,34 @@ export function login(
   username,
   password
 ) {
+
   return apiRequest(
     `${BASE}/login`,
     {
       method: "POST",
 
-      body: JSON.stringify({
+      body: {
         username,
-        password,
-      }),
+        password
+      }
+    }
+  );
+}
+
+export function verifyOtp(
+  challengeId,
+  otp
+) {
+
+  return apiRequest(
+    `${BASE}/verify-otp`,
+    {
+      method: "POST",
+
+      body: {
+        challengeId,
+        otp
+      }
     }
   );
 }
@@ -25,13 +44,11 @@ export function login(
 export function getCurrentUser(
   token
 ) {
+
   return apiRequest(
     `${BASE}/me`,
     {
-      headers: {
-        Authorization:
-          `Bearer ${token}`,
-      },
+      token
     }
   );
 }

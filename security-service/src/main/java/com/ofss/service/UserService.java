@@ -1,185 +1,541 @@
 package com.ofss.service;
 
-import com.ofss.dto.*;
-import com.ofss.entity.*;
+import com.ofss.dto.ApprovalAuthorityRequest;
+import com.ofss.dto.ApprovalAuthorityResponse;
+import com.ofss.dto.AssignRolesRequest;
+import com.ofss.dto.CreateRequesterRequest;
+import com.ofss.dto.CreateUserRequest;
+import com.ofss.dto.UserResponse;
+
+import com.ofss.entity.ApprovalAuthority;
+import com.ofss.entity.ApprovalLevel;
+import com.ofss.entity.Role;
+import com.ofss.entity.RoleCode;
+import com.ofss.entity.User;
+import com.ofss.entity.UserRole;
+import com.ofss.entity.UserStatus;
 
 import com.ofss.exception.BadRequestException;
 import com.ofss.exception.ResourceNotFoundException;
 
-import com.ofss.repository.*;
+import com.ofss.repository.ApprovalAuthorityRepository;
+import com.ofss.repository.RoleRepository;
+import com.ofss.repository.UserRepository;
+import com.ofss.repository.UserRoleRepository;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.List;
 
 @Service
-
 public class UserService {
 
-	private final UserRepository userRepository;
+    private final UserRepository
+            userRepository;
 
-	private final RoleRepository roleRepository;
+    private final RoleRepository
+            roleRepository;
 
-	private final UserRoleRepository userRoleRepository;
+    private final UserRoleRepository
+            userRoleRepository;
 
-	private final ApprovalAuthorityRepository approvalAuthorityRepository;
+    private final ApprovalAuthorityRepository
+            approvalAuthorityRepository;
 
-	private final PasswordEncoder passwordEncoder;
+    private final PasswordEncoder
+            passwordEncoder;
 
-	public UserService(UserRepository userRepository, RoleRepository roleRepository,
-			UserRoleRepository userRoleRepository, ApprovalAuthorityRepository approvalAuthorityRepository,
-			PasswordEncoder passwordEncoder) {
+    public UserService(
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            UserRoleRepository userRoleRepository,
+            ApprovalAuthorityRepository approvalAuthorityRepository,
+            PasswordEncoder passwordEncoder
+    ) {
 
-		this.userRepository = userRepository;
-		this.roleRepository = roleRepository;
-		this.userRoleRepository = userRoleRepository;
-		this.approvalAuthorityRepository = approvalAuthorityRepository;
-		this.passwordEncoder = passwordEncoder;
-	}
+        this.userRepository =
+                userRepository;
 
-	@Transactional
-	public UserResponse createUser(CreateUserRequest request) {
+        this.roleRepository =
+                roleRepository;
 
-		if (userRepository.existsByUsername(request.username())) {
+        this.userRoleRepository =
+                userRoleRepository;
 
-			throw new BadRequestException("Username already exists");
-		}
+        this.approvalAuthorityRepository =
+                approvalAuthorityRepository;
 
-		if (userRepository.existsByEmail(request.email())) {
+        this.passwordEncoder =
+                passwordEncoder;
+    }
 
-			throw new BadRequestException("Email already exists");
-		}
+    @Transactional
+    public UserResponse createUser(
+            CreateUserRequest request
+    ) {
 
-		User user = new User();
-		user.setUsername(request.username());
-		user.setPasswordHash(passwordEncoder.encode(request.password()));
-		user.setFullName(request.fullName());
-		user.setEmail(request.email());
-		user.setStatus(UserStatus.ACTIVE);
+        if (
+                userRepository
+                        .existsByUsername(
+                                request.username()
+                        )
+        ) {
 
-		user = userRepository.save(user);
+            throw new BadRequestException(
+                    "Username already exists"
+            );
+        }
 
-		return mapToResponse(user);
-	}
+        if (
+                userRepository
+                        .existsByEmail(
+                                request.email()
+                        )
+        ) {
 
-	public User getUserEntity(Long userId) {
+            throw new BadRequestException(
+                    "Email already exists"
+            );
+        }
 
-		return userRepository.findById(userId)
-				.orElseThrow(() -> new ResourceNotFoundException("User", String.valueOf(userId)));
-	}
+        User user =
+                new User();
 
-	@Transactional(readOnly = true)
-	public UserResponse getUser(Long userId) {
+        user.setUsername(
+                request.username()
+        );
 
-		return mapToResponse(getUserEntity(userId));
-	}
+        user.setPasswordHash(
+                passwordEncoder.encode(
+                        request.password()
+                )
+        );
 
-	@Transactional(readOnly = true)
-	public List<UserResponse> getUsers() {
+        user.setFullName(
+                request.fullName()
+        );
 
-		return userRepository.findAll().stream().map(this::mapToResponse).toList();
-	}
+        user.setEmail(
+                request.email()
+        );
 
-	@Transactional
-	public UserResponse assignRoles(Long userId, AssignRolesRequest request) {
+        user.setStatus(
+                UserStatus.ACTIVE
+        );
 
-		User user = getUserEntity(userId);
+        user =
+                userRepository.save(
+                        user
+                );
 
-		userRoleRepository.deleteByUserId(userId);
+        return mapToResponse(
+                user
+        );
+    }
 
-		for (RoleCode roleCode : request.roles()) {
+    @Transactional
+    public UserResponse createRequester(
+            CreateRequesterRequest request
+    ) {
 
-			Role role = roleRepository.findByRoleCode(roleCode)
-					.orElseThrow(() -> new ResourceNotFoundException("Role", roleCode.name()));
+        if (
+                userRepository
+                        .existsByUsername(
+                                request.username()
+                        )
+        ) {
 
-			UserRole userRole = new UserRole();
+            throw new BadRequestException(
+                    "Username already exists"
+            );
+        }
 
-			userRole.setUserId(userId);
-			userRole.setRoleId(role.getId());
+        if (
+                userRepository
+                        .existsByEmail(
+                                request.email()
+                        )
+        ) {
 
-			userRoleRepository.save(userRole);
-		}
+            throw new BadRequestException(
+                    "Email already exists"
+            );
+        }
 
-		return mapToResponse(user);
-	}
+        User user =
+                new User();
 
-	@Transactional(readOnly = true)
-	public List<String> getRoles(Long userId) {
+        user.setUsername(
+                request.username()
+        );
 
-		getUserEntity(userId);
+        user.setPasswordHash(
+                passwordEncoder.encode(
+                        request.password()
+                )
+        );
 
-		return loadRoles(userId);
-	}
+        user.setFullName(
+                request.fullName()
+        );
 
-	@Transactional
-	public ApprovalAuthorityResponse assignApprovalAuthority(Long userId, ApprovalAuthorityRequest request) {
+        user.setEmail(
+                request.email()
+        );
 
-		User user = getUserEntity(userId);
+        user.setStatus(
+                UserStatus.ACTIVE
+        );
 
-		List<String> roles = loadRoles(userId);
+        user =
+                userRepository.save(
+                        user
+                );
 
-		if (request.approvalLevel() == ApprovalLevel.L1 || request.approvalLevel() == ApprovalLevel.L2) {
+        Role requesterRole =
+                roleRepository
+                        .findByRoleCode(
+                                RoleCode.PAYMENT_REQUESTER
+                        )
+                        .orElseThrow(
+                                () ->
+                                        new ResourceNotFoundException(
+                                                "Role",
+                                                RoleCode.PAYMENT_REQUESTER
+                                                        .name()
+                                        )
+                        );
 
-			if (!roles.contains(RoleCode.FINANCE_APPROVER.name())) {
+        UserRole userRole =
+                new UserRole();
 
-				throw new BadRequestException("L1 or L2 requires FINANCE_APPROVER role");
-			}
-		}
+        userRole.setUserId(
+                user.getId()
+        );
 
-		if (request.approvalLevel() == ApprovalLevel.L3) {
+        userRole.setRoleId(
+                requesterRole.getId()
+        );
 
-			if (!roles.contains(RoleCode.FINANCE_MANAGER.name())) {
+        userRoleRepository.save(
+                userRole
+        );
 
-				throw new BadRequestException("L3 requires FINANCE_MANAGER role");
-			}
-		}
+        return mapToResponse(
+                user
+        );
+    }
 
-		ApprovalAuthority authority = approvalAuthorityRepository.findByUserId(userId).orElseGet(() -> {
-			ApprovalAuthority newAuthority = new ApprovalAuthority();
+    public User getUserEntity(
+            Long userId
+    ) {
 
-			newAuthority.setUserId(userId);
-			newAuthority.setActive(true);
+        return userRepository
+                .findById(
+                        userId
+                )
+                .orElseThrow(
+                        () ->
+                                new ResourceNotFoundException(
+                                        "User",
+                                        String.valueOf(
+                                                userId
+                                        )
+                                )
+                );
+    }
 
-			return newAuthority;
-		});
+    @Transactional(
+            readOnly = true
+    )
+    public UserResponse getUser(
+            Long userId
+    ) {
 
-		authority.setApprovalLevel(request.approvalLevel());
+        return mapToResponse(
+                getUserEntity(
+                        userId
+                )
+        );
+    }
 
-		authority.setActive(true);
+    @Transactional(
+            readOnly = true
+    )
+    public List<UserResponse> getUsers() {
 
-		authority = approvalAuthorityRepository.save(authority);
+        return userRepository
+                .findAll()
+                .stream()
+                .map(
+                        this::mapToResponse
+                )
+                .toList();
+    }
 
-		return new ApprovalAuthorityResponse(user.getId(), user.getUsername(), user.getFullName(),
-				authority.getApprovalLevel(), authority.getActive());
-	}
+    @Transactional
+    public UserResponse assignRoles(
+            Long userId,
+            AssignRolesRequest request
+    ) {
 
-	@Transactional(readOnly = true)
-	public List<ApprovalAuthorityResponse> findApprovers(ApprovalLevel approvalLevel) {
+        User user =
+                getUserEntity(
+                        userId
+                );
 
-		return approvalAuthorityRepository.findByApprovalLevelAndActiveTrue(approvalLevel).stream().map(authority -> {
+        userRoleRepository
+                .deleteByUserId(
+                        userId
+                );
 
-			User user = getUserEntity(authority.getUserId());
+        for (
+                RoleCode roleCode :
+                request.roles()
+        ) {
 
-			return new ApprovalAuthorityResponse(user.getId(), user.getUsername(), user.getFullName(),
-					authority.getApprovalLevel(), authority.getActive());
-		}).toList();
-	}
+            Role role =
+                    roleRepository
+                            .findByRoleCode(
+                                    roleCode
+                            )
+                            .orElseThrow(
+                                    () ->
+                                            new ResourceNotFoundException(
+                                                    "Role",
+                                                    roleCode.name()
+                                            )
+                            );
 
-	private List<String> loadRoles(Long userId) {
+            UserRole userRole =
+                    new UserRole();
 
-		return userRoleRepository.findByUserId(userId).stream()
-				.map(userRole -> roleRepository.findById(userRole.getRoleId())
-						.orElseThrow(() -> new ResourceNotFoundException("Role", String.valueOf(userRole.getRoleId())))
-						.getRoleCode().name())
-				.toList();
-	}
+            userRole.setUserId(
+                    userId
+            );
 
-	private UserResponse mapToResponse(User user) {
+            userRole.setRoleId(
+                    role.getId()
+            );
 
-		return new UserResponse(user.getId(), user.getUsername(), user.getFullName(), user.getEmail(), user.getStatus(),
-				loadRoles(user.getId()));
-	}
+            userRoleRepository
+                    .save(
+                            userRole
+                    );
+        }
+
+        return mapToResponse(
+                user
+        );
+    }
+
+    @Transactional(
+            readOnly = true
+    )
+    public List<String> getRoles(
+            Long userId
+    ) {
+
+        getUserEntity(
+                userId
+        );
+
+        return loadRoles(
+                userId
+        );
+    }
+
+    @Transactional
+    public ApprovalAuthorityResponse
+    assignApprovalAuthority(
+            Long userId,
+            ApprovalAuthorityRequest request
+    ) {
+
+        User user =
+                getUserEntity(
+                        userId
+                );
+
+        List<String> roles =
+                loadRoles(
+                        userId
+                );
+
+        if (
+                request.approvalLevel()
+                        == ApprovalLevel.L1
+                ||
+                request.approvalLevel()
+                        == ApprovalLevel.L2
+        ) {
+
+            if (
+                    !roles.contains(
+                            RoleCode
+                                    .FINANCE_APPROVER
+                                    .name()
+                    )
+            ) {
+
+                throw new BadRequestException(
+                        "L1 or L2 requires FINANCE_APPROVER role"
+                );
+            }
+        }
+
+        if (
+                request.approvalLevel()
+                        == ApprovalLevel.L3
+        ) {
+
+            if (
+                    !roles.contains(
+                            RoleCode
+                                    .FINANCE_MANAGER
+                                    .name()
+                    )
+            ) {
+
+                throw new BadRequestException(
+                        "L3 requires FINANCE_MANAGER role"
+                );
+            }
+        }
+
+        ApprovalAuthority authority =
+                approvalAuthorityRepository
+                        .findByUserId(
+                                userId
+                        )
+                        .orElseGet(
+                                () -> {
+
+                                    ApprovalAuthority
+                                            newAuthority =
+                                                new ApprovalAuthority();
+
+                                    newAuthority
+                                            .setUserId(
+                                                    userId
+                                            );
+
+                                    newAuthority
+                                            .setActive(
+                                                    true
+                                            );
+
+                                    return newAuthority;
+                                }
+                        );
+
+        authority.setApprovalLevel(
+                request.approvalLevel()
+        );
+
+        authority.setActive(
+                true
+        );
+
+        authority =
+                approvalAuthorityRepository
+                        .save(
+                                authority
+                        );
+
+        return new ApprovalAuthorityResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getFullName(),
+                authority.getApprovalLevel(),
+                authority.getActive()
+        );
+    }
+
+    @Transactional(
+            readOnly = true
+    )
+    public List<ApprovalAuthorityResponse>
+    findApprovers(
+            ApprovalLevel approvalLevel
+    ) {
+
+        return approvalAuthorityRepository
+                .findByApprovalLevelAndActiveTrue(
+                        approvalLevel
+                )
+                .stream()
+                .map(
+                        authority -> {
+
+                            User user =
+                                    getUserEntity(
+                                            authority
+                                                    .getUserId()
+                                    );
+
+                            return new ApprovalAuthorityResponse(
+                                    user.getId(),
+                                    user.getUsername(),
+                                    user.getFullName(),
+                                    authority
+                                            .getApprovalLevel(),
+                                    authority
+                                            .getActive()
+                            );
+                        }
+                )
+                .toList();
+    }
+
+    private List<String> loadRoles(
+            Long userId
+    ) {
+
+        return userRoleRepository
+                .findByUserId(
+                        userId
+                )
+                .stream()
+                .map(
+                        userRole ->
+                                roleRepository
+                                        .findById(
+                                                userRole
+                                                        .getRoleId()
+                                        )
+                                        .orElseThrow(
+                                                () ->
+                                                        new ResourceNotFoundException(
+                                                                "Role",
+                                                                String.valueOf(
+                                                                        userRole
+                                                                                .getRoleId()
+                                                                )
+                                                        )
+                                        )
+                                        .getRoleCode()
+                                        .name()
+                )
+                .toList();
+    }
+
+    private UserResponse mapToResponse(
+            User user
+    ) {
+
+        return new UserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getStatus(),
+                loadRoles(
+                        user.getId()
+                )
+        );
+    }
 }

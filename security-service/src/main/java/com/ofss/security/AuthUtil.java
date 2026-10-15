@@ -1,20 +1,13 @@
 package com.ofss.security;
 
-import com.ofss.entity.User;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-
 import io.jsonwebtoken.security.Keys;
 
 import org.springframework.beans.factory.annotation.Value;
 
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
-
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import org.springframework.stereotype.Component;
@@ -23,6 +16,7 @@ import javax.crypto.SecretKey;
 
 import java.nio.charset.StandardCharsets;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -30,63 +24,59 @@ import java.util.List;
 public class AuthUtil {
 
     @Value("${jwt.secret-key}")
-    private String jwtSecretKey;
+    private String jwtSecret;
 
-    @Value("${jwt.expiration-minutes}")
-    private long expirationMinutes;
-
-    private SecretKey getSecretKey() {
+    private SecretKey getSigningKey() {
 
         return Keys.hmacShaKeyFor(
-                jwtSecretKey.getBytes(
+                jwtSecret.getBytes(
                         StandardCharsets.UTF_8
                 )
         );
     }
 
     public String generateJwtToken(
-            User user,
+            Long userId,
+            String username,
             List<String> roles
     ) {
 
-        long expirationMillis =
-                expirationMinutes
-                        * 60
-                        * 1000;
+        long expirationTime =
+                10 * 60 * 1000;
+
+        Date now =
+                new Date();
+
+        Date expiry =
+                new Date(
+                        now.getTime()
+                                + expirationTime
+                );
 
         return Jwts.builder()
-
-                .subject(user.getUsername())
-
+                .subject(
+                        username
+                )
                 .claim(
                         "userId",
-                        String.valueOf(
-                                user.getId()
-                        )
+                        userId
                 )
-
                 .claim(
                         "roles",
                         roles
                 )
-
-                .issuedAt(new Date())
-
+                .issuedAt(
+                        now
+                )
                 .expiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + expirationMillis
-                        )
+                        expiry
                 )
-
                 .signWith(
-                        getSecretKey()
+                        getSigningKey()
                 )
-
                 .compact();
     }
 
-    @SuppressWarnings("unchecked")
     public JwtUserPrinciple verifyJwtToken(
             String token
     ) {
@@ -94,7 +84,7 @@ public class AuthUtil {
         Claims claims =
                 Jwts.parser()
                         .verifyWith(
-                                getSecretKey()
+                                getSigningKey()
                         )
                         .build()
                         .parseSignedClaims(
@@ -102,38 +92,81 @@ public class AuthUtil {
                         )
                         .getPayload();
 
-        Long userId =
-                Long.parseLong(
-                        claims.get(
-                                "userId",
-                                String.class
-                        )
-                );
-
         String username =
                 claims.getSubject();
 
-        List<String> roles =
+        Object userIdClaim =
+                claims.get(
+                        "userId"
+                );
+
+        if (
+                userIdClaim == null
+        ) {
+
+            throw new IllegalStateException(
+                    "JWT does not contain userId claim"
+            );
+        }
+
+        Long userId;
+
+        if (
+                userIdClaim instanceof Number
+        ) {
+
+            userId =
+                    ((Number) userIdClaim)
+                            .longValue();
+
+        } else {
+
+            try {
+
+                userId =
+                        Long.valueOf(
+                                userIdClaim
+                                        .toString()
+                        );
+
+            } catch (
+                    NumberFormatException ex
+            ) {
+
+                throw new IllegalStateException(
+                        "JWT does not contain a valid userId claim",
+                        ex
+                );
+            }
+        }
+
+        List<?> roles =
                 claims.get(
                         "roles",
                         List.class
                 );
 
-        if (roles == null) {
-            roles = List.of();
-        }
+        List<GrantedAuthority>
+                authorities =
+                    new ArrayList<>();
 
-        List<GrantedAuthority> authorities =
-                roles.stream()
-                        .map(role ->
-                                new SimpleGrantedAuthority(
-                                        "ROLE_" + role
-                                )
+        if (
+                roles != null
+        ) {
+
+            for (
+                    Object role :
+                    roles
+            ) {
+
+                authorities.add(
+                        new SimpleGrantedAuthority(
+                                "ROLE_"
+                                        + role.toString()
                         )
-                        .map(
-                                GrantedAuthority.class::cast
-                        )
-                        .toList();
+                );
+            }
+        }
 
         return new JwtUserPrinciple(
                 userId,
@@ -142,25 +175,75 @@ public class AuthUtil {
         );
     }
 
-    public Long getCurrentUserId() {
-
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+    public JwtUserPrinciple getCurrentUser() {
 
         if (
-                authentication == null
-                        ||
-                        !(authentication.getPrincipal()
-                                instanceof JwtUserPrinciple principal)
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        == null
         ) {
 
-            throw new AuthenticationCredentialsNotFoundException(
-                    "No authenticated user found"
+            throw new IllegalStateException(
+                    "Authenticated user not found"
             );
         }
 
-        return principal.userId();
+        Object principal =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication()
+                        .getPrincipal();
+
+        if (
+                !(principal
+                        instanceof JwtUserPrinciple)
+        ) {
+
+            throw new IllegalStateException(
+                    "Authenticated user not found"
+            );
+        }
+
+        return (JwtUserPrinciple)
+                principal;
+    }
+
+    public Long getCurrentUserId() {
+
+        return getCurrentUser()
+                .userId();
+    }
+
+    public List<String>
+    getCurrentUserRoles() {
+
+        return getCurrentUser()
+                .authorities()
+                .stream()
+                .map(
+                        GrantedAuthority
+                                ::getAuthority
+                )
+                .map(
+                        authority -> {
+
+                            if (
+                                    authority
+                                            .startsWith(
+                                                    "ROLE_"
+                                            )
+                            ) {
+
+                                return authority
+                                        .substring(
+                                                5
+                                        );
+                            }
+
+                            return authority;
+                        }
+                )
+                .toList();
     }
 }

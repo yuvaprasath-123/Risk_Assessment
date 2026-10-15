@@ -4,6 +4,7 @@ import {
 } from "react";
 
 import {
+  useNavigate,
   useParams
 } from "react-router";
 
@@ -26,6 +27,9 @@ export default function PaymentDetailsPage() {
   const {
     paymentId
   } = useParams();
+
+  const navigate =
+    useNavigate();
 
   const {
     token
@@ -65,6 +69,30 @@ export default function PaymentDetailsPage() {
     submitting,
     setSubmitting
   ] = useState(false);
+
+  function formatDateTime(
+    value
+  ) {
+
+    if (!value) {
+      return "-";
+    }
+
+    const date =
+      new Date(
+        value
+      );
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return value;
+    }
+
+    return date.toLocaleString();
+  }
 
   async function loadPayment() {
 
@@ -108,7 +136,9 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
@@ -140,7 +170,10 @@ export default function PaymentDetailsPage() {
       return;
     }
 
-    setUpdating(true);
+    setUpdating(
+      true
+    );
+
     setError("");
 
     try {
@@ -172,7 +205,9 @@ export default function PaymentDetailsPage() {
 
     } finally {
 
-      setUpdating(false);
+      setUpdating(
+        false
+      );
     }
   }
 
@@ -182,7 +217,10 @@ export default function PaymentDetailsPage() {
       return;
     }
 
-    setSubmitting(true);
+    setSubmitting(
+      true
+    );
+
     setError("");
 
     try {
@@ -192,28 +230,39 @@ export default function PaymentDetailsPage() {
         paymentId
       );
 
-      await loadPayment();
+      navigate(
+        `/payments/${paymentId}/submission-success`
+      );
 
     } catch (error) {
+
+      let message =
+        error.message
+        ||
+        "Payment submission failed.";
 
       if (
         error.status === 409
       ) {
 
-        setError(
-          "This payment request was already modified or submitted by another user."
-        );
-
-        return;
+        message =
+          "This payment request was already modified or submitted by another user.";
       }
 
-      setError(
-        error.message
+      navigate(
+        `/payments/${paymentId}/submission-failure`,
+        {
+          state: {
+            message
+          }
+        }
       );
 
     } finally {
 
-      setSubmitting(false);
+      setSubmitting(
+        false
+      );
     }
   }
 
@@ -311,6 +360,22 @@ export default function PaymentDetailsPage() {
 
         <p>
           <strong>
+            Payment Amount:
+          </strong>
+
+          {" "}
+
+          ₹{
+            Number(
+              payment.paymentAmount
+            ).toLocaleString(
+              "en-IN"
+            )
+          }
+        </p>
+
+        <p>
+          <strong>
             Status:
           </strong>
 
@@ -383,7 +448,161 @@ export default function PaymentDetailsPage() {
           )
         }
 
+        {
+          payment.transactionReference &&
+          (
+            <p>
+
+              <strong>
+                Transaction Reference:
+              </strong>
+
+              {" "}
+
+              {
+                payment.transactionReference
+              }
+
+            </p>
+          )
+        }
+
+        {
+          payment.completedAt &&
+          (
+            <p>
+
+              <strong>
+                Completed At:
+              </strong>
+
+              {" "}
+
+              {
+                formatDateTime(
+                  payment.completedAt
+                )
+              }
+
+            </p>
+          )
+        }
+
+        {
+          payment.failedAt &&
+          (
+            <p>
+
+              <strong>
+                Failed At:
+              </strong>
+
+              {" "}
+
+              {
+                formatDateTime(
+                  payment.failedAt
+                )
+              }
+
+            </p>
+          )
+        }
+
+        {
+          payment.failureReason &&
+          (
+            <p>
+
+              <strong>
+                Failure Reason:
+              </strong>
+
+              {" "}
+
+              {
+                payment.failureReason
+              }
+
+            </p>
+          )
+        }
+
       </div>
+
+      {
+        payment.status ===
+        "COMPLETE" &&
+        (
+          <div className="card">
+
+            <h2>
+              Payment Completed
+            </h2>
+
+            <p>
+              The payment has been processed successfully.
+            </p>
+
+            {
+              payment.transactionReference &&
+              (
+                <p>
+
+                  <strong>
+                    Stripe Transaction Reference:
+                  </strong>
+
+                  {" "}
+
+                  {
+                    payment.transactionReference
+                  }
+
+                </p>
+              )
+            }
+
+          </div>
+        )
+      }
+
+      {
+        payment.status ===
+        "FAILED" &&
+        (
+          <div className="card">
+
+            <h2>
+              Payment Failed
+            </h2>
+
+            <p>
+              The payment could not be completed.
+            </p>
+
+            {
+              payment.failureReason &&
+              (
+                <p>
+
+                  <strong>
+                    Reason:
+                  </strong>
+
+                  {" "}
+
+                  {
+                    payment.failureReason
+                  }
+
+                </p>
+              )
+            }
+
+          </div>
+        )
+      }
 
       {
         payment.status ===
@@ -528,7 +747,9 @@ export default function PaymentDetailsPage() {
 
                           <td>
                             {
-                              history.changedAt
+                              formatDateTime(
+                                history.changedAt
+                              )
                             }
                           </td>
 
