@@ -112,7 +112,7 @@ Also retain existing `risk-submission.enabled`, source grants, dependency budget
 
 The connect phase has its own bound; response headers and complete body have separate limits within the caller's overall dependency deadline. Streaming byte limits apply even without Content-Length. Only UTF-8 application/json and identity encoding are supported. No redirects, automatic retries, cache or payload logging. All non-200, unauthorized, malformed, oversized, corrupt or timeout results become sanitized DEPENDENCY_UNAVAILABLE; disabled/missing runtime credentials become ADAPTER_UNAVAILABLE. Calls inside an active transaction reject before network I/O.
 
-Completed retries short-circuit in the existing orchestrator without facts/configuration/evidence calls. Accepted retries restore original facts/configuration/cutoff rather than querying this provider again. First-resolution failure occurs before acceptance and creates no assessment. The production upstream payment/supplier/transition evidence adapter remains unavailable; this Facts client alone does not make full genuine assessment integration operational.
+Completed retries short-circuit in the existing orchestrator without facts/configuration/evidence calls. Accepted retries restore original facts/configuration/cutoff rather than querying this provider again. First-resolution failure occurs before acceptance and creates no assessment. The separately opt-in [upstream evidence client](upstream-evidence-v1.md) remains unavailable without provisioning; this Facts client alone does not make full genuine assessment integration operational.
 
 ## Offline verification and remaining interoperability
 

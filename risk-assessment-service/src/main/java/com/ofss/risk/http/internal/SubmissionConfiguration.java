@@ -43,7 +43,7 @@ public class SubmissionConfiguration {
     @ConditionalOnProperty(name="risk-submission.enabled",havingValue="true")
     static class ProductionAdapters {
         @Bean @ConditionalOnMissingBean(Facts.class) Facts authoritativeFacts(org.springframework.core.env.Environment environment){return com.ofss.risk.facts.AuthoritativeFactsHttpAdapter.configured(environment);}
-        @Bean @ConditionalOnMissingBean(UpstreamEvidence.class) UpstreamEvidence unavailableUpstreamEvidence(){return (accepted,deadline)->{throw SubmissionAdapters.unavailable();};}
+        @Bean @ConditionalOnMissingBean(UpstreamEvidence.class) UpstreamEvidence configuredUpstreamEvidence(org.springframework.core.env.Environment environment){return com.ofss.risk.upstream.UpstreamEvidenceHttpAdapter.configured(environment);}
         @Bean @ConditionalOnMissingBean(Evidence.class) Evidence productionEvidence(UpstreamEvidence upstream,PriorHistoryCaptureService history){return new ProductionEvidenceAdapter(upstream,history);}
     }
     @Configuration(proxyBeanMethods=false) @Profile("risk-submission-demo")

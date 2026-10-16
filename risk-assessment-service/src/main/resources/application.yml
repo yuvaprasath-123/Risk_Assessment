@@ -9,6 +9,18 @@ risk-submission:
   dependency-budget: ${RISK_SUBMISSION_DEPENDENCY_BUDGET:}
 risk-history:
   max-assessments: ${RISK_HISTORY_MAX_ASSESSMENTS:1000}
+risk-evidence-client:
+  enabled: ${RISK_EVIDENCE_CLIENT_ENABLED:false}
+  base-url: ${RISK_EVIDENCE_BASE_URL:}
+  provider-service-id: ${RISK_EVIDENCE_PROVIDER_SERVICE_ID:}
+  connect-timeout: ${RISK_EVIDENCE_CONNECT_TIMEOUT:}
+  header-timeout: ${RISK_EVIDENCE_HEADER_TIMEOUT:}
+  body-timeout: ${RISK_EVIDENCE_BODY_TIMEOUT:}
+  max-response-bytes: ${RISK_EVIDENCE_MAX_RESPONSE_BYTES:}
+  service-token: ${RISK_EVIDENCE_SERVICE_TOKEN:}
+  page-size: ${RISK_EVIDENCE_PAGE_SIZE:}
+  max-pages: ${RISK_EVIDENCE_MAX_PAGES:}
+  max-records: ${RISK_EVIDENCE_MAX_RECORDS:}
 risk-facts-client:
   enabled: ${RISK_FACTS_CLIENT_ENABLED:false}
   base-url: ${RISK_FACTS_BASE_URL:}

@@ -50,6 +50,8 @@ class SubmissionWiringTest {
         });verify(client).shutdownNow();verify(client).awaitTermination(java.time.Duration.ofSeconds(5));}}
     @Test void enabledIncompleteHttpConfigurationFailsActualBeanPath(){enabled().withPropertyValues("risk-configuration-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
     @Test void enabledIncompleteFactsConfigurationFailsActualProductionWiring(){enabled().withPropertyValues("risk-facts-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
+    @Test void enabledIncompleteEvidenceConfigurationFailsActualProductionWiring(){enabled().withPropertyValues("risk-evidence-client.enabled=true").run(c->assertNotNull(c.getStartupFailure()));}
+    @Test void disabledSubmissionPreservesReadHostWithUnprovisionedEvidenceSettings(){context().withPropertyValues("risk-evidence-client.enabled=true").run(c->{assertNull(c.getStartupFailure());assertTrue(c.getBeansOfType(UpstreamEvidence.class).isEmpty());});}
     @Test void disabledSubmissionPreservesManagerReadHostEvenWithUnprovisionedFactsSettings(){context().withPropertyValues("risk-facts-client.enabled=true").run(c->{
         assertNull(c.getStartupFailure());assertTrue(c.getBeansOfType(Facts.class).isEmpty());assertNotNull(c.getBean(AssessmentReadService.class));assertNull(c.getBean(HikariDataSource.class).getHikariPoolMXBean());});}
     @Test void explicitUpstreamBeanIsComposedWithLocalHistoryWithoutConnecting(){
