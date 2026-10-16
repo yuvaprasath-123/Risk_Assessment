@@ -1,0 +1,459 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-16T00:00:00.000Z",
+  "__export_source": "developer3-blueprint",
+  "resources": [
+    {
+      "_id": "wrk_developer3",
+      "_type": "workspace",
+      "name": "Developer 3 Services",
+      "description": "All 27 Developer 3 blueprint API entries. Set Local IDs and token. Approve/reject/override are alternate paths: use separate pending tasks."
+    },
+    {
+      "_id": "env_local",
+      "_type": "environment",
+      "parentId": "wrk_developer3",
+      "name": "Local",
+      "data": {
+        "auditBaseUrl": "http://localhost:8088",
+        "approvalBaseUrl": "http://localhost:8089",
+        "processingBaseUrl": "http://localhost:8090",
+        "securityBaseUrl": "http://localhost:8081",
+        "paymentId": 1,
+        "approvalTaskId": 1,
+        "token": ""
+      }
+    },
+    {
+      "_id": "fld_approval",
+      "_type": "request_group",
+      "parentId": "wrk_developer3",
+      "name": "Approval Workflow Service"
+    },
+    {
+      "_id": "req_dev3_1",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Calculate approval route",
+      "description": "Stores amount/risk levels and MAX routing explanation.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-routes",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"paymentId\": 1,\n  \"requesterId\": 1,\n  \"paymentAmount\": 75000,\n  \"riskBand\": \"HIGH\",\n  \"amountApprovalLevel\": \"L2\",\n  \"configurationVersion\": \"demo-v1\"\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_2",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Get approval route",
+      "description": "Returns stored route and frozen routing inputs.",
+      "method": "GET",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-routes/payment/{{ _.paymentId }}",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_3",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Explain approval route",
+      "description": "Returns amount level, risk level, final level and configuration version.",
+      "method": "GET",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-routes/payment/{{ _.paymentId }}/decision-explanation",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_4",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Create approval task",
+      "description": "Requires Bearer token; validates assigned approver with security-service.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"paymentId\": 1,\n  \"assignedApproverId\": 2,\n  \"slaMinutes\": 60\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_5",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "List approval tasks",
+      "description": "Optional filters: paymentId, assignedApproverId, status.",
+      "method": "GET",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks?status=PENDING_APPROVAL",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_6",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Get approval task",
+      "description": "Returns current assignment, status, SLA and decision.",
+      "method": "GET",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_7",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Approve assigned task",
+      "description": "Use the assigned approver's token. Requester cannot approve own payment.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}/approve",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"approverId\": 2,\n  \"remark\": \"Reviewed risk factors and invoice\"\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_8",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Reject assigned task",
+      "description": "Use a separate pending task; a rejection reason is required.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}/reject",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"approverId\": 2,\n  \"remark\": \"Invoice details require correction\"\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_9",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Manager override and approve",
+      "description": "Use Finance Manager token and matching approverId; justification required.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}/override-and-approve",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"approverId\": 3,\n  \"remark\": \"Manager reviewed exception and authorizes payment\"\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_10",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Get approval history",
+      "description": "Returns task, all persisted decisions, and escalation/reassignment history.",
+      "method": "GET",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/payment/{{ _.paymentId }}/history",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_11",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Get SLA deadline",
+      "description": "Returns SLA minutes, dueAt, expired and task status.",
+      "method": "GET",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}/sla",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_12",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Reassign expired task to backup",
+      "description": "Requires expired SLA and Manager token; backup must have sufficient authority.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}/reassign-to-backup",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"backupApproverId\": 4,\n  \"remark\": \"Primary approver did not respond within SLA\"\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_13",
+      "_type": "request",
+      "parentId": "fld_approval",
+      "name": "Escalate expired task",
+      "description": "Requires Manager token. L1/L2 needs next approver; expired L3 goes to manual review.",
+      "method": "POST",
+      "url": "{{ _.approvalBaseUrl }}/api/v1/approval-tasks/{{ _.approvalTaskId }}/escalate-to-next-level",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer {{ _.token }}"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"assignedApproverId\": 3,\n  \"remark\": \"SLA expired; escalate for review\"\n}"
+      }
+    },
+    {
+      "_id": "fld_processing",
+      "_type": "request_group",
+      "parentId": "wrk_developer3",
+      "name": "Payment Processing Service"
+    },
+    {
+      "_id": "req_dev3_14",
+      "_type": "request",
+      "parentId": "fld_processing",
+      "name": "Execute simulated payment",
+      "description": "201 first request; 200 replay. Use same canonical payment ID across services.",
+      "method": "POST",
+      "url": "{{ _.processingBaseUrl }}/api/v1/payment-processing/execute",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"paymentId\": \"1\",\n  \"supplierId\": 1,\n  \"amount\": 75000,\n  \"simulateFailure\": false\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_15",
+      "_type": "request",
+      "parentId": "fld_processing",
+      "name": "Get processing status",
+      "description": "Returns saved SUCCESS/FAILED result.",
+      "method": "GET",
+      "url": "{{ _.processingBaseUrl }}/api/v1/payment-processing/{{ _.paymentId }}",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_16",
+      "_type": "request",
+      "parentId": "fld_processing",
+      "name": "Retry failed payment",
+      "description": "First create a FAILED payment. Success is protected against another execution.",
+      "method": "POST",
+      "url": "{{ _.processingBaseUrl }}/api/v1/payment-processing/{{ _.paymentId }}/retry",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"simulateFailure\": false\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_17",
+      "_type": "request",
+      "parentId": "fld_processing",
+      "name": "Get processing attempts",
+      "description": "Returns all original/retry attempts in order.",
+      "method": "GET",
+      "url": "{{ _.processingBaseUrl }}/api/v1/payment-processing/{{ _.paymentId }}/attempts",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_18",
+      "_type": "request",
+      "parentId": "fld_processing",
+      "name": "Get idempotency status",
+      "description": "Shows successful execution protection and attempt count.",
+      "method": "GET",
+      "url": "{{ _.processingBaseUrl }}/api/v1/payment-processing/{{ _.paymentId }}/idempotency-status",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_19",
+      "_type": "request",
+      "parentId": "fld_processing",
+      "name": "Set default simulation outcome",
+      "description": "Prototype only. Used when execute/retry omit simulateFailure.",
+      "method": "PUT",
+      "url": "{{ _.processingBaseUrl }}/api/v1/payment-processing/simulation-mode",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"simulateFailure\": true\n}"
+      }
+    },
+    {
+      "_id": "fld_audit",
+      "_type": "request_group",
+      "parentId": "wrk_developer3",
+      "name": "Audit Service"
+    },
+    {
+      "_id": "req_dev3_20",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Write business audit event",
+      "description": "Use paymentId to link task/risk/processing events into one payment timeline.",
+      "method": "POST",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"eventType\": \"PAYMENT_APPROVED\",\n  \"resourceType\": \"APPROVAL_TASK\",\n  \"resourceId\": \"1\",\n  \"paymentId\": 1,\n  \"actorId\": \"2\",\n  \"correlationId\": \"payment-1\",\n  \"beforeState\": \"{\\\"status\\\":\\\"PENDING_APPROVAL\\\"}\",\n  \"afterState\": \"{\\\"status\\\":\\\"APPROVED\\\"}\",\n  \"metadata\": \"{\\\"remark\\\":\\\"Reviewed invoice\\\"}\"\n}"
+      }
+    },
+    {
+      "_id": "req_dev3_21",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Get complete payment audit",
+      "description": "Chronological events linked by paymentId; includes legacy PAYMENT_REQUEST events.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events/payment/{{ _.paymentId }}",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_22",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Get approval and routing decisions",
+      "description": "Filters approval/routing/rejection/escalation event types.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events/payment/{{ _.paymentId }}/decision-history",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_23",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Get risk history",
+      "description": "Returns RISK_ events linked to the payment.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events/payment/{{ _.paymentId }}/risk-history",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_24",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Get historical risk snapshot",
+      "description": "Requires a complete RISK_ASSESSMENT_COMPLETED event; 404 missing, 409 incomplete.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events/payment/{{ _.paymentId }}/risk-decision-snapshot",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_25",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Filter audit by event type",
+      "description": "Can combine with performedBy, from/to and resource/correlation filters.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events?eventType=PAYMENT_APPROVED",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_26",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Filter audit by user",
+      "description": "Actor identifiers are strings.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events?performedBy=2",
+      "headers": []
+    },
+    {
+      "_id": "req_dev3_27",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Filter audit by date range",
+      "description": "Inclusive ISO-8601 bounds; percent-encode plus signs in timezone offsets.",
+      "method": "GET",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events?from=2026-10-01T00%3A00%3A00Z&to=2026-10-31T23%3A59%3A59Z",
+      "headers": []
+    },
+    {
+      "_id": "req_risk_snapshot_example",
+      "_type": "request",
+      "parentId": "fld_audit",
+      "name": "Record complete frozen risk snapshot (fixture)",
+      "description": "Example producer payload. Replace demo values with Developer 2's exact historical configuration and factors.",
+      "method": "POST",
+      "url": "{{ _.auditBaseUrl }}/api/v1/audit-events",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"eventType\": \"RISK_ASSESSMENT_COMPLETED\",\n  \"resourceType\": \"RISK_ASSESSMENT\",\n  \"resourceId\": \"10\",\n  \"paymentId\": 1,\n  \"actorId\": \"risk-service\",\n  \"correlationId\": \"payment-1\",\n  \"afterState\": \"{\\\"assessmentId\\\":10,\\\"riskScore\\\":65,\\\"riskBand\\\":\\\"HIGH\\\"}\",\n  \"metadata\": \"{\\\"configurationVersion\\\":\\\"demo-v1\\\",\\\"configurationSnapshot\\\":{\\\"demoOnly\\\":true,\\\"riskBands\\\":{\\\"highAbove\\\":60}},\\\"scoreBreakdown\\\":[{\\\"ruleCode\\\":\\\"DEMO\\\",\\\"contribution\\\":65}]}\"\n}"
+      }
+    }
+  ]
+}
