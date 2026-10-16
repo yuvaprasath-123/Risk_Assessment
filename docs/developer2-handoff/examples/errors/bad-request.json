@@ -1,0 +1,7 @@
+{
+  "status": 400,
+  "code": "INVALID_SUBMISSION",
+  "message": "A valid request is required",
+  "timestamp": "2026-10-16T12:00:00Z",
+  "path": "/internal/v1/risk-assessments"
+}

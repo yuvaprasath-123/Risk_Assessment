@@ -1,0 +1,97 @@
+[ {
+  "ruleConfigId" : "101",
+  "versionId" : "1",
+  "ruleCode" : "STRUCTURING",
+  "displayName" : "Structuring",
+  "enabled" : true,
+  "weight" : 35,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 604800,
+    "minimumPayments" : 2,
+    "approvalBoundaryLevels" : [ 2, 3 ],
+    "historyEligibility" : "VALIDATED_SUBMISSIONS"
+  },
+  "evaluationOrder" : 1
+}, {
+  "ruleConfigId" : "102",
+  "versionId" : "1",
+  "ruleCode" : "UNUSUAL_FREQUENCY",
+  "displayName" : "Unusual Frequency",
+  "enabled" : true,
+  "weight" : 15,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 604800,
+    "maximumSubmissions" : 3,
+    "historyEligibility" : "VALIDATED_SUBMISSIONS"
+  },
+  "evaluationOrder" : 2
+}, {
+  "ruleConfigId" : "103",
+  "versionId" : "1",
+  "ruleCode" : "UNUSUAL_AMOUNT",
+  "displayName" : "Unusual Amount",
+  "enabled" : true,
+  "weight" : 20,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 7776000,
+    "minimumObservations" : 5,
+    "meanMultiplier" : "2",
+    "zeroBaselinePolicy" : "INSUFFICIENT_HISTORY"
+  },
+  "evaluationOrder" : 3
+}, {
+  "ruleConfigId" : "104",
+  "versionId" : "1",
+  "ruleCode" : "RECENTLY_REACTIVATED_SUPPLIER",
+  "displayName" : "Recently Reactivated Supplier",
+  "enabled" : true,
+  "weight" : 15,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 2592000
+  },
+  "evaluationOrder" : 4
+}, {
+  "ruleConfigId" : "105",
+  "versionId" : "1",
+  "ruleCode" : "PREVIOUS_RISK_FLAGS",
+  "displayName" : "Previous Risk Flags",
+  "enabled" : true,
+  "weight" : 10,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 7776000,
+    "minimumFlaggedPayments" : 1,
+    "qualifyingRuleCodes" : [ "STRUCTURING", "UNUSUAL_FREQUENCY", "UNUSUAL_AMOUNT", "RECENTLY_REACTIVATED_SUPPLIER", "NEW_SUPPLIER", "NEAR_DUPLICATE_INVOICE" ]
+  },
+  "evaluationOrder" : 5
+}, {
+  "ruleConfigId" : "106",
+  "versionId" : "1",
+  "ruleCode" : "NEW_SUPPLIER",
+  "displayName" : "New Supplier",
+  "enabled" : true,
+  "weight" : 15,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 2592000
+  },
+  "evaluationOrder" : 6
+}, {
+  "ruleConfigId" : "107",
+  "versionId" : "1",
+  "ruleCode" : "NEAR_DUPLICATE_INVOICE",
+  "displayName" : "Near Duplicate Invoice",
+  "enabled" : true,
+  "weight" : 25,
+  "parameterSchemaVersion" : "risk-policy-v1",
+  "parameters" : {
+    "windowSeconds" : 2592000,
+    "historyEligibility" : "VALIDATED_SUBMISSIONS",
+    "invoiceNumberNormalization" : "EXACT"
+  },
+  "evaluationOrder" : 7
+} ]

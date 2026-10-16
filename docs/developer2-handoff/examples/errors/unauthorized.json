@@ -1,0 +1,7 @@
+{
+  "status": 401,
+  "code": "UNAUTHORIZED",
+  "message": "Authentication is required",
+  "timestamp": "2026-10-16T12:00:00Z",
+  "path": "/internal/v1/risk-assessments"
+}

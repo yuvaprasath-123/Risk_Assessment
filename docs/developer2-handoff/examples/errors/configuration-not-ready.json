@@ -1,0 +1,116 @@
+{
+  "code" : "CONFIGURATION_NOT_READY",
+  "message" : "Configuration is not ready for publication",
+  "path" : "/api/v1/configuration/versions/1/publish",
+  "readiness" : {
+    "versionId" : "1",
+    "rowVersion" : "0",
+    "publicationState" : "DRAFT",
+    "isDemonstration" : true,
+    "structurallyValid" : false,
+    "ready" : false,
+    "issues" : [ {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "SECTION_MISSING",
+      "path" : "/approval-slas",
+      "message" : "Approval-SLA configuration is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_SLA_MISSING",
+      "path" : "/approval-slas/1",
+      "message" : "Required approval SLA is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_SLA_MISSING",
+      "path" : "/approval-slas/2",
+      "message" : "Required approval SLA is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_SLA_MISSING",
+      "path" : "/approval-slas/3",
+      "message" : "Required approval SLA is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "SECTION_MISSING",
+      "path" : "/approval-thresholds",
+      "message" : "Approval-threshold configuration is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_THRESHOLD_MISSING",
+      "path" : "/approval-thresholds/1",
+      "message" : "Required approval threshold is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_THRESHOLD_MISSING",
+      "path" : "/approval-thresholds/2",
+      "message" : "Required approval threshold is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_THRESHOLD_MISSING",
+      "path" : "/approval-thresholds/3",
+      "message" : "Required approval threshold is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "SECTION_MISSING",
+      "path" : "/risk-bands",
+      "message" : "Risk-band configuration is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_BAND_MISSING",
+      "path" : "/risk-bands/HIGH",
+      "message" : "Required risk band is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_BAND_MISSING",
+      "path" : "/risk-bands/LOW",
+      "message" : "Required risk band is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_BAND_MISSING",
+      "path" : "/risk-bands/MEDIUM",
+      "message" : "Required risk band is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "SECTION_MISSING",
+      "path" : "/risk-rules",
+      "message" : "Risk-rule configuration is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/NEAR_DUPLICATE_INVOICE",
+      "message" : "Required supported rule entry is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/NEW_SUPPLIER",
+      "message" : "Required supported rule entry is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/PREVIOUS_RISK_FLAGS",
+      "message" : "Required supported rule entry is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/RECENTLY_REACTIVATED_SUPPLIER",
+      "message" : "Required supported rule entry is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/STRUCTURING",
+      "message" : "Required supported rule entry is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/UNUSUAL_AMOUNT",
+      "message" : "Required supported rule entry is missing"
+    }, {
+      "category" : "CONFIGURATION_ERROR",
+      "code" : "REQUIRED_RULE_MISSING",
+      "path" : "/risk-rules/UNUSUAL_FREQUENCY",
+      "message" : "Required supported rule entry is missing"
+    } ]
+  },
+  "status" : 409,
+  "timestamp" : "2026-10-16T12:00:00Z"
+}

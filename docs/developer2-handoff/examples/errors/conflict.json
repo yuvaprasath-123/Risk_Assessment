@@ -1,0 +1,7 @@
+{
+  "status": 409,
+  "code": "SUBMISSION_CONFLICT",
+  "message": "Risk submission could not be processed",
+  "timestamp": "2026-10-16T12:00:00Z",
+  "path": "/internal/v1/risk-assessments"
+}

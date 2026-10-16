@@ -1,0 +1,7 @@
+{
+  "durationSeconds": 86400,
+  "startEventCode": "APPROVAL_PENDING_V1",
+  "escalationPolicyCode": "SAME_LEVEL_BACKUP_ONCE_V1",
+  "terminalLevelPolicyCode": "MANUAL_REVIEW_V1",
+  "expectedRowVersion": "15"
+}

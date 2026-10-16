@@ -1,0 +1,11 @@
+{
+  "assessmentId": "701",
+  "rowVersion": "2",
+  "status": "RETRYABLE_FAILURE",
+  "cutoff": "2026-10-16T12:00:00.123456789Z",
+  "configurationVersionId": "1",
+  "configurationRowVersion": "17",
+  "completedAt": null,
+  "result": null,
+  "retryAllowed": true
+}

@@ -1,0 +1,84 @@
+{
+  "certification" : {
+    "supplierWideAcrossRequesters" : true,
+    "factsReceiptBindingVerified" : true,
+    "immutable" : true,
+    "exclusionsApplied" : true,
+    "asOfCutoff" : true
+  },
+  "contractVersion" : "risk-upstream-evidence-v1",
+  "pagination" : {
+    "nextCursor" : null,
+    "pageIndex" : 0,
+    "pageSize" : 100,
+    "totalPages" : 1,
+    "totalPayments" : 0,
+    "totalTransitions" : 0
+  },
+  "paymentHistory" : {
+    "availability" : "COMPLETE",
+    "coveredFrom" : "2026-07-18T12:00:00.123456789Z",
+    "records" : [ ],
+    "sourceReference" : "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8-paymentHistory",
+    "sourceRevision" : "1"
+  },
+  "populationHash" : "279fd92d08adc6f1e089a08ec6495a71b5e181203f249d124aa2f0cb16599b13",
+  "providerServiceId" : "supplier-evidence-provider",
+  "replayReference" : "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8",
+  "request" : {
+    "acceptanceHash" : "40c870432c48efda4124e5a445c9792256184a3372c621c622ae7b5d520777c6",
+    "configuration" : {
+      "configurationHash" : "2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c",
+      "rowVersion" : "17",
+      "versionId" : "1"
+    },
+    "contractVersion" : "risk-upstream-evidence-v1",
+    "currencyCode" : "INR",
+    "cutoff" : "2026-10-16T12:00:00.123456789Z",
+    "excludedIdentities" : [ {
+      "key" : "handoff-demo-001",
+      "source" : "payment-request"
+    } ],
+    "factsReceipt" : {
+      "recordReference" : "facts-501",
+      "recordRevision" : "1",
+      "serviceId" : "payment-facts-provider"
+    },
+    "paymentId" : "501",
+    "requesterId" : "601",
+    "requiredCoverage" : {
+      "paymentFrom" : "2026-07-18T12:00:00.123456789Z",
+      "paymentPopulation" : "SUBMITTED_OR_COMPLETED_V1",
+      "supplierSnapshotAt" : "2026-10-16T12:00:00.123456789Z",
+      "transitionEnd" : "INCLUSIVE",
+      "transitionFrom" : "2026-09-16T12:00:00.123456789Z"
+    },
+    "submission" : {
+      "key" : "handoff-demo-001",
+      "source" : "payment-request"
+    },
+    "supplierId" : "301",
+    "validationReference" : "validation-501",
+    "validationRevision" : "1"
+  },
+  "snapshotRevision" : "1",
+  "supplier" : {
+    "availability" : "COMPLETE",
+    "coveredFrom" : "2026-10-16T12:00:00.123456789Z",
+    "records" : [ {
+      "createdAt" : "2025-01-01T00:00:00Z",
+      "recordReference" : "supplier-301",
+      "statusAsOfCutoff" : "ACTIVE",
+      "supplierId" : "301"
+    } ],
+    "sourceReference" : "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8-supplier",
+    "sourceRevision" : "1"
+  },
+  "supplierTransitions" : {
+    "availability" : "COMPLETE",
+    "coveredFrom" : "2026-09-16T12:00:00.123456789Z",
+    "records" : [ ],
+    "sourceReference" : "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8-supplierTransitions",
+    "sourceRevision" : "1"
+  }
+}

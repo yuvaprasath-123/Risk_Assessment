@@ -1,0 +1,62 @@
+{
+  "specifications": {
+    "business-configuration.openapi.json": 17,
+    "evidence-provider.openapi.json": 1,
+    "facts-provider.openapi.json": 1,
+    "risk-assessment.openapi.json": 9
+  },
+  "validatedExampleInstances": 67,
+  "negativeValidationCases": 6,
+  "controllerOperations": 26,
+  "insomniaRequests": 57,
+  "insomniaOfficialSchema": "https://raw.githubusercontent.com/Kong/insomnia/develop/schemas/insomnia.schema.5.1.json",
+  "insomniaOfficialSchemaSha256": "acd4eb2c818257b59a9efc4c3b6972e6c8e9bcfdaac25198f53ed37aacd99c24",
+  "insomniaV5SchemaPassed": true,
+  "insomniaV4GraphPassed": true,
+  "actualInsomniaDesktopImportTested": false,
+  "liveApiCalls": false,
+  "oracleAccess": false,
+  "validators": {
+    "openapi-spec-validator": "0.9.0",
+    "jsonschema": "4.26.0",
+    "PyYAML": "6.0.3"
+  },
+  "javaExampleVerification": {
+    "attestationFormat": "sha256-lf-normalized-text-v1",
+    "configurationHash": "2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c",
+    "contentHash": "1d48ae07243cb94502d5c2659daca7bb35d40f1a92928dac5202e90016d909fd",
+    "draftPutRequests": 16,
+    "engineResultVerified": true,
+    "evidenceCollectorVerified": true,
+    "factsDecoderVerified": true,
+    "networkAccess": false,
+    "oracleAccess": false,
+    "productionMappingVerified": true,
+    "ready": true,
+    "recordFieldSetsVerified": 33,
+    "ruleCount": 7,
+    "runtimeSourceSha256": "9fc025c071f96627fe5ce98049c910e1f28f0ac770411f50ab89fbb58cc109da",
+    "verifiedFiles": {
+      "examples/configuration/active-snapshot.json": "9d8323e9550a46ef6de5400fd49132d81f56eec178612173ea49b72eeb494c30",
+      "examples/configuration/bands.json": "91218e9ce4170659f0f937192ce30577de449a43c50da6321aa3c2d00080be31",
+      "examples/configuration/pinned-snapshot.json": "8ea2950e3c0c028551645349cdcc82cd68e79b735f4698f47b943baf11b76e64",
+      "examples/configuration/published.json": "600109dbf879831255765f186f93664e99e749145c4048184722267e552df11e",
+      "examples/configuration/rules.json": "3fd927fbf210e85bd5ab6629216a5c54e3787d5f34aad9855e996030c7b21989",
+      "examples/configuration/saved-band.json": "abefa2136e16d6b1d97c08eb8cd664fb18c8229d5caf3e8b956b58a656b3e755",
+      "examples/configuration/saved-rule.json": "fa7502c80738a2c31d30dbf4ad33de243d81432414a23a84429001500ce4db09",
+      "examples/configuration/saved-sla.json": "43da63dafda6248bdb45fdca1b6239bc64fc49b657a544f501d6d1788ab81be4",
+      "examples/configuration/saved-threshold.json": "582e5c852dcf26f3df41e65b092db188bf1a46ed1403c8a6eb78dd4cd16e5435",
+      "examples/configuration/slas.json": "a2878c2fc98decb70fc3b5af6cc75f67c03bd70cb0be8ac85fecd9c8cb175da3",
+      "examples/configuration/thresholds.json": "a99d9208ff7728dc87d863fe9185dc33d1e2618a3e77078297abb98681803290",
+      "examples/errors/configuration-not-ready.json": "3418fe16f622bc10f448e16842c190a26444471a999d4195c37b19da54299f8f",
+      "examples/providers/evidence-request.json": "a02854e14675b5cf32fa3c3b0a38be6f242b0a2cca0f42009f53ef359de08203",
+      "examples/providers/evidence-response.json": "2e4d03b0c31854a6f86f3c2194f0f5e8f46e308debf98b1d4446d5a290ed43db",
+      "examples/providers/facts-response.json": "08234b086f9dc4857eac2579c3655bc0311f739ef90025d5a18500dda8104a1a",
+      "examples/publishable-configuration.json": "2130910462d87627c4564014223bf8bb3688cd8b5214b1a18943fb662ec19da8",
+      "examples/risk/configuration-snapshot.json": "23aa395a9aa12ff31af915e236087dc6227ca14df153cb158b52026ef1ed74aa",
+      "examples/risk/factors.json": "234310c1e84ccae0189db7ec3e07d28eb95fd58dc62386cf492719e8b64e97dd",
+      "examples/risk/submission.json": "cf571d197fcbd40975701e52d322e9bbd930d1a81950928f52c44dfb2185ad2a",
+      "validation/VerifyExamples.java": "599c6ac86ab6ada6133ec6e328059e0d818e22b89a08c90af2d46f0bc105aadc"
+    }
+  }
+}

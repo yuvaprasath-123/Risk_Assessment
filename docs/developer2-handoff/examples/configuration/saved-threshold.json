@@ -1,0 +1,10 @@
+{
+  "threshold" : {
+    "thresholdConfigId" : "311",
+    "versionId" : "1",
+    "approvalLevel" : 1,
+    "minAmountInclusive" : "0.00",
+    "maxAmountExclusive" : "10000.00"
+  },
+  "rowVersion" : "11"
+}

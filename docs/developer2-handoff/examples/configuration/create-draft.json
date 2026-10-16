@@ -1,0 +1,7 @@
+{
+  "versionLabel": "DEMONSTRATION ONLY - handoff example",
+  "description": "Synthetic publishable example. INR tier boundaries are demonstration inputs, not approved monetary requirements.",
+  "isDemonstration": true,
+  "scorePolicyCode": "CAP_AT_MAX",
+  "maxFinalScore": 100
+}

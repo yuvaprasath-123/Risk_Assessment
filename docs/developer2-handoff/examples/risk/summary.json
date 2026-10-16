@@ -1,0 +1,18 @@
+{
+  "assessmentId": "701",
+  "rowVersion": "4",
+  "status": "COMPLETED",
+  "cutoff": "2026-10-16T12:00:00.123456789Z",
+  "configurationVersionId": "1",
+  "configurationRowVersion": "17",
+  "completedAt": "2026-10-16T12:00:01.123456789Z",
+  "result": {
+    "rawScore": 0,
+    "finalScore": 0,
+    "maxFinalScore": 100,
+    "band": "LOW"
+  },
+  "createdAt": "2026-10-16T12:00:00.123456789Z",
+  "evaluatedAt": "2026-10-16T12:00:00.987654321Z",
+  "evaluatorVersion": "risk-scoring-v1"
+}

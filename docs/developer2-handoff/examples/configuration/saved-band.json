@@ -1,0 +1,11 @@
+{
+  "band" : {
+    "bandConfigId" : "208",
+    "versionId" : "1",
+    "bandCode" : "LOW",
+    "minScoreInclusive" : 0,
+    "maxScoreInclusive" : 29,
+    "approvalLevel" : 1
+  },
+  "rowVersion" : "8"
+}

@@ -1,0 +1,55 @@
+{
+  "assessmentId": "701",
+  "rowVersion": "4",
+  "status": "COMPLETED",
+  "result": {
+    "rawScore": 0,
+    "finalScore": 0,
+    "maxFinalScore": 100,
+    "band": "LOW",
+    "contributions": [
+      {
+        "ruleCode": "STRUCTURING",
+        "outcome": "NOT_TRIGGERED",
+        "configuredWeight": 35,
+        "contribution": 0
+      },
+      {
+        "ruleCode": "UNUSUAL_FREQUENCY",
+        "outcome": "NOT_TRIGGERED",
+        "configuredWeight": 15,
+        "contribution": 0
+      },
+      {
+        "ruleCode": "UNUSUAL_AMOUNT",
+        "outcome": "INSUFFICIENT_HISTORY",
+        "configuredWeight": 20,
+        "contribution": 0
+      },
+      {
+        "ruleCode": "RECENTLY_REACTIVATED_SUPPLIER",
+        "outcome": "NOT_TRIGGERED",
+        "configuredWeight": 15,
+        "contribution": 0
+      },
+      {
+        "ruleCode": "PREVIOUS_RISK_FLAGS",
+        "outcome": "NOT_TRIGGERED",
+        "configuredWeight": 10,
+        "contribution": 0
+      },
+      {
+        "ruleCode": "NEW_SUPPLIER",
+        "outcome": "NOT_TRIGGERED",
+        "configuredWeight": 15,
+        "contribution": 0
+      },
+      {
+        "ruleCode": "NEAR_DUPLICATE_INVOICE",
+        "outcome": "NOT_TRIGGERED",
+        "configuredWeight": 25,
+        "contribution": 0
+      }
+    ]
+  }
+}

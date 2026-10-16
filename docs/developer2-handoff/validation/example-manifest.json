@@ -1,0 +1,538 @@
+[
+  {
+    "file": "examples/configuration/create-draft.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "createDraftVersion",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-STRUCTURING.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-UNUSUAL_FREQUENCY.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-UNUSUAL_AMOUNT.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-RECENTLY_REACTIVATED_SUPPLIER.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-PREVIOUS_RISK_FLAGS.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-NEW_SUPPLIER.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rule-NEAR_DUPLICATE_INVOICE.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/band-LOW.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskBand",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/band-MEDIUM.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskBand",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/band-HIGH.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskBand",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/threshold-1.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalThreshold",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/threshold-2.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalThreshold",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/threshold-3.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalThreshold",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/sla-1.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalSla",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/sla-2.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalSla",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/sla-3.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalSla",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/publish.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "publishVersion",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/activate-first.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "activateVersion",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/activate-existing.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "activateVersion",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/empty-list.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "listVersions",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/created.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "createDraftVersion",
+    "direction": "response",
+    "status": 201,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/details.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "getVersion",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/readiness.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "publicationReadiness",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/submission.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/retry-omitted-configuration.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/retry-explicit-configuration.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/conflicting-retry.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/accepted.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 202,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/in-progress.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submissionStatus",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/retryable-failure.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 202,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/blocked.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 202,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/completed.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/completed-status.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submissionStatus",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/summary.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "assessmentSummary",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/non-completed-summary.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "assessmentSummary",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/factors.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "assessmentFactors",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/non-completed-factors.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "assessmentFactors",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/breakdown.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "scoreBreakdown",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/unauthorized.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 401,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/forbidden.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 403,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/not-found.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submissionStatus",
+    "direction": "response",
+    "status": 404,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/conflict.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 409,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/unavailable.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 503,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/bad-request.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "submitAssessment",
+    "direction": "response",
+    "status": 400,
+    "schema": null
+  },
+  {
+    "file": "examples/errors/configuration-not-ready.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "publishVersion",
+    "direction": "response",
+    "status": 409,
+    "schema": null
+  },
+  {
+    "file": "examples/providers/facts-request.json",
+    "spec": "facts-provider.openapi.json",
+    "operationId": "resolveFacts",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/providers/facts-response.json",
+    "spec": "facts-provider.openapi.json",
+    "operationId": "resolveFacts",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/pinned-snapshot.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "internalPinnedConfiguration",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/active-snapshot.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "activeConfiguration",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/published.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "publishVersion",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/rules.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "listRiskRules",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/bands.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "listRiskBands",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/thresholds.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "listApprovalThresholds",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/slas.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "listApprovalSlas",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/saved-rule.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskRule",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/saved-band.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveRiskBand",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/saved-threshold.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalThreshold",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/saved-sla.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "saveApprovalSla",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/configuration-snapshot.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "assessmentConfiguration",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/providers/evidence-response.json",
+    "spec": "evidence-provider.openapi.json",
+    "operationId": "resolveEvidence",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/providers/evidence-request.json",
+    "spec": "evidence-provider.openapi.json",
+    "operationId": "resolveEvidence",
+    "direction": "request",
+    "status": null,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/active-snapshot.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "activateVersion",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/configuration/active-snapshot.json",
+    "spec": "business-configuration.openapi.json",
+    "operationId": "internalActiveConfiguration",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/summary.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "internalAssessment",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/factors.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "internalFactors",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  },
+  {
+    "file": "examples/risk/configuration-snapshot.json",
+    "spec": "risk-assessment.openapi.json",
+    "operationId": "internalRiskConfiguration",
+    "direction": "response",
+    "status": 200,
+    "schema": null
+  }
+]

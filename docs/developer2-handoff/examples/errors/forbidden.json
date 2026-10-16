@@ -1,0 +1,7 @@
+{
+  "status": 403,
+  "code": "FORBIDDEN",
+  "message": "Access is denied",
+  "timestamp": "2026-10-16T12:00:00Z",
+  "path": "/internal/v1/risk-assessments"
+}

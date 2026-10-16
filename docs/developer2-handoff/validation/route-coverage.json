@@ -1,0 +1,136 @@
+{
+  "business-configuration-service": [
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/active",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/activation/ConfigurationActivationController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/version/ConfigurationVersionController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions/{versionId}",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/rule/DraftRiskRuleController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions/{versionId}/approval-slas",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/sla/DraftApprovalSlaController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions/{versionId}/approval-thresholds",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/threshold/DraftApprovalThresholdController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions/{versionId}/publication-readiness",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/readiness/PublicationReadinessController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions/{versionId}/risk-bands",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/band/DraftRiskBandController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/configuration/versions/{versionId}/risk-rules",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/rule/DraftRiskRuleController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/configuration/active",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/internal/InternalConfigurationController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/configuration/versions/{versionId}",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/internal/InternalConfigurationController.java"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/configuration/versions",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/version/ConfigurationVersionController.java"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/configuration/versions/{versionId}/activate",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/activation/ConfigurationActivationController.java"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/configuration/versions/{versionId}/publish",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/publication/ConfigurationPublicationController.java"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/configuration/versions/{versionId}/approval-slas/{approvalLevel}",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/sla/DraftApprovalSlaController.java"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/configuration/versions/{versionId}/approval-thresholds/{approvalLevel}",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/threshold/DraftApprovalThresholdController.java"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/configuration/versions/{versionId}/risk-bands/{bandCode}",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/band/DraftRiskBandController.java"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/configuration/versions/{versionId}/risk-rules/{ruleCode}",
+      "source": "business-configuration-service/src/main/java/com/ofss/configuration/rule/DraftRiskRuleController.java"
+    }
+  ],
+  "risk-assessment-service": [
+    {
+      "method": "GET",
+      "path": "/api/v1/risk-assessments/{assessmentId}",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/AssessmentReadController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/risk-assessments/{assessmentId}/configuration-snapshot",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/AssessmentReadController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/risk-assessments/{assessmentId}/factors",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/AssessmentReadController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/risk-assessments/{assessmentId}/score-breakdown",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/AssessmentReadController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/risk-assessment-submissions/status",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/internal/SubmissionController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/risk-assessments/{assessmentId}",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/internal/InternalAssessmentController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/risk-assessments/{assessmentId}/configuration-snapshot",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/internal/InternalAssessmentController.java"
+    },
+    {
+      "method": "GET",
+      "path": "/internal/v1/risk-assessments/{assessmentId}/factors",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/internal/InternalAssessmentController.java"
+    },
+    {
+      "method": "POST",
+      "path": "/internal/v1/risk-assessments",
+      "source": "risk-assessment-service/src/main/java/com/ofss/risk/http/internal/SubmissionController.java"
+    }
+  ]
+}

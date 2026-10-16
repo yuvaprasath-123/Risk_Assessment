@@ -1,0 +1,55 @@
+{
+  "status" : "COMPLETED",
+  "rowVersion" : "4",
+  "assessmentId" : "701",
+  "factors" : [ {
+    "contribution" : 0,
+    "configuredWeight" : 35,
+    "outcome" : "NOT_TRIGGERED",
+    "evaluationOrder" : 1,
+    "ruleCode" : "STRUCTURING",
+    "explanation" : "Individually sub-boundary payments including current once are compared with selected approval boundaries; contribution applies once"
+  }, {
+    "contribution" : 0,
+    "configuredWeight" : 15,
+    "outcome" : "NOT_TRIGGERED",
+    "evaluationOrder" : 2,
+    "ruleCode" : "UNUSUAL_FREQUENCY",
+    "explanation" : "Submission count includes current exactly once and must exceed the configured maximum"
+  }, {
+    "contribution" : 0,
+    "configuredWeight" : 20,
+    "outcome" : "INSUFFICIENT_HISTORY",
+    "evaluationOrder" : 3,
+    "ruleCode" : "UNUSUAL_AMOUNT",
+    "explanation" : "Complete history contains fewer than the configured minimum observations; zero contribution, other rules continue"
+  }, {
+    "contribution" : 0,
+    "configuredWeight" : 15,
+    "outcome" : "NOT_TRIGGERED",
+    "evaluationOrder" : 4,
+    "ruleCode" : "RECENTLY_REACTIVATED_SUPPLIER",
+    "explanation" : "An actual INACTIVE-to-ACTIVE transition in the inclusive status window is required"
+  }, {
+    "contribution" : 0,
+    "configuredWeight" : 10,
+    "outcome" : "NOT_TRIGGERED",
+    "evaluationOrder" : 5,
+    "ruleCode" : "PREVIOUS_RISK_FLAGS",
+    "explanation" : "Distinct previous submissions with original qualifying factors are counted once; PREVIOUS_RISK_FLAGS never qualifies itself"
+  }, {
+    "contribution" : 0,
+    "configuredWeight" : 15,
+    "outcome" : "NOT_TRIGGERED",
+    "evaluationOrder" : 6,
+    "ruleCode" : "NEW_SUPPLIER",
+    "explanation" : "Supplier creation time is within the inclusive age window"
+  }, {
+    "contribution" : 0,
+    "configuredWeight" : 25,
+    "outcome" : "NOT_TRIGGERED",
+    "evaluationOrder" : 7,
+    "ruleCode" : "NEAR_DUPLICATE_INVOICE",
+    "explanation" : "Same supplier and exact payment amount, different normalized invoice number, within the history window; contribution applies once"
+  } ]
+}

@@ -1,0 +1,14 @@
+{
+  "displayName": "Unusual Amount",
+  "enabled": true,
+  "weight": 20,
+  "parameterSchemaVersion": "risk-policy-v1",
+  "parameters": {
+    "windowSeconds": 7776000,
+    "minimumObservations": 5,
+    "meanMultiplier": "2",
+    "zeroBaselinePolicy": "INSUFFICIENT_HISTORY"
+  },
+  "evaluationOrder": 3,
+  "expectedRowVersion": "2"
+}

@@ -1,0 +1,25 @@
+[ {
+  "slaConfigId" : "414",
+  "versionId" : "1",
+  "approvalLevel" : 1,
+  "durationSeconds" : 86400,
+  "startEventCode" : "APPROVAL_PENDING_V1",
+  "escalationPolicyCode" : "NEXT_LEVEL_V1",
+  "terminalLevelPolicyCode" : null
+}, {
+  "slaConfigId" : "415",
+  "versionId" : "1",
+  "approvalLevel" : 2,
+  "durationSeconds" : 86400,
+  "startEventCode" : "APPROVAL_PENDING_V1",
+  "escalationPolicyCode" : "NEXT_LEVEL_V1",
+  "terminalLevelPolicyCode" : null
+}, {
+  "slaConfigId" : "416",
+  "versionId" : "1",
+  "approvalLevel" : 3,
+  "durationSeconds" : 86400,
+  "startEventCode" : "APPROVAL_PENDING_V1",
+  "escalationPolicyCode" : "SAME_LEVEL_BACKUP_ONCE_V1",
+  "terminalLevelPolicyCode" : "MANUAL_REVIEW_V1"
+} ]

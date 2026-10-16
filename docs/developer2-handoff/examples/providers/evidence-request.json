@@ -1,0 +1,42 @@
+{
+  "cursor" : null,
+  "pageIndex" : 0,
+  "pageSize" : 100,
+  "replayReference" : "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8",
+  "request" : {
+    "acceptanceHash" : "40c870432c48efda4124e5a445c9792256184a3372c621c622ae7b5d520777c6",
+    "configuration" : {
+      "configurationHash" : "2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c",
+      "rowVersion" : "17",
+      "versionId" : "1"
+    },
+    "contractVersion" : "risk-upstream-evidence-v1",
+    "currencyCode" : "INR",
+    "cutoff" : "2026-10-16T12:00:00.123456789Z",
+    "excludedIdentities" : [ {
+      "key" : "handoff-demo-001",
+      "source" : "payment-request"
+    } ],
+    "factsReceipt" : {
+      "recordReference" : "facts-501",
+      "recordRevision" : "1",
+      "serviceId" : "payment-facts-provider"
+    },
+    "paymentId" : "501",
+    "requesterId" : "601",
+    "requiredCoverage" : {
+      "paymentFrom" : "2026-07-18T12:00:00.123456789Z",
+      "paymentPopulation" : "SUBMITTED_OR_COMPLETED_V1",
+      "supplierSnapshotAt" : "2026-10-16T12:00:00.123456789Z",
+      "transitionEnd" : "INCLUSIVE",
+      "transitionFrom" : "2026-09-16T12:00:00.123456789Z"
+    },
+    "submission" : {
+      "key" : "handoff-demo-001",
+      "source" : "payment-request"
+    },
+    "supplierId" : "301",
+    "validationReference" : "validation-501",
+    "validationRevision" : "1"
+  }
+}

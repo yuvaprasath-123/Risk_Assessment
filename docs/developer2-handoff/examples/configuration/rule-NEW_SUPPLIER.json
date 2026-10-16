@@ -1,0 +1,11 @@
+{
+  "displayName": "New Supplier",
+  "enabled": true,
+  "weight": 15,
+  "parameterSchemaVersion": "risk-policy-v1",
+  "parameters": {
+    "windowSeconds": 2592000
+  },
+  "evaluationOrder": 6,
+  "expectedRowVersion": "5"
+}

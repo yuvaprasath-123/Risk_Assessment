@@ -1,0 +1,22 @@
+[ {
+  "bandConfigId" : "208",
+  "versionId" : "1",
+  "bandCode" : "LOW",
+  "minScoreInclusive" : 0,
+  "maxScoreInclusive" : 29,
+  "approvalLevel" : 1
+}, {
+  "bandConfigId" : "209",
+  "versionId" : "1",
+  "bandCode" : "MEDIUM",
+  "minScoreInclusive" : 30,
+  "maxScoreInclusive" : 60,
+  "approvalLevel" : 2
+}, {
+  "bandConfigId" : "210",
+  "versionId" : "1",
+  "bandCode" : "HIGH",
+  "minScoreInclusive" : 61,
+  "maxScoreInclusive" : 100,
+  "approvalLevel" : 3
+} ]
