@@ -1,0 +1,9 @@
+{
+  "contractVersion": "risk-submission-v1",
+  "submissionSource": "payment-request",
+  "submissionKey": "handoff-demo-001",
+  "paymentReference": "501",
+  "validationReference": "validation-501",
+  "validationRevision": "1",
+  "configurationVersionId": "1"
+}

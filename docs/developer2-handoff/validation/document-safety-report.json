@@ -1,0 +1,15 @@
+{
+  "changedDocumentsScanned": 98,
+  "redactedSecretFindings": [],
+  "brokenLocalMarkdownLinks": [],
+  "protectedSqlUnchangedSha256": {
+    "dev2-schema-setup.sql": "71f0164826ba383fa1df0d67f6c2f3ac67a7853b2e9df03d7674431d396aeead",
+    "configuration-schema.sql": "0e31a7d26f002ae2a1f3f332463a4ab681173ff8c8d6f8bedeaa8c496dda7454",
+    "risk-schema.sql": "9c1bd24d1f34d77fbabcfd9767e8be24b1637afed66b1c7245665836c2ed17ac",
+    "developer1-schema-setup.sql": "4e4abc368ce53f5b248c7504dd66bc4bce6f9c1c41d750c942391170d5d386c4"
+  },
+  "allReviewStopsRetained": true,
+  "stagedFiles": [],
+  "applicationRuntimeFilesChanged": [],
+  "scanLimit": "Pattern/credential-field scan, not a formal secret-detection guarantee"
+}

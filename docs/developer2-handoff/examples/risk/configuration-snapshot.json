@@ -1,0 +1,108 @@
+{
+  "assessmentId" : "701",
+  "configuration" : {
+    "approvalBoundaries" : {
+      "2" : "10000.00",
+      "3" : "100000.00"
+    },
+    "bands" : [ {
+      "code" : "LOW",
+      "maximum" : 29,
+      "minimum" : 0
+    }, {
+      "code" : "MEDIUM",
+      "maximum" : 60,
+      "minimum" : 30
+    }, {
+      "code" : "HIGH",
+      "maximum" : 100,
+      "minimum" : 61
+    } ],
+    "contentHash" : "1d48ae07243cb94502d5c2659daca7bb35d40f1a92928dac5202e90016d909fd",
+    "currencyCode" : "INR",
+    "maxFinalScore" : 100,
+    "rowVersion" : "17",
+    "rules" : [ {
+      "code" : "STRUCTURING",
+      "enabled" : true,
+      "evaluationOrder" : 1,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "approvalBoundaryLevels" : [ 2, 3 ],
+        "historyEligibility" : "VALIDATED_SUBMISSIONS",
+        "minimumPayments" : 2,
+        "windowSeconds" : 604800
+      },
+      "weight" : 35
+    }, {
+      "code" : "UNUSUAL_FREQUENCY",
+      "enabled" : true,
+      "evaluationOrder" : 2,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "historyEligibility" : "VALIDATED_SUBMISSIONS",
+        "maximumSubmissions" : 3,
+        "windowSeconds" : 604800
+      },
+      "weight" : 15
+    }, {
+      "code" : "UNUSUAL_AMOUNT",
+      "enabled" : true,
+      "evaluationOrder" : 3,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "meanMultiplier" : "2",
+        "minimumObservations" : 5,
+        "windowSeconds" : 7776000,
+        "zeroBaselinePolicy" : "INSUFFICIENT_HISTORY"
+      },
+      "weight" : 20
+    }, {
+      "code" : "RECENTLY_REACTIVATED_SUPPLIER",
+      "enabled" : true,
+      "evaluationOrder" : 4,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "windowSeconds" : 2592000
+      },
+      "weight" : 15
+    }, {
+      "code" : "PREVIOUS_RISK_FLAGS",
+      "enabled" : true,
+      "evaluationOrder" : 5,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "minimumFlaggedPayments" : 1,
+        "qualifyingRuleCodes" : [ "NEAR_DUPLICATE_INVOICE", "NEW_SUPPLIER", "RECENTLY_REACTIVATED_SUPPLIER", "STRUCTURING", "UNUSUAL_AMOUNT", "UNUSUAL_FREQUENCY" ],
+        "windowSeconds" : 7776000
+      },
+      "weight" : 10
+    }, {
+      "code" : "NEW_SUPPLIER",
+      "enabled" : true,
+      "evaluationOrder" : 6,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "windowSeconds" : 2592000
+      },
+      "weight" : 15
+    }, {
+      "code" : "NEAR_DUPLICATE_INVOICE",
+      "enabled" : true,
+      "evaluationOrder" : 7,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "historyEligibility" : "VALIDATED_SUBMISSIONS",
+        "invoiceNumberNormalization" : "EXACT",
+        "windowSeconds" : 2592000
+      },
+      "weight" : 25
+    } ],
+    "versionId" : "1"
+  },
+  "configurationHash" : "2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c",
+  "evaluatorVersion" : "risk-scoring-v1",
+  "rowVersion" : "4",
+  "snapshotId" : "801",
+  "status" : "COMPLETED"
+}

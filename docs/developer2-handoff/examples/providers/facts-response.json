@@ -1,0 +1,59 @@
+{
+  "contractVersion": "risk-authoritative-facts-v1",
+  "submission": {
+    "source": "payment-request",
+    "key": "handoff-demo-001"
+  },
+  "paymentId": "501",
+  "requesterId": "601",
+  "validation": {
+    "reference": "validation-501",
+    "revision": "1",
+    "outcome": "PASS",
+    "validatedAt": "2026-10-16T11:30:01Z",
+    "immutableReference": true
+  },
+  "cutoff": "2026-10-16T12:00:00.123456789Z",
+  "payment": {
+    "invoiceId": "401",
+    "supplierId": "301",
+    "amount": "1234.50",
+    "currencyCode": "INR",
+    "submittedAt": "2026-10-16T11:30:00Z",
+    "completedAt": null,
+    "statusAsOfCutoff": "PENDING_APPROVAL"
+  },
+  "invoice": {
+    "invoiceId": "401",
+    "supplierId": "301",
+    "invoiceNumber": "DEMO-INV-001",
+    "invoiceAmount": "1234.50",
+    "currencyCode": "INR"
+  },
+  "supplier": {
+    "supplierId": "301",
+    "statusAsOfCutoff": "ACTIVE",
+    "createdAt": "2025-01-01T00:00:00Z"
+  },
+  "currentAndRetryIdentities": [
+    {
+      "source": "payment-request",
+      "key": "handoff-demo-001"
+    }
+  ],
+  "certification": {
+    "code": "AUTHORITATIVE_VALIDATION_PASS_V1",
+    "complete": true,
+    "asOfCutoff": true,
+    "immutable": true,
+    "validationPaymentBindingVerified": true,
+    "requesterOwnershipVerified": true,
+    "eligibleForRiskAssessment": true,
+    "retryIdentityScope": "SAME_LOGICAL_SUBMISSION"
+  },
+  "provenance": {
+    "serviceId": "payment-facts-provider",
+    "recordReference": "facts-501",
+    "recordRevision": "1"
+  }
+}

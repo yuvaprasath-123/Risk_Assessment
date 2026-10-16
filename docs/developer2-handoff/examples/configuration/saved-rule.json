@@ -1,0 +1,19 @@
+{
+  "rule" : {
+    "ruleConfigId" : "101",
+    "versionId" : "1",
+    "ruleCode" : "STRUCTURING",
+    "displayName" : "Structuring",
+    "enabled" : true,
+    "weight" : 35,
+    "parameterSchemaVersion" : "risk-policy-v1",
+    "parameters" : {
+      "windowSeconds" : 604800,
+      "minimumPayments" : 2,
+      "approvalBoundaryLevels" : [ 2, 3 ],
+      "historyEligibility" : "VALIDATED_SUBMISSIONS"
+    },
+    "evaluationOrder" : 1
+  },
+  "rowVersion" : "1"
+}

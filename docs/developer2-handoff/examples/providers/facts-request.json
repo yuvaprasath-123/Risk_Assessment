@@ -1,0 +1,11 @@
+{
+  "contractVersion": "risk-authoritative-facts-v1",
+  "submission": {
+    "source": "payment-request",
+    "key": "handoff-demo-001"
+  },
+  "paymentId": "501",
+  "validationReference": "validation-501",
+  "validationRevision": "1",
+  "cutoff": "2026-10-16T12:00:00.123456789Z"
+}

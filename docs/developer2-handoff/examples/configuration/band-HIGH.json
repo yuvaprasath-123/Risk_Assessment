@@ -1,0 +1,6 @@
+{
+  "minScoreInclusive": 61,
+  "maxScoreInclusive": 100,
+  "approvalLevel": 3,
+  "expectedRowVersion": "9"
+}

@@ -1,0 +1,19 @@
+[ {
+  "thresholdConfigId" : "311",
+  "versionId" : "1",
+  "approvalLevel" : 1,
+  "minAmountInclusive" : "0.00",
+  "maxAmountExclusive" : "10000.00"
+}, {
+  "thresholdConfigId" : "312",
+  "versionId" : "1",
+  "approvalLevel" : 2,
+  "minAmountInclusive" : "10000.00",
+  "maxAmountExclusive" : "100000.00"
+}, {
+  "thresholdConfigId" : "313",
+  "versionId" : "1",
+  "approvalLevel" : 3,
+  "minAmountInclusive" : "100000.00",
+  "maxAmountExclusive" : null
+} ]

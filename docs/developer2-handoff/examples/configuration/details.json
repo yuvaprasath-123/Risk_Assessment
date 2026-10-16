@@ -1,0 +1,13 @@
+{
+  "versionId": "1",
+  "versionNumber": 1,
+  "versionLabel": "DEMONSTRATION ONLY - handoff example",
+  "publicationState": "DRAFT",
+  "isDemonstration": true,
+  "createdAt": "2026-10-16T00:00:00Z",
+  "publishedAt": null,
+  "description": "Synthetic publishable example. INR tier boundaries are demonstration inputs, not approved monetary requirements.",
+  "scorePolicyCode": "CAP_AT_MAX",
+  "maxFinalScore": 100,
+  "rowVersion": "16"
+}

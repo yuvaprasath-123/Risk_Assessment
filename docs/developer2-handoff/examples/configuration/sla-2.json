@@ -1,0 +1,7 @@
+{
+  "durationSeconds": 86400,
+  "startEventCode": "APPROVAL_PENDING_V1",
+  "escalationPolicyCode": "NEXT_LEVEL_V1",
+  "terminalLevelPolicyCode": null,
+  "expectedRowVersion": "14"
+}

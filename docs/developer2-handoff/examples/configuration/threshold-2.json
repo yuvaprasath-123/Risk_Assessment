@@ -1,0 +1,5 @@
+{
+  "minAmountInclusive": "10000.00",
+  "maxAmountExclusive": "100000.00",
+  "expectedRowVersion": "11"
+}

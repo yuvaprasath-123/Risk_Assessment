@@ -1,0 +1,1902 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-16T00:00:00.000Z",
+  "__export_source": "developer2-code-derived-handoff",
+  "resources": [
+    {
+      "_id": "wrk_developer2_handoff",
+      "_type": "workspace",
+      "name": "Developer 2 handoff (local secrets only)",
+      "description": "Imported documentation templates. Requests with write methods mutate databases only when you deliberately send them. No auto-run scripts.",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_developer2_base",
+      "_type": "environment",
+      "parentId": "wrk_developer2_handoff",
+      "name": "Base (blank credentials)",
+      "data": {
+        "configuration_url": "http://localhost:8086",
+        "risk_url": "http://localhost:8087",
+        "security_url": "http://localhost:8081",
+        "facts_provider_url": "https://facts-provider.invalid",
+        "evidence_provider_url": "https://evidence-provider.invalid",
+        "manager_token": "",
+        "configuration_service_token": "",
+        "risk_service_token": "",
+        "facts_provider_token": "",
+        "evidence_provider_token": "",
+        "manager_username": "",
+        "manager_password": "",
+        "mfa_challenge_id": "",
+        "mfa_otp": "",
+        "version_id": "",
+        "assessment_id": "",
+        "expected_row_version": "",
+        "expected_pointer_row_version": "",
+        "submission_source": "payment-request",
+        "submission_key": "handoff-demo-001",
+        "payment_reference": "",
+        "validation_reference": "",
+        "validation_revision": ""
+      }
+    },
+    {
+      "_id": "env_developer2_manager",
+      "_type": "environment",
+      "parentId": "env_developer2_base",
+      "name": "Manager only - local",
+      "data": {
+        "manager_token": "",
+        "manager_username": "",
+        "manager_password": "",
+        "mfa_challenge_id": "",
+        "mfa_otp": "",
+        "configuration_service_token": "",
+        "risk_service_token": "",
+        "facts_provider_token": "",
+        "evidence_provider_token": ""
+      }
+    },
+    {
+      "_id": "env_developer2_service",
+      "_type": "environment",
+      "parentId": "env_developer2_base",
+      "name": "Services only - local",
+      "data": {
+        "manager_token": "",
+        "manager_username": "",
+        "manager_password": "",
+        "mfa_challenge_id": "",
+        "mfa_otp": "",
+        "configuration_service_token": "",
+        "risk_service_token": "",
+        "facts_provider_token": "",
+        "evidence_provider_token": ""
+      }
+    },
+    {
+      "_id": "fld_mfa",
+      "_type": "request_group",
+      "parentId": "wrk_developer2_handoff",
+      "name": "MFA",
+      "environment": {},
+      "metaSortKey": 0
+    },
+    {
+      "_id": "fld_demonstration_configuration",
+      "_type": "request_group",
+      "parentId": "wrk_developer2_handoff",
+      "name": "Demonstration configuration",
+      "environment": {},
+      "metaSortKey": 1000
+    },
+    {
+      "_id": "fld_manager",
+      "_type": "request_group",
+      "parentId": "wrk_developer2_handoff",
+      "name": "Manager",
+      "environment": {},
+      "metaSortKey": 2000
+    },
+    {
+      "_id": "fld_internal_services",
+      "_type": "request_group",
+      "parentId": "wrk_developer2_handoff",
+      "name": "Internal services",
+      "environment": {},
+      "metaSortKey": 3000
+    },
+    {
+      "_id": "fld_submission_recovery",
+      "_type": "request_group",
+      "parentId": "wrk_developer2_handoff",
+      "name": "Submission recovery",
+      "environment": {},
+      "metaSortKey": 4000
+    },
+    {
+      "_id": "fld_provider_proposals",
+      "_type": "request_group",
+      "parentId": "wrk_developer2_handoff",
+      "name": "Provider proposals",
+      "environment": {},
+      "metaSortKey": 5000
+    },
+    {
+      "_id": "req_8e5f117089e5644ac74b",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "listVersions",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 10000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_903283e7f1ef63262c82",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "createDraftVersion",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"versionLabel\": \"DEMONSTRATION ONLY - handoff example\",\n  \"description\": \"Synthetic publishable example. INR tier boundaries are demonstration inputs, not approved monetary requirements.\",\n  \"isDemonstration\": true,\n  \"scorePolicyCode\": \"CAP_AT_MAX\",\n  \"maxFinalScore\": 100\n}"
+      },
+      "metaSortKey": 11000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_5699d2fcb0f007f09818",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "getVersion",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 12000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_5a8ef859608fbc57122d",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "listRiskRules",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 13000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_1f82359a2f9601d0514e",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "saveRiskRule",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/STRUCTURING",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Structuring\",\n  \"enabled\": true,\n  \"weight\": 35,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 604800,\n    \"minimumPayments\": 2,\n    \"approvalBoundaryLevels\": [\n      2,\n      3\n    ],\n    \"historyEligibility\": \"VALIDATED_SUBMISSIONS\"\n  },\n  \"evaluationOrder\": 1,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 14000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_145bbfba2c943b62b5f9",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "listRiskBands",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-bands",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 15000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_bb66bb0b360989340ab6",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "saveRiskBand",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-bands/LOW",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minScoreInclusive\": 0,\n  \"maxScoreInclusive\": 29,\n  \"approvalLevel\": 1,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 16000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_fcf681f57bb0284bd2fa",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "listApprovalThresholds",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-thresholds",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 17000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_d58ce810979bb403f0f6",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "saveApprovalThreshold",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-thresholds/1",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minAmountInclusive\": \"0.00\",\n  \"maxAmountExclusive\": \"10000.00\",\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 18000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_8aa923653283c96dc6ab",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "listApprovalSlas",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-slas",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 19000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_d3e4a93e51cb0ad07bf6",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "saveApprovalSla",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-slas/1",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"durationSeconds\": 86400,\n  \"startEventCode\": \"APPROVAL_PENDING_V1\",\n  \"escalationPolicyCode\": \"NEXT_LEVEL_V1\",\n  \"terminalLevelPolicyCode\": null,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 20000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_454c37e9734c8cbf6da9",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "publicationReadiness",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/publication-readiness",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 21000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_b38b20e5b5f4d5b4ab11",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "publishVersion",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/publish",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 22000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_6c8b48bdc65cd91c2411",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "activateVersion",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/activate",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"expectedPointerRowVersion\": null\n}"
+      },
+      "metaSortKey": 23000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_a6109ea0e43a3bb2950d",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "activeConfiguration",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/active",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 24000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_91fcc0302107319b2a02",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "internalActiveConfiguration",
+      "url": "{{ _.configuration_url }}/internal/v1/configuration/active",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.configuration_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 25000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_e1ce195f3bb04472921b",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "internalPinnedConfiguration",
+      "url": "{{ _.configuration_url }}/internal/v1/configuration/versions/{{ _.version_id }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.configuration_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 26000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_5f5113d976575fdae4fc",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "assessmentSummary",
+      "url": "{{ _.risk_url }}/api/v1/risk-assessments/{{ _.assessment_id }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 27000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_d007c8abfdef69154a73",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "scoreBreakdown",
+      "url": "{{ _.risk_url }}/api/v1/risk-assessments/{{ _.assessment_id }}/score-breakdown",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 28000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_520ec5471f8c4ba68bc4",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "assessmentFactors",
+      "url": "{{ _.risk_url }}/api/v1/risk-assessments/{{ _.assessment_id }}/factors",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 29000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_264c4d235196e19a0e37",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "assessmentConfiguration",
+      "url": "{{ _.risk_url }}/api/v1/risk-assessments/{{ _.assessment_id }}/configuration-snapshot",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 30000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_fa7c98d7457fe408d7bc",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "internalAssessment",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessments/{{ _.assessment_id }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 31000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_0cdf59a7b0aa343f9826",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "internalFactors",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessments/{{ _.assessment_id }}/factors",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 32000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_0c2ea1c4be225fbafae3",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "internalRiskConfiguration",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessments/{{ _.assessment_id }}/configuration-snapshot",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 33000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_d42027982ad034e16bd0",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "submitAssessment",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessments",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"contractVersion\": \"risk-submission-v1\",\n  \"submissionSource\": \"{{ _.submission_source }}\",\n  \"submissionKey\": \"{{ _.submission_key }}\",\n  \"paymentReference\": \"{{ _.payment_reference }}\",\n  \"validationReference\": \"{{ _.validation_reference }}\",\n  \"validationRevision\": \"{{ _.validation_revision }}\"\n}"
+      },
+      "metaSortKey": 34000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_53255a6b14b5aae0de1a",
+      "_type": "request",
+      "parentId": "fld_internal_services",
+      "name": "submissionStatus",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessment-submissions/status?submissionSource={{ _.submission_source }}&submissionKey={{ _.submission_key }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 35000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_b8915d456e72a12f2064",
+      "_type": "request",
+      "parentId": "fld_provider_proposals",
+      "name": "resolveFacts",
+      "url": "{{ _.facts_provider_url }}/internal/v1/risk-facts/resolve",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.facts_provider_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"contractVersion\": \"risk-authoritative-facts-v1\",\n  \"submission\": {\n    \"source\": \"payment-request\",\n    \"key\": \"handoff-demo-001\"\n  },\n  \"paymentId\": \"501\",\n  \"validationReference\": \"validation-501\",\n  \"validationRevision\": \"1\",\n  \"cutoff\": \"2026-10-16T12:00:00.123456789Z\"\n}"
+      },
+      "metaSortKey": 36000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_f6c3f45d20df9d7adc55",
+      "_type": "request",
+      "parentId": "fld_provider_proposals",
+      "name": "resolveEvidence",
+      "url": "{{ _.evidence_provider_url }}/internal/v1/risk-evidence/resolve",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.evidence_provider_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"cursor\": null,\n  \"pageIndex\": 0,\n  \"pageSize\": 100,\n  \"replayReference\": \"ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8\",\n  \"request\": {\n    \"acceptanceHash\": \"40c870432c48efda4124e5a445c9792256184a3372c621c622ae7b5d520777c6\",\n    \"configuration\": {\n      \"configurationHash\": \"2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c\",\n      \"rowVersion\": \"17\",\n      \"versionId\": \"1\"\n    },\n    \"contractVersion\": \"risk-upstream-evidence-v1\",\n    \"currencyCode\": \"INR\",\n    \"cutoff\": \"2026-10-16T12:00:00.123456789Z\",\n    \"excludedIdentities\": [\n      {\n        \"key\": \"handoff-demo-001\",\n        \"source\": \"payment-request\"\n      }\n    ],\n    \"factsReceipt\": {\n      \"recordReference\": \"facts-501\",\n      \"recordRevision\": \"1\",\n      \"serviceId\": \"payment-facts-provider\"\n    },\n    \"paymentId\": \"501\",\n    \"requesterId\": \"601\",\n    \"requiredCoverage\": {\n      \"paymentFrom\": \"2026-07-18T12:00:00.123456789Z\",\n      \"paymentPopulation\": \"SUBMITTED_OR_COMPLETED_V1\",\n      \"supplierSnapshotAt\": \"2026-10-16T12:00:00.123456789Z\",\n      \"transitionEnd\": \"INCLUSIVE\",\n      \"transitionFrom\": \"2026-09-16T12:00:00.123456789Z\"\n    },\n    \"submission\": {\n      \"key\": \"handoff-demo-001\",\n      \"source\": \"payment-request\"\n    },\n    \"supplierId\": \"301\",\n    \"validationReference\": \"validation-501\",\n    \"validationRevision\": \"1\"\n  }\n}"
+      },
+      "metaSortKey": 37000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_e94ea5dc430fe00b121f",
+      "_type": "request",
+      "parentId": "fld_submission_recovery",
+      "name": "Read-only status before choosing recovery",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessment-submissions/status?submissionSource={{ _.submission_source }}&submissionKey={{ _.submission_key }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 38000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_5befda0bcb6e317ff133",
+      "_type": "request",
+      "parentId": "fld_submission_recovery",
+      "name": "Same-identity retry (configuration omitted)",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessments",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"contractVersion\": \"risk-submission-v1\",\n  \"submissionSource\": \"{{ _.submission_source }}\",\n  \"submissionKey\": \"{{ _.submission_key }}\",\n  \"paymentReference\": \"{{ _.payment_reference }}\",\n  \"validationReference\": \"{{ _.validation_reference }}\",\n  \"validationRevision\": \"{{ _.validation_revision }}\"\n}"
+      },
+      "metaSortKey": 39000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_42c2b6c0baefa605314d",
+      "_type": "request",
+      "parentId": "fld_submission_recovery",
+      "name": "Same-identity retry (explicit pinned version)",
+      "url": "{{ _.risk_url }}/internal/v1/risk-assessments",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.risk_service_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"contractVersion\": \"risk-submission-v1\",\n  \"submissionSource\": \"{{ _.submission_source }}\",\n  \"submissionKey\": \"{{ _.submission_key }}\",\n  \"paymentReference\": \"{{ _.payment_reference }}\",\n  \"validationReference\": \"{{ _.validation_reference }}\",\n  \"validationRevision\": \"{{ _.validation_revision }}\",\n  \"configurationVersionId\": \"{{ _.version_id }}\"\n}"
+      },
+      "metaSortKey": 40000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_2f86feed0b411918a685",
+      "_type": "request",
+      "parentId": "fld_manager",
+      "name": "Activate existing pointer (refresh revision first)",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/activate",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"expectedPointerRowVersion\": \"{{ _.expected_pointer_row_version }}\"\n}"
+      },
+      "metaSortKey": 41000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_cba08529bfa200826485",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 01 create draft (retain ID)",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"versionLabel\": \"DEMONSTRATION ONLY - handoff example\",\n  \"description\": \"Synthetic publishable example. INR tier boundaries are demonstration inputs, not approved monetary requirements.\",\n  \"isDemonstration\": true,\n  \"scorePolicyCode\": \"CAP_AT_MAX\",\n  \"maxFinalScore\": 100\n}"
+      },
+      "metaSortKey": 42000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_043d6f1cd22680c593f0",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 02 fetch parent revision",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 43000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_6011aab78a0cb88a394f",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 03 Rule STRUCTURING",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/STRUCTURING",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Structuring\",\n  \"enabled\": true,\n  \"weight\": 35,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 604800,\n    \"minimumPayments\": 2,\n    \"approvalBoundaryLevels\": [\n      2,\n      3\n    ],\n    \"historyEligibility\": \"VALIDATED_SUBMISSIONS\"\n  },\n  \"evaluationOrder\": 1,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 44000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_f8cb366b3de61db52682",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 04 Rule UNUSUAL_FREQUENCY",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/UNUSUAL_FREQUENCY",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Unusual Frequency\",\n  \"enabled\": true,\n  \"weight\": 15,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 604800,\n    \"maximumSubmissions\": 3,\n    \"historyEligibility\": \"VALIDATED_SUBMISSIONS\"\n  },\n  \"evaluationOrder\": 2,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 45000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_5250f15e6bcb3c88e490",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 05 Rule UNUSUAL_AMOUNT",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/UNUSUAL_AMOUNT",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Unusual Amount\",\n  \"enabled\": true,\n  \"weight\": 20,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 7776000,\n    \"minimumObservations\": 5,\n    \"meanMultiplier\": \"2\",\n    \"zeroBaselinePolicy\": \"INSUFFICIENT_HISTORY\"\n  },\n  \"evaluationOrder\": 3,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 46000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_4ad9670cba08951fca1d",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 06 Rule RECENTLY_REACTIVATED_SUPPLIER",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/RECENTLY_REACTIVATED_SUPPLIER",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Recently Reactivated Supplier\",\n  \"enabled\": true,\n  \"weight\": 15,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 2592000\n  },\n  \"evaluationOrder\": 4,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 47000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_3a2c491cc8893cb4ec8e",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 07 Rule PREVIOUS_RISK_FLAGS",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/PREVIOUS_RISK_FLAGS",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Previous Risk Flags\",\n  \"enabled\": true,\n  \"weight\": 10,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 7776000,\n    \"minimumFlaggedPayments\": 1,\n    \"qualifyingRuleCodes\": [\n      \"STRUCTURING\",\n      \"UNUSUAL_FREQUENCY\",\n      \"UNUSUAL_AMOUNT\",\n      \"RECENTLY_REACTIVATED_SUPPLIER\",\n      \"NEW_SUPPLIER\",\n      \"NEAR_DUPLICATE_INVOICE\"\n    ]\n  },\n  \"evaluationOrder\": 5,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 48000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_90f879d19de5c458b152",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 08 Rule NEW_SUPPLIER",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/NEW_SUPPLIER",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"New Supplier\",\n  \"enabled\": true,\n  \"weight\": 15,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 2592000\n  },\n  \"evaluationOrder\": 6,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 49000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_933bff71e8a64764fd8f",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 09 Rule NEAR_DUPLICATE_INVOICE",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-rules/NEAR_DUPLICATE_INVOICE",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"displayName\": \"Near Duplicate Invoice\",\n  \"enabled\": true,\n  \"weight\": 25,\n  \"parameterSchemaVersion\": \"risk-policy-v1\",\n  \"parameters\": {\n    \"windowSeconds\": 2592000,\n    \"historyEligibility\": \"VALIDATED_SUBMISSIONS\",\n    \"invoiceNumberNormalization\": \"EXACT\"\n  },\n  \"evaluationOrder\": 7,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 50000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_e6ad286e3f48c35363b8",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 10 Band LOW",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-bands/LOW",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minScoreInclusive\": 0,\n  \"maxScoreInclusive\": 29,\n  \"approvalLevel\": 1,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 51000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_3fc4b27e3bf8244fbd17",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 11 Band MEDIUM",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-bands/MEDIUM",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minScoreInclusive\": 30,\n  \"maxScoreInclusive\": 60,\n  \"approvalLevel\": 2,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 52000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_f1e1b27b3328cf717a5c",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 12 Band HIGH",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/risk-bands/HIGH",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minScoreInclusive\": 61,\n  \"maxScoreInclusive\": 100,\n  \"approvalLevel\": 3,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 53000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_3a1c72812ee7a0b527a6",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 13 Threshold 1",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-thresholds/1",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minAmountInclusive\": \"0.00\",\n  \"maxAmountExclusive\": \"10000.00\",\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 54000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_ba51027c3ce747d9da0a",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 14 Threshold 2",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-thresholds/2",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minAmountInclusive\": \"10000.00\",\n  \"maxAmountExclusive\": \"100000.00\",\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 55000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_b29e781fca3d8099e452",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 15 Threshold 3",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-thresholds/3",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"minAmountInclusive\": \"100000.00\",\n  \"maxAmountExclusive\": null,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 56000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_d30efd19df9a7c559632",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 16 SLA 1",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-slas/1",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"durationSeconds\": 86400,\n  \"startEventCode\": \"APPROVAL_PENDING_V1\",\n  \"escalationPolicyCode\": \"NEXT_LEVEL_V1\",\n  \"terminalLevelPolicyCode\": null,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 57000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_f280b065f18c688e69b6",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 17 SLA 2",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-slas/2",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"durationSeconds\": 86400,\n  \"startEventCode\": \"APPROVAL_PENDING_V1\",\n  \"escalationPolicyCode\": \"NEXT_LEVEL_V1\",\n  \"terminalLevelPolicyCode\": null,\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 58000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_53acfbc0ed4c6bf9220a",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 18 SLA 3",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/approval-slas/3",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"durationSeconds\": 86400,\n  \"startEventCode\": \"APPROVAL_PENDING_V1\",\n  \"escalationPolicyCode\": \"SAME_LEVEL_BACKUP_ONCE_V1\",\n  \"terminalLevelPolicyCode\": \"MANUAL_REVIEW_V1\",\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 59000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_119c2a44217549897453",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 19 readiness must pass",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/publication-readiness",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 60000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_e6d5d74d8f40cc41a44a",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 20 publish current revision",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/publish",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"expectedRowVersion\": \"{{ _.expected_row_version }}\"\n}"
+      },
+      "metaSortKey": 61000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_b69a4ad3b4db4b53b4c5",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 21 inspect active pointer (404 means absent)",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/active",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {},
+      "metaSortKey": 62000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_0a0ad5e5b5aaa928b4ba",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 22A first activation ONLY if pointer absent",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/activate",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"expectedPointerRowVersion\": null\n}"
+      },
+      "metaSortKey": 63000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_7c47a8cca7a152effd98",
+      "_type": "request",
+      "parentId": "fld_demonstration_configuration",
+      "name": "Demo 22B replace pointer ONLY if revision refreshed",
+      "url": "{{ _.configuration_url }}/api/v1/configuration/versions/{{ _.version_id }}/activate",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "prefix": "Bearer",
+        "disabled": false
+      },
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"expectedPointerRowVersion\": \"{{ _.expected_pointer_row_version }}\"\n}"
+      },
+      "metaSortKey": 64000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_39a5a6940e40818ffe1a",
+      "_type": "request",
+      "parentId": "fld_mfa",
+      "name": "MFA challenge (existing account)",
+      "url": "{{ _.security_url }}/api/v1/auth/login",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"username\": \"{{ _.manager_username }}\",\n  \"password\": \"{{ _.manager_password }}\"\n}"
+      },
+      "metaSortKey": 65000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    },
+    {
+      "_id": "req_b5d52ec73cfb2de676cb",
+      "_type": "request",
+      "parentId": "fld_mfa",
+      "name": "MFA verify (private local OTP)",
+      "url": "{{ _.security_url }}/api/v1/auth/verify-otp",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Accept",
+          "value": "application/json"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "parameters": [],
+      "authentication": {},
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"challengeId\": \"{{ _.mfa_challenge_id }}\",\n  \"otp\": \"{{ _.mfa_otp }}\"\n}"
+      },
+      "metaSortKey": 66000,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": false,
+      "settingStoreCookies": false,
+      "description": "Manual request: inspect before sending; never run every folder as an automatic sequence. Refresh returned IDs/revisions locally. Never export filled credentials. No request/response scripts."
+    }
+  ]
+}

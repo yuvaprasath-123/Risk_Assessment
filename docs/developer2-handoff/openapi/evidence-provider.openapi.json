@@ -1,0 +1,1030 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Upstream Evidence provider protocol (proposal)",
+    "version": "2026-10-16",
+    "description": "Developer 2 provider protocol proposal consumed by implemented opt-in clients. This is NOT an existing Developer 1 endpoint. No credentials are included. See ../README.md and the handoff guide for relational, trust and recovery invariants."
+  },
+  "servers": [
+    {
+      "url": "https://evidence-provider.invalid"
+    }
+  ],
+  "paths": {
+    "/internal/v1/risk-evidence/resolve": {
+      "post": {
+        "operationId": "resolveEvidence",
+        "summary": "resolveEvidence",
+        "description": "Proposed provider endpoint. Persist original population before page 0; certification + trusted transport + exact scope + all pages + digest required. Never substitute local prior-risk evidence. [from,cutoff) payment union by submitted OR completed; transitions end inclusive.",
+        "security": [
+          {
+            "ServiceBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                },
+                "examples": {
+                  "evidence-response": {
+                    "summary": "Synthetic validated handoff example: evidence-response",
+                    "value": {
+                      "certification": {
+                        "supplierWideAcrossRequesters": true,
+                        "factsReceiptBindingVerified": true,
+                        "immutable": true,
+                        "exclusionsApplied": true,
+                        "asOfCutoff": true
+                      },
+                      "contractVersion": "risk-upstream-evidence-v1",
+                      "pagination": {
+                        "nextCursor": null,
+                        "pageIndex": 0,
+                        "pageSize": 100,
+                        "totalPages": 1,
+                        "totalPayments": 0,
+                        "totalTransitions": 0
+                      },
+                      "paymentHistory": {
+                        "availability": "COMPLETE",
+                        "coveredFrom": "2026-07-18T12:00:00.123456789Z",
+                        "records": [],
+                        "sourceReference": "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8-paymentHistory",
+                        "sourceRevision": "1"
+                      },
+                      "populationHash": "279fd92d08adc6f1e089a08ec6495a71b5e181203f249d124aa2f0cb16599b13",
+                      "providerServiceId": "supplier-evidence-provider",
+                      "replayReference": "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8",
+                      "request": {
+                        "acceptanceHash": "40c870432c48efda4124e5a445c9792256184a3372c621c622ae7b5d520777c6",
+                        "configuration": {
+                          "configurationHash": "2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c",
+                          "rowVersion": "17",
+                          "versionId": "1"
+                        },
+                        "contractVersion": "risk-upstream-evidence-v1",
+                        "currencyCode": "INR",
+                        "cutoff": "2026-10-16T12:00:00.123456789Z",
+                        "excludedIdentities": [
+                          {
+                            "key": "handoff-demo-001",
+                            "source": "payment-request"
+                          }
+                        ],
+                        "factsReceipt": {
+                          "recordReference": "facts-501",
+                          "recordRevision": "1",
+                          "serviceId": "payment-facts-provider"
+                        },
+                        "paymentId": "501",
+                        "requesterId": "601",
+                        "requiredCoverage": {
+                          "paymentFrom": "2026-07-18T12:00:00.123456789Z",
+                          "paymentPopulation": "SUBMITTED_OR_COMPLETED_V1",
+                          "supplierSnapshotAt": "2026-10-16T12:00:00.123456789Z",
+                          "transitionEnd": "INCLUSIVE",
+                          "transitionFrom": "2026-09-16T12:00:00.123456789Z"
+                        },
+                        "submission": {
+                          "key": "handoff-demo-001",
+                          "source": "payment-request"
+                        },
+                        "supplierId": "301",
+                        "validationReference": "validation-501",
+                        "validationRevision": "1"
+                      },
+                      "snapshotRevision": "1",
+                      "supplier": {
+                        "availability": "COMPLETE",
+                        "coveredFrom": "2026-10-16T12:00:00.123456789Z",
+                        "records": [
+                          {
+                            "createdAt": "2025-01-01T00:00:00Z",
+                            "recordReference": "supplier-301",
+                            "statusAsOfCutoff": "ACTIVE",
+                            "supplierId": "301"
+                          }
+                        ],
+                        "sourceReference": "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8-supplier",
+                        "sourceRevision": "1"
+                      },
+                      "supplierTransitions": {
+                        "availability": "COMPLETE",
+                        "coveredFrom": "2026-09-16T12:00:00.123456789Z",
+                        "records": [],
+                        "sourceReference": "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8-supplierTransitions",
+                        "sourceRevision": "1"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or out-of-range input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing/invalid authentication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer realm=\"<receiver>\"; invalid/expired credentials additionally carry error=\"invalid_token\". Missing credentials have no error attribute."
+              }
+            }
+          },
+          "403": {
+            "description": "Permission/role/source denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Known conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unavailable or integrity verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Persisted replay population/cutoff no longer reproducible: block, never recapture a different population"
+          }
+        },
+        "x-required-permission": "RISK_EVIDENCE_READ",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceRequest"
+              },
+              "examples": {
+                "evidence-request": {
+                  "summary": "Synthetic validated handoff example: evidence-request",
+                  "value": {
+                    "cursor": null,
+                    "pageIndex": 0,
+                    "pageSize": 100,
+                    "replayReference": "ue1-f5690bf985fb4ca2f0195b829237db10c87790b8fe53184e2044bc5004653ec8",
+                    "request": {
+                      "acceptanceHash": "40c870432c48efda4124e5a445c9792256184a3372c621c622ae7b5d520777c6",
+                      "configuration": {
+                        "configurationHash": "2bd22402afac7e8965c265e301fea9c73cc6d95de4ba67c7462eca1fe027840c",
+                        "rowVersion": "17",
+                        "versionId": "1"
+                      },
+                      "contractVersion": "risk-upstream-evidence-v1",
+                      "currencyCode": "INR",
+                      "cutoff": "2026-10-16T12:00:00.123456789Z",
+                      "excludedIdentities": [
+                        {
+                          "key": "handoff-demo-001",
+                          "source": "payment-request"
+                        }
+                      ],
+                      "factsReceipt": {
+                        "recordReference": "facts-501",
+                        "recordRevision": "1",
+                        "serviceId": "payment-facts-provider"
+                      },
+                      "paymentId": "501",
+                      "requesterId": "601",
+                      "requiredCoverage": {
+                        "paymentFrom": "2026-07-18T12:00:00.123456789Z",
+                        "paymentPopulation": "SUBMITTED_OR_COMPLETED_V1",
+                        "supplierSnapshotAt": "2026-10-16T12:00:00.123456789Z",
+                        "transitionEnd": "INCLUSIVE",
+                        "transitionFrom": "2026-09-16T12:00:00.123456789Z"
+                      },
+                      "submission": {
+                        "key": "handoff-demo-001",
+                        "source": "payment-request"
+                      },
+                      "supplierId": "301",
+                      "validationReference": "validation-501",
+                      "validationRevision": "1"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ManagerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "User JWT",
+        "description": "Verified user JWT with unprefixed FINANCE_MANAGER. Service credentials are rejected."
+      },
+      "ServiceBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "RS256 service JWT",
+        "description": "Separate service trust, issuer, exact receiver audience, kid, expiry, allowlisted subject and receiver-owned permission. No user tokens."
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599,
+            "x-wire-integer": true
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "Z$",
+            "description": "UTC ISO-8601, up to 9 fractional digits for risk; configuration storage uses 6."
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "code",
+          "message",
+          "timestamp",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "EvidenceScope": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "const": "risk-upstream-evidence-v1"
+          },
+          "submission": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "source",
+              "key"
+            ],
+            "additionalProperties": false
+          },
+          "paymentId": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+            "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+            "x-java-long": true
+          },
+          "requesterId": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+            "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+            "x-java-long": true
+          },
+          "validationReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+            "pattern": "\\S"
+          },
+          "validationRevision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "factsReceipt": {
+            "type": "object",
+            "properties": {
+              "serviceId": {
+                "type": "string"
+              },
+              "recordReference": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                "pattern": "\\S"
+              },
+              "recordRevision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "serviceId",
+              "recordReference",
+              "recordRevision"
+            ],
+            "additionalProperties": false
+          },
+          "supplierId": {
+            "type": "string",
+            "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+            "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+            "x-java-long": true
+          },
+          "currencyCode": {
+            "const": "INR"
+          },
+          "cutoff": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+            "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+          },
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "versionId": {
+                "type": "string",
+                "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                "x-java-long": true
+              },
+              "rowVersion": {
+                "type": "string",
+                "pattern": "^(?:0|(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807))$",
+                "description": "Nonnegative Java Long as a string.",
+                "x-java-long": true
+              },
+              "configurationHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "versionId",
+              "rowVersion",
+              "configurationHash"
+            ],
+            "additionalProperties": false
+          },
+          "acceptanceHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "requiredCoverage": {
+            "type": "object",
+            "properties": {
+              "paymentFrom": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                    "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "transitionFrom": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                    "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "supplierSnapshotAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+              },
+              "paymentPopulation": {
+                "const": "SUBMITTED_OR_COMPLETED_V1"
+              },
+              "transitionEnd": {
+                "const": "INCLUSIVE"
+              }
+            },
+            "required": [
+              "paymentFrom",
+              "transitionFrom",
+              "supplierSnapshotAt",
+              "paymentPopulation",
+              "transitionEnd"
+            ],
+            "additionalProperties": false
+          },
+          "excludedIdentities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+                },
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                  "pattern": "\\S"
+                }
+              },
+              "required": [
+                "source",
+                "key"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 1000,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "contractVersion",
+          "submission",
+          "paymentId",
+          "requesterId",
+          "validationReference",
+          "validationRevision",
+          "factsReceipt",
+          "supplierId",
+          "currencyCode",
+          "cutoff",
+          "configuration",
+          "acceptanceHash",
+          "requiredCoverage",
+          "excludedIdentities"
+        ],
+        "additionalProperties": false
+      },
+      "EvidenceRequest": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/EvidenceScope"
+          },
+          "replayReference": {
+            "type": "string",
+            "pattern": "^ue1-[0-9a-f]{64}$"
+          },
+          "pageIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99,
+            "x-wire-integer": true
+          },
+          "pageSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "x-wire-integer": true
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "request",
+          "replayReference",
+          "pageIndex",
+          "pageSize",
+          "cursor"
+        ],
+        "additionalProperties": false
+      },
+      "EvidenceResponse": {
+        "type": "object",
+        "properties": {
+          "contractVersion": {
+            "const": "risk-upstream-evidence-v1"
+          },
+          "request": {
+            "$ref": "#/components/schemas/EvidenceScope"
+          },
+          "providerServiceId": {
+            "type": "string"
+          },
+          "replayReference": {
+            "type": "string",
+            "pattern": "^ue1-[0-9a-f]{64}$"
+          },
+          "snapshotRevision": {
+            "const": "1"
+          },
+          "populationHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "certification": {
+            "type": "object",
+            "properties": {
+              "immutable": {
+                "const": true
+              },
+              "asOfCutoff": {
+                "const": true
+              },
+              "supplierWideAcrossRequesters": {
+                "const": true
+              },
+              "exclusionsApplied": {
+                "const": true
+              },
+              "factsReceiptBindingVerified": {
+                "const": true
+              }
+            },
+            "required": [
+              "immutable",
+              "asOfCutoff",
+              "supplierWideAcrossRequesters",
+              "exclusionsApplied",
+              "factsReceiptBindingVerified"
+            ],
+            "additionalProperties": false
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "pageIndex": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 99,
+                "x-wire-integer": true
+              },
+              "pageSize": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+                "x-wire-integer": true
+              },
+              "totalPages": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "x-wire-integer": true
+              },
+              "totalPayments": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9000,
+                "x-wire-integer": true
+              },
+              "totalTransitions": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9000,
+                "x-wire-integer": true
+              },
+              "nextCursor": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "pageIndex",
+              "pageSize",
+              "totalPages",
+              "totalPayments",
+              "totalTransitions",
+              "nextCursor"
+            ],
+            "additionalProperties": false
+          },
+          "paymentHistory": {
+            "type": "object",
+            "properties": {
+              "availability": {
+                "type": "string",
+                "enum": [
+                  "COMPLETE",
+                  "INCOMPLETE",
+                  "UNAVAILABLE"
+                ]
+              },
+              "sourceReference": {
+                "type": "string"
+              },
+              "sourceRevision": {
+                "const": "1"
+              },
+              "coveredFrom": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                    "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "recordReference": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                      "pattern": "\\S"
+                    },
+                    "submission": {
+                      "type": "object",
+                      "properties": {
+                        "source": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9.-]{0,63}$"
+                        },
+                        "key": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128,
+                          "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                          "pattern": "\\S"
+                        }
+                      },
+                      "required": [
+                        "source",
+                        "key"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "paymentId": {
+                      "type": "string",
+                      "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                      "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                      "x-java-long": true
+                    },
+                    "requesterId": {
+                      "type": "string",
+                      "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                      "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                      "x-java-long": true
+                    },
+                    "invoiceId": {
+                      "type": "string",
+                      "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                      "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                      "x-java-long": true
+                    },
+                    "invoiceNumber": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120,
+                      "pattern": "\\S"
+                    },
+                    "supplierId": {
+                      "type": "string",
+                      "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                      "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                      "x-java-long": true
+                    },
+                    "currencyCode": {
+                      "const": "INR"
+                    },
+                    "amount": {
+                      "type": "string",
+                      "pattern": "^(?:0|[1-9][0-9]{0,12})\\.[0-9]{2}$",
+                      "description": "Exact NUMBER(15,2) decimal string, never a JSON floating-point number."
+                    },
+                    "submittedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                      "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                    },
+                    "completedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                          "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "statusAsOfCutoff": {
+                      "type": "string",
+                      "enum": [
+                        "DRAFT",
+                        "PENDING_VALIDATION",
+                        "PENDING_APPROVAL",
+                        "APPROVED",
+                        "REJECTED",
+                        "PROCESSING",
+                        "COMPLETE",
+                        "FAILED"
+                      ]
+                    },
+                    "validated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "recordReference",
+                    "submission",
+                    "paymentId",
+                    "requesterId",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "supplierId",
+                    "currencyCode",
+                    "amount",
+                    "submittedAt",
+                    "completedAt",
+                    "statusAsOfCutoff",
+                    "validated"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "availability",
+              "sourceReference",
+              "sourceRevision",
+              "coveredFrom",
+              "records"
+            ],
+            "additionalProperties": false
+          },
+          "supplier": {
+            "type": "object",
+            "properties": {
+              "availability": {
+                "type": "string",
+                "enum": [
+                  "COMPLETE",
+                  "INCOMPLETE",
+                  "UNAVAILABLE"
+                ]
+              },
+              "sourceReference": {
+                "type": "string"
+              },
+              "sourceRevision": {
+                "const": "1"
+              },
+              "coveredFrom": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                    "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "recordReference": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                      "pattern": "\\S"
+                    },
+                    "supplierId": {
+                      "type": "string",
+                      "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                      "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                      "x-java-long": true
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                      "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                    },
+                    "statusAsOfCutoff": {
+                      "const": "ACTIVE"
+                    }
+                  },
+                  "required": [
+                    "recordReference",
+                    "supplierId",
+                    "createdAt",
+                    "statusAsOfCutoff"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "availability",
+              "sourceReference",
+              "sourceRevision",
+              "coveredFrom",
+              "records"
+            ],
+            "additionalProperties": false
+          },
+          "supplierTransitions": {
+            "type": "object",
+            "properties": {
+              "availability": {
+                "type": "string",
+                "enum": [
+                  "COMPLETE",
+                  "INCOMPLETE",
+                  "UNAVAILABLE"
+                ]
+              },
+              "sourceReference": {
+                "type": "string"
+              },
+              "sourceRevision": {
+                "const": "1"
+              },
+              "coveredFrom": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                    "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "records": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "recordReference": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128,
+                      "description": "Trimmed nonblank Unicode text; no controls or unpaired surrogates.",
+                      "pattern": "\\S"
+                    },
+                    "supplierId": {
+                      "type": "string",
+                      "pattern": "^(?:[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6][0-9]{0}|9223372036854775807)$",
+                      "description": "Positive decimal string, at most Java Long.MAX_VALUE (9223372036854775807).",
+                      "x-java-long": true
+                    },
+                    "previousStatus": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "nextStatus": {
+                      "type": "string",
+                      "enum": [
+                        "ACTIVE",
+                        "INACTIVE"
+                      ]
+                    },
+                    "changedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?!.*-00:00$)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]{1,9})?(?:Z|[+-][0-9]{2}:[0-9]{2})$",
+                      "description": "Explicit offset, UTC year 1..9999, excluding unknown -00:00; nanoseconds retained."
+                    }
+                  },
+                  "required": [
+                    "recordReference",
+                    "supplierId",
+                    "previousStatus",
+                    "nextStatus",
+                    "changedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "availability",
+              "sourceReference",
+              "sourceRevision",
+              "coveredFrom",
+              "records"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "contractVersion",
+          "request",
+          "providerServiceId",
+          "replayReference",
+          "snapshotRevision",
+          "populationHash",
+          "certification",
+          "pagination",
+          "paymentHistory",
+          "supplier",
+          "supplierTransitions"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

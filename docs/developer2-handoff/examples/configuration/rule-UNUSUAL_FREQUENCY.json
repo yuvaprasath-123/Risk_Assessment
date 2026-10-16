@@ -1,0 +1,13 @@
+{
+  "displayName": "Unusual Frequency",
+  "enabled": true,
+  "weight": 15,
+  "parameterSchemaVersion": "risk-policy-v1",
+  "parameters": {
+    "windowSeconds": 604800,
+    "maximumSubmissions": 3,
+    "historyEligibility": "VALIDATED_SUBMISSIONS"
+  },
+  "evaluationOrder": 2,
+  "expectedRowVersion": "1"
+}

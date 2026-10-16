@@ -1,0 +1,13 @@
+{
+  "displayName": "Near Duplicate Invoice",
+  "enabled": true,
+  "weight": 25,
+  "parameterSchemaVersion": "risk-policy-v1",
+  "parameters": {
+    "windowSeconds": 2592000,
+    "historyEligibility": "VALIDATED_SUBMISSIONS",
+    "invoiceNumberNormalization": "EXACT"
+  },
+  "evaluationOrder": 7,
+  "expectedRowVersion": "6"
+}

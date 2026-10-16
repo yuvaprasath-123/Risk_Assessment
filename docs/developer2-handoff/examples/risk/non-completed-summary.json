@@ -1,0 +1,13 @@
+{
+  "assessmentId": "701",
+  "rowVersion": "0",
+  "status": "ACCEPTED",
+  "cutoff": "2026-10-16T12:00:00.123456789Z",
+  "configurationVersionId": "1",
+  "configurationRowVersion": "17",
+  "completedAt": null,
+  "result": null,
+  "createdAt": "2026-10-16T12:00:00.123456789Z",
+  "evaluatedAt": null,
+  "evaluatorVersion": "risk-scoring-v1"
+}

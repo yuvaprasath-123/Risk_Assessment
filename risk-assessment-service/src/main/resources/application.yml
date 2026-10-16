@@ -1,0 +1,70 @@
+server:
+  port: ${RISK_HTTP_PORT:8087}
+  error:
+    include-message: never
+    include-stacktrace: never
+risk-submission:
+  enabled: ${RISK_SUBMISSION_ENABLED:false}
+  sources: ${RISK_SUBMISSION_SOURCES:}
+  dependency-budget: ${RISK_SUBMISSION_DEPENDENCY_BUDGET:}
+risk-history:
+  max-assessments: ${RISK_HISTORY_MAX_ASSESSMENTS:1000}
+risk-evidence-client:
+  enabled: ${RISK_EVIDENCE_CLIENT_ENABLED:false}
+  base-url: ${RISK_EVIDENCE_BASE_URL:}
+  provider-service-id: ${RISK_EVIDENCE_PROVIDER_SERVICE_ID:}
+  connect-timeout: ${RISK_EVIDENCE_CONNECT_TIMEOUT:}
+  header-timeout: ${RISK_EVIDENCE_HEADER_TIMEOUT:}
+  body-timeout: ${RISK_EVIDENCE_BODY_TIMEOUT:}
+  max-response-bytes: ${RISK_EVIDENCE_MAX_RESPONSE_BYTES:}
+  service-token: ${RISK_EVIDENCE_SERVICE_TOKEN:}
+  page-size: ${RISK_EVIDENCE_PAGE_SIZE:}
+  max-pages: ${RISK_EVIDENCE_MAX_PAGES:}
+  max-records: ${RISK_EVIDENCE_MAX_RECORDS:}
+risk-facts-client:
+  enabled: ${RISK_FACTS_CLIENT_ENABLED:false}
+  base-url: ${RISK_FACTS_BASE_URL:}
+  provider-service-id: ${RISK_FACTS_PROVIDER_SERVICE_ID:}
+  connect-timeout: ${RISK_FACTS_CONNECT_TIMEOUT:}
+  header-timeout: ${RISK_FACTS_HEADER_TIMEOUT:}
+  body-timeout: ${RISK_FACTS_BODY_TIMEOUT:}
+  max-response-bytes: ${RISK_FACTS_MAX_RESPONSE_BYTES:}
+  service-token: ${RISK_FACTS_SERVICE_TOKEN:}
+risk-configuration-client:
+  enabled: ${RISK_CONFIGURATION_CLIENT_ENABLED:false}
+  base-url: ${RISK_CONFIGURATION_BASE_URL:}
+  connect-timeout: ${RISK_CONFIGURATION_CONNECT_TIMEOUT:}
+  request-timeout: ${RISK_CONFIGURATION_REQUEST_TIMEOUT:}
+  max-response-bytes: ${RISK_CONFIGURATION_MAX_RESPONSE_BYTES:}
+  service-token: ${RISK_CONFIGURATION_SERVICE_TOKEN:}
+internal-access:
+  enabled: ${RISK_INTERNAL_ENABLED:false}
+  issuer: ${RISK_INTERNAL_ISSUER:}
+  audience: ${RISK_INTERNAL_AUDIENCE:}
+  public-keys: ${RISK_INTERNAL_PUBLIC_KEYS:}
+  service-permissions: ${RISK_INTERNAL_SERVICE_PERMISSIONS:}
+security:
+  jwt:
+    secret: ${RISK_JWT_SECRET}
+spring:
+  application:
+    name: risk-assessment-service
+  datasource:
+    url: ${RISK_DB_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
+    username: ${RISK_DB_USERNAME}
+    password: ${RISK_DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 3
+      connection-timeout: 5000
+  sql:
+    init:
+      mode: never
+  jpa:
+    generate-ddl: false
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: false
+  liquibase:
+    enabled: false

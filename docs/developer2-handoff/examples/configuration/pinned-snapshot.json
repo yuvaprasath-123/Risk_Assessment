@@ -1,0 +1,217 @@
+{
+  "configuration" : {
+    "approvalPolicy" : {
+      "absentBackupAction" : "MANUAL_REVIEW",
+      "authority" : "MAX_AMOUNT_TIER_AND_RISK_LEVEL",
+      "automaticApproval" : false,
+      "automaticPaymentProcessing" : false,
+      "backupCountScope" : "APPROVAL_CHAIN",
+      "backupEligibility" : "DEVELOPER3_CONFIGURED_ELIGIBLE_SAME_LEVEL_BACKUP",
+      "backupExpiryAction" : "MANUAL_REVIEW",
+      "backupRequiresSameLevelAuthorization" : true,
+      "currency" : "INR",
+      "developer3AuditEvents" : [ "ESCALATION", "EXPIRY", "MANUAL_REVIEW", "REASSIGNMENT" ],
+      "escalationOrder" : [ 1, 2, 3 ],
+      "humanAuthorizationLevels" : [ 1, 2, 3 ],
+      "maximumSameLevelBackups" : 1,
+      "newTaskDuration" : "DESTINATION_LEVEL_CONFIGURED_DURATION",
+      "newTimerEvents" : [ "FORMAL_ESCALATION_TASK", "NEW_BACKUP_TASK" ],
+      "ordinaryReassignmentResetsDeadline" : false,
+      "primaryExpiryActions" : {
+        "1" : "ESCALATE_TO_L2",
+        "2" : "ESCALATE_TO_L3",
+        "3" : "ONE_ELIGIBLE_L3_BACKUP_OR_MANUAL_REVIEW"
+      },
+      "riskLevels" : {
+        "HIGH" : 3,
+        "LOW" : 1,
+        "MEDIUM" : 2
+      },
+      "slas" : [ {
+        "approvalLevel" : 1,
+        "durationSeconds" : 86400,
+        "escalationPolicyCode" : "NEXT_LEVEL_V1",
+        "startEventCode" : "APPROVAL_PENDING_V1",
+        "terminalLevelPolicyCode" : null
+      }, {
+        "approvalLevel" : 2,
+        "durationSeconds" : 86400,
+        "escalationPolicyCode" : "NEXT_LEVEL_V1",
+        "startEventCode" : "APPROVAL_PENDING_V1",
+        "terminalLevelPolicyCode" : null
+      }, {
+        "approvalLevel" : 3,
+        "durationSeconds" : 86400,
+        "escalationPolicyCode" : "SAME_LEVEL_BACKUP_ONCE_V1",
+        "startEventCode" : "APPROVAL_PENDING_V1",
+        "terminalLevelPolicyCode" : "MANUAL_REVIEW_V1"
+      } ],
+      "timerStart" : "TASK_ENTERS_PENDING",
+      "version" : "approval-policy-v1",
+      "viewingResetsDeadline" : false
+    },
+    "approvalSlas" : [ {
+      "approvalLevel" : 1,
+      "durationSeconds" : 86400,
+      "escalationPolicyCode" : "NEXT_LEVEL_V1",
+      "slaConfigId" : "414",
+      "startEventCode" : "APPROVAL_PENDING_V1",
+      "terminalLevelPolicyCode" : null
+    }, {
+      "approvalLevel" : 2,
+      "durationSeconds" : 86400,
+      "escalationPolicyCode" : "NEXT_LEVEL_V1",
+      "slaConfigId" : "415",
+      "startEventCode" : "APPROVAL_PENDING_V1",
+      "terminalLevelPolicyCode" : null
+    }, {
+      "approvalLevel" : 3,
+      "durationSeconds" : 86400,
+      "escalationPolicyCode" : "SAME_LEVEL_BACKUP_ONCE_V1",
+      "slaConfigId" : "416",
+      "startEventCode" : "APPROVAL_PENDING_V1",
+      "terminalLevelPolicyCode" : "MANUAL_REVIEW_V1"
+    } ],
+    "approvalThresholds" : [ {
+      "approvalLevel" : 1,
+      "maxAmountExclusive" : "10000.00",
+      "minAmountInclusive" : "0.00",
+      "thresholdConfigId" : "311"
+    }, {
+      "approvalLevel" : 2,
+      "maxAmountExclusive" : "100000.00",
+      "minAmountInclusive" : "10000.00",
+      "thresholdConfigId" : "312"
+    }, {
+      "approvalLevel" : 3,
+      "maxAmountExclusive" : null,
+      "minAmountInclusive" : "100000.00",
+      "thresholdConfigId" : "313"
+    } ],
+    "createdAt" : "2026-10-16T00:00:00Z",
+    "createdByUserId" : "11",
+    "description" : "Synthetic publishable example. INR tier boundaries are demonstration inputs, not approved monetary requirements.",
+    "hashFormat" : "configuration-content-v2",
+    "isDemonstration" : true,
+    "maxFinalScore" : 100,
+    "riskBands" : [ {
+      "approvalLevel" : 1,
+      "bandCode" : "LOW",
+      "bandConfigId" : "208",
+      "maxScoreInclusive" : 29,
+      "minScoreInclusive" : 0
+    }, {
+      "approvalLevel" : 2,
+      "bandCode" : "MEDIUM",
+      "bandConfigId" : "209",
+      "maxScoreInclusive" : 60,
+      "minScoreInclusive" : 30
+    }, {
+      "approvalLevel" : 3,
+      "bandCode" : "HIGH",
+      "bandConfigId" : "210",
+      "maxScoreInclusive" : 100,
+      "minScoreInclusive" : 61
+    } ],
+    "riskRules" : [ {
+      "displayName" : "Structuring",
+      "enabled" : true,
+      "evaluationOrder" : 1,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "approvalBoundaryLevels" : [ 2, 3 ],
+        "historyEligibility" : "VALIDATED_SUBMISSIONS",
+        "minimumPayments" : 2,
+        "windowSeconds" : 604800
+      },
+      "ruleCode" : "STRUCTURING",
+      "ruleConfigId" : "101",
+      "weight" : 35
+    }, {
+      "displayName" : "Unusual Frequency",
+      "enabled" : true,
+      "evaluationOrder" : 2,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "historyEligibility" : "VALIDATED_SUBMISSIONS",
+        "maximumSubmissions" : 3,
+        "windowSeconds" : 604800
+      },
+      "ruleCode" : "UNUSUAL_FREQUENCY",
+      "ruleConfigId" : "102",
+      "weight" : 15
+    }, {
+      "displayName" : "Unusual Amount",
+      "enabled" : true,
+      "evaluationOrder" : 3,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "meanMultiplier" : "2",
+        "minimumObservations" : 5,
+        "windowSeconds" : 7776000,
+        "zeroBaselinePolicy" : "INSUFFICIENT_HISTORY"
+      },
+      "ruleCode" : "UNUSUAL_AMOUNT",
+      "ruleConfigId" : "103",
+      "weight" : 20
+    }, {
+      "displayName" : "Recently Reactivated Supplier",
+      "enabled" : true,
+      "evaluationOrder" : 4,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "windowSeconds" : 2592000
+      },
+      "ruleCode" : "RECENTLY_REACTIVATED_SUPPLIER",
+      "ruleConfigId" : "104",
+      "weight" : 15
+    }, {
+      "displayName" : "Previous Risk Flags",
+      "enabled" : true,
+      "evaluationOrder" : 5,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "minimumFlaggedPayments" : 1,
+        "qualifyingRuleCodes" : [ "STRUCTURING", "UNUSUAL_FREQUENCY", "UNUSUAL_AMOUNT", "RECENTLY_REACTIVATED_SUPPLIER", "NEW_SUPPLIER", "NEAR_DUPLICATE_INVOICE" ],
+        "windowSeconds" : 7776000
+      },
+      "ruleCode" : "PREVIOUS_RISK_FLAGS",
+      "ruleConfigId" : "105",
+      "weight" : 10
+    }, {
+      "displayName" : "New Supplier",
+      "enabled" : true,
+      "evaluationOrder" : 6,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "windowSeconds" : 2592000
+      },
+      "ruleCode" : "NEW_SUPPLIER",
+      "ruleConfigId" : "106",
+      "weight" : 15
+    }, {
+      "displayName" : "Near Duplicate Invoice",
+      "enabled" : true,
+      "evaluationOrder" : 7,
+      "parameterSchemaVersion" : "risk-policy-v1",
+      "parameters" : {
+        "historyEligibility" : "VALIDATED_SUBMISSIONS",
+        "invoiceNumberNormalization" : "EXACT",
+        "windowSeconds" : 2592000
+      },
+      "ruleCode" : "NEAR_DUPLICATE_INVOICE",
+      "ruleConfigId" : "107",
+      "weight" : 25
+    } ],
+    "scorePolicyCode" : "CAP_AT_MAX",
+    "versionId" : "1",
+    "versionLabel" : "DEMONSTRATION ONLY - handoff example",
+    "versionNumber" : 1
+  },
+  "contentHash" : "1d48ae07243cb94502d5c2659daca7bb35d40f1a92928dac5202e90016d909fd",
+  "hashFormat" : "configuration-content-v2",
+  "publishedAt" : "2026-10-16T00:01:00Z",
+  "publishedByUserId" : "11",
+  "versionId" : "1",
+  "versionRowVersion" : "17"
+}

@@ -1,0 +1,20 @@
+{
+  "displayName": "Previous Risk Flags",
+  "enabled": true,
+  "weight": 10,
+  "parameterSchemaVersion": "risk-policy-v1",
+  "parameters": {
+    "windowSeconds": 7776000,
+    "minimumFlaggedPayments": 1,
+    "qualifyingRuleCodes": [
+      "STRUCTURING",
+      "UNUSUAL_FREQUENCY",
+      "UNUSUAL_AMOUNT",
+      "RECENTLY_REACTIVATED_SUPPLIER",
+      "NEW_SUPPLIER",
+      "NEAR_DUPLICATE_INVOICE"
+    ]
+  },
+  "evaluationOrder": 5,
+  "expectedRowVersion": "4"
+}
