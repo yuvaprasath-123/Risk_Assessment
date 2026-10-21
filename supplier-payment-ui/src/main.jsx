@@ -10,6 +10,8 @@ import "./i18n/i18n";
 
 import "./index.css";
 
+import "./App.css";
+
 import App
   from "./App";
 

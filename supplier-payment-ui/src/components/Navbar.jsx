@@ -1,28 +1,16 @@
+
 import {
-  Link,
+  NavLink,
   useNavigate
 } from "react-router";
 
-import {
-  useTranslation
-} from "react-i18next";
+import { useTranslation } from "react-i18next";
 
-import {
-  useAuth
-} from "../auth/AuthContext";
-
-import {
-  useTheme
-} from "../theme/ThemeContext";
-
-import LanguageSelector
-  from "./LanguageSelector";
+import { useAuth } from "../auth/AuthContext";
+import { useTheme } from "../theme/ThemeContext";
 
 export default function Navbar() {
-
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
 
   const {
     user,
@@ -36,148 +24,127 @@ export default function Navbar() {
     toggleTheme
   } = useTheme();
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
   if (!isAuthenticated) {
-
     return null;
   }
 
-  const isRequester =
-    hasRole(
-      "PAYMENT_REQUESTER"
-    );
+  const isRequester = hasRole("PAYMENT_REQUESTER");
 
   const isFinanceApprover =
-    hasRole(
-      "FINANCE_APPROVER"
-    );
+    hasRole("FINANCE_APPROVER");
 
   const isFinanceManager =
-    hasRole(
-      "FINANCE_MANAGER"
-    );
+    hasRole("FINANCE_MANAGER");
+
+  const canViewApprovals =
+    isFinanceApprover || isFinanceManager;
 
   const canCreateRequester =
-    isFinanceApprover ||
-    isFinanceManager;
+    isFinanceApprover || isFinanceManager;
+
+  const navigationItems = [
+    {
+      path: "/",
+      label: t("nav.dashboard"),
+      visible: true
+    },
+    {
+      path: "/suppliers",
+      label: t("nav.suppliers"),
+      visible: isRequester
+    },
+    {
+      path: "/invoices",
+      label: t("nav.invoices"),
+      visible: isRequester
+    },
+    {
+      path: "/payments",
+      label: t("nav.payments"),
+      visible: isRequester
+    },
+    {
+      path: "/approvals",
+      label: "Approvals",
+      visible: canViewApprovals
+    },
+    {
+      path: "/payment-processing",
+      label: "Payment Processing",
+      visible: isFinanceManager
+    },
+    {
+      path: "/audit",
+      label: "Audit Timeline",
+      visible: isFinanceManager
+    },
+    {
+      path: "/business-configuration",
+      label: "Business Configuration",
+      visible: isFinanceManager
+    },
+    {
+      path: "/users/create-requester",
+      label: "Create Requester",
+      visible: canCreateRequester
+    }
+  ];
+
+  const visibleItems = navigationItems.filter(
+    (item) => item.visible
+  );
 
   function handleLogout() {
-
     logout();
-
-    navigate(
-      "/login"
-    );
+    navigate("/login", { replace: true });
   }
 
   return (
     <header className="navbar">
-
       <div className="navbar-left">
-
-        <Link
+        <NavLink
           to="/"
           className="navbar-brand"
         >
-          {
-            t(
-              "appName"
-            )
-          }
-        </Link>
+          {t("appName")}
+        </NavLink>
 
-        <nav className="navbar-links">
-
-          <Link
-            to="/"
-            className="nav-link"
-          >
-            {
-              t(
-                "nav.dashboard"
-              )
-            }
-          </Link>
-
-          {
-            isRequester &&
-            (
-              <>
-                <Link
-                  to="/suppliers"
-                  className="nav-link"
-                >
-                  {
-                    t(
-                      "nav.suppliers"
-                    )
-                  }
-                </Link>
-
-                <Link
-                  to="/invoices"
-                  className="nav-link"
-                >
-                  {
-                    t(
-                      "nav.invoices"
-                    )
-                  }
-                </Link>
-
-                <Link
-                  to="/payments"
-                  className="nav-link"
-                >
-                  {
-                    t(
-                      "nav.payments"
-                    )
-                  }
-                </Link>
-              </>
-            )
-          }
-
-          {
-            canCreateRequester &&
-            (
-              <Link
-                to="/users/create-requester"
-                className="nav-link"
-              >
-                Create Requester
-              </Link>
-            )
-          }
-
+        <nav
+          className="navbar-links"
+          aria-label="Main navigation"
+        >
+          {visibleItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === "/"}
+              className={({ isActive }) =>
+                isActive
+                  ? "nav-link active"
+                  : "nav-link"
+              }
+              aria-label={item.label}
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </nav>
-
       </div>
 
       <div className="navbar-right">
-
         <div className="navbar-user">
-
-          {
-            user?.displayName ||
+          {user?.displayName ||
             user?.username ||
             user?.userId ||
-            ""
-          }
-
+            ""}
         </div>
-
-        <LanguageSelector />
 
         <button
           type="button"
           className="theme-toggle"
-          onClick={
-            toggleTheme
-          }
+          onClick={toggleTheme}
           aria-label={
             theme === "dark"
               ? "Switch to light mode"
@@ -189,31 +156,20 @@ export default function Navbar() {
               : "Switch to dark mode"
           }
         >
-
-          {
-            theme === "dark"
-              ? "☀ Light"
-              : "🌙 Dark"
-          }
-
+          {theme === "dark"
+            ? "☀ Light"
+            : "🌙 Dark"}
         </button>
 
         <button
           type="button"
           className="logout-button"
-          onClick={
-            handleLogout
-          }
+          onClick={handleLogout}
         >
-          {
-            t(
-              "nav.logout"
-            )
-          }
+          {t("nav.logout")}
         </button>
-
       </div>
-
     </header>
   );
 }
+

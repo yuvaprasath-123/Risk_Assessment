@@ -1,33 +1,61 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const createProxy = (prefix, target) => ({
+  target,
+  changeOrigin: true,
+  rewrite: (path) =>
+    path.replace(
+      new RegExp(`^${prefix}`),
+      ""
+    )
+});
+
 const proxyConfig = {
-  "/security-api": {
-    target: "http://localhost:8081",
-    changeOrigin: true,
-    rewrite: (path) =>
-      path.replace(/^\/security-api/, "")
-  },
+  "/security-api": createProxy(
+    "/security-api",
+    "http://localhost:8081"
+  ),
 
-  "/supplier-api": {
-    target: "http://localhost:8082",
-    changeOrigin: true,
-    rewrite: (path) =>
-      path.replace(/^\/supplier-api/, "")
-  },
+  "/supplier-api": createProxy(
+    "/supplier-api",
+    "http://localhost:8082"
+  ),
 
-  "/payment-api": {
-    target: "http://localhost:8083",
-    changeOrigin: true,
-    rewrite: (path) =>
-      path.replace(/^\/payment-api/, "")
-  }
+  "/payment-api": createProxy(
+    "/payment-api",
+    "http://localhost:8083"
+  ),
+
+  "/configuration-api": createProxy(
+    "/configuration-api",
+    "http://localhost:8086"
+  ),
+
+  "/risk-api": createProxy(
+    "/risk-api",
+    "http://localhost:8087"
+  ),
+
+  "/approval-api": createProxy(
+    "/approval-api",
+    "http://localhost:8089"
+  ),
+
+  "/audit-api": createProxy(
+    "/audit-api",
+    "http://localhost:8088"
+  ),
+
+  "/processing-api": createProxy(
+    "/processing-api",
+    "http://localhost:8085"
+  )
 };
 
 export default defineConfig({
-  plugins: [
-    react()
-  ],
+  plugins: [react()],
 
   server: {
     port: 4173,
@@ -43,17 +71,12 @@ export default defineConfig({
 
   test: {
     globals: true,
-
     environment: "jsdom",
-
     setupFiles: "./src/test/setup.js",
-
     css: true,
-
     include: [
       "src/**/*.{test,spec}.{js,jsx,ts,tsx}"
     ],
-
     exclude: [
       "e2e/**",
       "node_modules/**",
