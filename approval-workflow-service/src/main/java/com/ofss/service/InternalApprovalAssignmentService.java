@@ -5,6 +5,7 @@ import com.ofss.dto.ApprovalRequests;
 import com.ofss.dto.ApprovalWorkflowResponse;
 import com.ofss.entity.ApprovalLevel;
 import com.ofss.entity.ApprovalTask;
+import com.ofss.entity.RiskBand;
 import com.ofss.repository.ApprovalRouteRepository;
 import com.ofss.repository.ApprovalTaskRepository;
 import com.ofss.repository.TrustedApprovalDataRepository;
@@ -62,11 +63,8 @@ public class InternalApprovalAssignmentService {
 
         /*
          * IDEMPOTENCY:
-         * Return the existing task when an
-         * assignment already exists.
-         *
-         * Never intentionally create a second
-         * approval task for the same payment.
+         * Return an existing task instead of creating
+         * another task for the same payment.
          */
         var existingTask =
                 taskRepository.findByPaymentId(paymentId);
@@ -76,8 +74,9 @@ public class InternalApprovalAssignmentService {
         }
 
         /*
-         * Read trusted payment and risk information
-         * directly from Oracle.
+         * Load authoritative payment, completed risk
+         * assessment and versioned SLA configuration
+         * from Oracle.
          */
         var payment =
                 trustedData.getPaymentData(paymentId);
@@ -101,35 +100,117 @@ public class InternalApprovalAssignmentService {
         }
 
         /*
-         * Convert the trusted Oracle approval level
-         * into the application enum.
+         * Convert the trusted Oracle risk band into
+         * the exact application enum.
          */
-        ApprovalLevel requiredLevel =
-                switch (payment.requiredApprovalLevel()) {
+        RiskBand riskBand;
 
+        try {
+            riskBand = RiskBand.valueOf(
+                    payment.riskBand()
+            );
+
+        } catch (IllegalArgumentException |
+                 NullPointerException ex) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Invalid trusted risk band"
+            );
+        }
+
+        /*
+         * The risk policy maps:
+         * LOW    -> L1
+         * MEDIUM -> L2
+         * HIGH   -> L3
+         */
+        ApprovalLevel riskLevel =
+                switch (riskBand) {
+                    case LOW -> ApprovalLevel.L1;
+                    case MEDIUM -> ApprovalLevel.L2;
+                    case HIGH -> ApprovalLevel.L3;
+                };
+
+        int trustedRiskLevel =
+                switch (riskLevel) {
+                    case L1 -> 1;
+                    case L2 -> 2;
+                    case L3 -> 3;
+                };
+
+        if (payment.riskApprovalLevel()
+                != trustedRiskLevel) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Risk band and risk approval level disagree"
+            );
+        }
+
+        /*
+         * Resolve the amount-based approval level
+         * from the SAME published configuration
+         * version used by this risk assessment.
+         */
+        if (payment.configurationVersionId() == null
+                || payment.configurationVersionId() <= 0) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Valid approval configuration version required"
+            );
+        }
+
+        int amountLevelNumber =
+                trustedData.getAmountApprovalLevel(
+                        payment.configurationVersionId(),
+                        payment.paymentAmount()
+                );
+
+        ApprovalLevel amountLevel =
+                switch (amountLevelNumber) {
                     case 1 -> ApprovalLevel.L1;
-
                     case 2 -> ApprovalLevel.L2;
-
                     case 3 -> ApprovalLevel.L3;
-
                     default ->
                             throw new ResponseStatusException(
                                     HttpStatus.CONFLICT,
-                                    "Invalid required approval level"
+                                    "Invalid amount approval level"
                             );
                 };
 
         /*
-         * Shared eligible-approver selection.
-         *
-         * Preserve initial assignment behavior:
-         * prefer the required level and allow
-         * higher-level fallback.
-         *
-         * The selector verifies active authority,
-         * active user status, finance role,
-         * and requester exclusion.
+         * The required approval level must be
+         * the stricter of amount and risk policy.
+         */
+        ApprovalLevel requiredLevel =
+                ApprovalService.stricter(
+                        amountLevel,
+                        riskLevel
+                );
+
+        int requiredLevelNumber =
+                switch (requiredLevel) {
+                    case L1 -> 1;
+                    case L2 -> 2;
+                    case L3 -> 3;
+                };
+
+        if (payment.requiredApprovalLevel()
+                != requiredLevelNumber) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Payment approval level disagrees with "
+                            + "versioned risk and amount policy"
+            );
+        }
+
+        /*
+         * Preserve eligible-approver selection:
+         * prefer the required level and permit
+         * authorized higher-level fallback.
          */
         Long approverId =
                 approverSelector.selectAtOrAboveLevel(
@@ -139,10 +220,41 @@ public class InternalApprovalAssignmentService {
                 );
 
         /*
-         * Create the approval route if missing.
+         * The existing SLA must be represented
+         * accurately in minutes.
          *
-         * ApprovalService.route() independently
-         * validates the payment and risk rules.
+         * Do not silently truncate seconds.
+         */
+        int slaSeconds =
+                payment.slaDurationSeconds();
+
+        if (slaSeconds < 60
+                || slaSeconds % 60 != 0) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Configured SLA must be a positive "
+                            + "whole number of minutes"
+            );
+        }
+
+        int slaMinutes = slaSeconds / 60;
+
+        if (slaMinutes > 525600) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Configured SLA exceeds supported maximum"
+            );
+        }
+
+        /*
+         * Create the route only when absent.
+         *
+         * All route fields come from trusted Oracle
+         * payment, risk and configuration records.
+         *
+         * Never pass null for riskBand or
+         * amountApprovalLevel.
          */
         if (routeRepository
                 .findByPaymentId(paymentId)
@@ -153,29 +265,31 @@ public class InternalApprovalAssignmentService {
                             paymentId,
                             payment.requesterId(),
                             payment.paymentAmount(),
-                            null,
-                            null,
-                            null
+                            riskBand,
+                            amountLevel,
+                            String.valueOf(
+                                    payment.configurationVersionId()
+                            )
                     )
             );
         }
 
         /*
-         * Create the approval task.
+         * Create the task using the versioned SLA.
          *
-         * ApprovalService.create() independently
-         * validates the assignment and reads
-         * the configured SLA from Oracle.
+         * Existing ApprovalService.create()
+         * independently checks the assignment
+         * and approver authorization.
          *
-         * Route and task creation remain
-         * in the same transaction.
+         * Route and task creation remain atomic
+         * under this transaction.
          */
         ApprovalTask task =
                 approvalService.create(
                         new ApprovalRequests.Task(
                                 paymentId,
                                 approverId,
-                                payment.slaDurationSeconds() / 60
+                                slaMinutes
                         ),
                         authorization
                 );

@@ -14,5 +14,8 @@ spring:
     open-in-view: false
 approval:
   default-sla-minutes: ${APPROVAL_DEFAULT_SLA_MINUTES:60}
+  outbox:
+    enabled: true
+    interval-ms: 5000
 integration:
   security-url: ${SECURITY_SERVICE_URL:http://localhost:8081}

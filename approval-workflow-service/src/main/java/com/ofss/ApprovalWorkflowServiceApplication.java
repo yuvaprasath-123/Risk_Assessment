@@ -1,4 +1,18 @@
+
 package com.ofss;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-@SpringBootApplication public class ApprovalWorkflowServiceApplication { public static void main(String[] args) { SpringApplication.run(ApprovalWorkflowServiceApplication.class, args); } }
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@SpringBootApplication
+@EnableScheduling
+public class ApprovalWorkflowServiceApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(
+                ApprovalWorkflowServiceApplication.class,
+                args
+        );
+    }
+}

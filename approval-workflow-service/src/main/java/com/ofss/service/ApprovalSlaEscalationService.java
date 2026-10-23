@@ -1,4 +1,3 @@
-
 package com.ofss.service;
 
 import com.ofss.entity.ApprovalEscalation;
@@ -48,7 +47,9 @@ public class ApprovalSlaEscalationService {
     private static final String MANUAL_REVIEW_POLICY =
             "MANUAL_REVIEW_V1";
 
-    private final ApprovalTaskRepository taskRepository;
+
+    private final ApprovalTaskRepository
+            taskRepository;
 
     private final ApprovalEscalationRepository
             escalationRepository;
@@ -64,6 +65,22 @@ public class ApprovalSlaEscalationService {
 
     /*
      * NEW:
+     *
+     * Calculates SLA deadlines using the configured
+     * business calendar:
+     *
+     * Monday-Friday
+     * 09:00-17:00
+     * Asia/Kolkata
+     *
+     * Weekends and configured holidays consume
+     * zero SLA time.
+     */
+    private final BusinessCalendarService
+            businessCalendarService;
+
+
+    /*
      * Fixed creation-time cutoff for the
      * new-payments-only SLA rollout.
      *
@@ -72,7 +89,9 @@ public class ApprovalSlaEscalationService {
      * This value is read once at startup.
      * It must not advance on every scheduler scan.
      */
-    private final OffsetDateTime rolloutCutoff;
+    private final OffsetDateTime
+            rolloutCutoff;
+
 
     public ApprovalSlaEscalationService(
             ApprovalTaskRepository taskRepository,
@@ -80,15 +99,30 @@ public class ApprovalSlaEscalationService {
             BackupApproverRepository backupRepository,
             EligibleApproverSelector approverSelector,
             TrustedApprovalDataRepository trustedData,
+            BusinessCalendarService businessCalendarService,
 
             @Value("${approval-sla.rollout-cutoff:}")
             String rolloutCutoffText
     ) {
-        this.taskRepository = taskRepository;
-        this.escalationRepository = escalationRepository;
-        this.backupRepository = backupRepository;
-        this.approverSelector = approverSelector;
-        this.trustedData = trustedData;
+
+        this.taskRepository =
+                taskRepository;
+
+        this.escalationRepository =
+                escalationRepository;
+
+        this.backupRepository =
+                backupRepository;
+
+        this.approverSelector =
+                approverSelector;
+
+        this.trustedData =
+                trustedData;
+
+        this.businessCalendarService =
+                businessCalendarService;
+
 
         /*
          * Fail closed when the cutoff is absent.
@@ -99,17 +133,20 @@ public class ApprovalSlaEscalationService {
         if (rolloutCutoffText == null
                 || rolloutCutoffText.isBlank()) {
 
-            this.rolloutCutoff = null;
+            this.rolloutCutoff =
+                    null;
 
         } else {
 
             try {
+
                 this.rolloutCutoff =
                         OffsetDateTime.parse(
                                 rolloutCutoffText.trim()
                         );
 
             } catch (DateTimeParseException ex) {
+
                 throw new IllegalArgumentException(
                         "Invalid approval-sla.rollout-cutoff; "
                         + "expected ISO-8601 date-time with offset",
@@ -118,6 +155,7 @@ public class ApprovalSlaEscalationService {
             }
         }
     }
+
 
     /*
      * Process one overdue task in one Oracle
@@ -138,35 +176,45 @@ public class ApprovalSlaEscalationService {
             String authorization
     ) {
 
-        if (taskId == null || taskId <= 0) {
+        if (taskId == null
+                || taskId <= 0) {
+
             return false;
         }
 
+
         /*
-         * NEW: Missing cutoff blocks all
+         * Missing cutoff blocks all
          * automatic escalation attempts.
          *
          * This check occurs before querying
          * or locking any approval task.
          */
         if (rolloutCutoff == null) {
+
             log.warn(
                     "Automatic SLA escalation blocked: "
                     + "rollout cutoff is not configured"
             );
+
             return false;
         }
 
-        ApprovalTask task = taskRepository
-                .findForUpdate(taskId)
-                .orElse(null);
+
+        ApprovalTask task =
+                taskRepository
+                        .findForUpdate(taskId)
+                        .orElse(null);
+
 
         if (task == null) {
+
             return false;
         }
 
+
         /*
-         * NEW: Enforce the fixed cutoff AFTER
+         * Enforce the fixed cutoff AFTER
          * obtaining the Oracle row lock.
          *
          * Compare actual instants so different
@@ -177,9 +225,11 @@ public class ApprovalSlaEscalationService {
          * must never be treated as eligible.
          */
         if (task.createdAt == null
-                || task.createdAt.toInstant().isBefore(
-                        rolloutCutoff.toInstant()
-                )) {
+                || task.createdAt
+                        .toInstant()
+                        .isBefore(
+                                rolloutCutoff.toInstant()
+                        )) {
 
             log.debug(
                     "SLA task excluded by rollout cutoff: taskId={}",
@@ -189,23 +239,41 @@ public class ApprovalSlaEscalationService {
             return false;
         }
 
+
         /*
          * Revalidate after acquiring the row lock.
          *
          * Never modify an approved, rejected
          * or manual-review task.
          */
-        if (task.status != ApprovalStatus.PENDING_APPROVAL
-                && task.status != ApprovalStatus.ESCALATED) {
+        if (task.status
+                != ApprovalStatus.PENDING_APPROVAL
+                && task.status
+                != ApprovalStatus.ESCALATED) {
+
             return false;
         }
 
-        OffsetDateTime now = OffsetDateTime.now();
 
+        OffsetDateTime now =
+                OffsetDateTime.now();
+
+
+        /*
+         * dueAt is already business-calendar-aware.
+         *
+         * Therefore the scheduler/service only needs
+         * to compare the current instant against
+         * the stored deadline.
+         */
         if (task.dueAt == null
-                || now.isBefore(task.dueAt)) {
+                || now.isBefore(
+                        task.dueAt
+                )) {
+
             return false;
         }
+
 
         if (task.requiredLevel == null
                 || task.slaMinutes <= 0
@@ -217,6 +285,7 @@ public class ApprovalSlaEscalationService {
             );
         }
 
+
         /*
          * Read trusted payment data and its
          * stored configuration version.
@@ -225,34 +294,46 @@ public class ApprovalSlaEscalationService {
          * configuration version here.
          */
         var payment =
-                trustedData.getPaymentData(task.paymentId);
+                trustedData.getPaymentData(
+                        task.paymentId
+                );
+
 
         if (!"PENDING_APPROVAL".equals(
-                payment.paymentStatus())) {
+                payment.paymentStatus()
+        )) {
+
             return false;
         }
 
+
         if (!"COMPLETED".equals(
-                payment.assessmentStatus())) {
+                payment.assessmentStatus()
+        )) {
 
             throw new IllegalStateException(
                     "Risk assessment must be completed"
             );
         }
 
+
         if (!task.requesterId.equals(
-                payment.requesterId())) {
+                payment.requesterId()
+        )) {
 
             throw new IllegalStateException(
                     "Approval requester does not match payment"
             );
         }
 
+
         ApprovalLevel previousLevel =
                 task.requiredLevel;
 
+
         Long previousApproverId =
                 task.assignedApproverId;
+
 
         /*
          * Look up the Oracle SLA policy for the
@@ -262,6 +343,7 @@ public class ApprovalSlaEscalationService {
          *
          * A payment originally requiring L1
          * might currently be escalated to L3.
+         *
          * Its current policy must be read
          * from the L3 SLA configuration.
          */
@@ -271,16 +353,22 @@ public class ApprovalSlaEscalationService {
                         previousLevel
                 );
 
+
         validatePolicy(
                 previousLevel,
                 currentPolicy
         );
 
+
         ApprovalEscalation escalation =
                 new ApprovalEscalation();
 
-        escalation.taskId = task.id;
-        escalation.paymentId = task.paymentId;
+
+        escalation.taskId =
+                task.id;
+
+        escalation.paymentId =
+                task.paymentId;
 
         escalation.previousApproverId =
                 previousApproverId;
@@ -288,21 +376,31 @@ public class ApprovalSlaEscalationService {
         escalation.previousLevel =
                 previousLevel;
 
-        escalation.occurredAt = now;
+        escalation.occurredAt =
+                now;
+
 
         /*
-         * L1 and L2:
+         * =====================================================
+         * L1 / L2 ESCALATION
+         * =====================================================
          *
-         * Oracle must explicitly specify
-         * NEXT_LEVEL_V1.
+         * L1 -> L2
+         * L2 -> L3
+         *
+         * Oracle must explicitly specify:
+         *
+         * NEXT_LEVEL_V1
          */
         if (previousLevel == ApprovalLevel.L1
                 || previousLevel == ApprovalLevel.L2) {
+
 
             ApprovalLevel nextLevel =
                     previousLevel == ApprovalLevel.L1
                             ? ApprovalLevel.L2
                             : ApprovalLevel.L3;
+
 
             /*
              * Obtain the SLA duration for
@@ -317,10 +415,12 @@ public class ApprovalSlaEscalationService {
                             nextLevel
                     );
 
+
             validatePolicy(
                     nextLevel,
                     nextPolicy
             );
+
 
             Long nextApprover =
                     approverSelector.selectAtExactLevel(
@@ -330,28 +430,67 @@ public class ApprovalSlaEscalationService {
                             authorization
                     );
 
-            task.requiredLevel = nextLevel;
-            task.assignedApproverId = nextApprover;
-            task.status = ApprovalStatus.ESCALATED;
+
+            task.requiredLevel =
+                    nextLevel;
+
+            task.assignedApproverId =
+                    nextApprover;
+
+            task.status =
+                    ApprovalStatus.ESCALATED;
+
 
             /*
-             * Renew the deadline using the
-             * target level's configured SLA.
+             * Store configured SLA duration in minutes.
              */
             task.slaMinutes =
-                    nextPolicy.durationSeconds() / 60;
+                    nextPolicy.durationSeconds()
+                            / 60;
 
+
+            /*
+             * =================================================
+             * HOLIDAY-AWARE SLA DEADLINE
+             * =================================================
+             *
+             * OLD:
+             *
+             * now.plusSeconds(
+             *     nextPolicy.durationSeconds()
+             * )
+             *
+             * NEW:
+             *
+             * Business SLA time counts only:
+             *
+             * Monday-Friday
+             * 09:00-17:00 IST
+             *
+             * Saturdays = 0 SLA minutes
+             * Sundays   = 0 SLA minutes
+             * Holidays  = 0 SLA minutes
+             *
+             * Outside working hours the SLA waits
+             * until the next working period.
+             */
             task.dueAt =
-                    now.plusSeconds(
-                            nextPolicy.durationSeconds()
-                    );
+                    businessCalendarService
+                            .calculateDueAt(
+                                    now,
+                                    task.slaMinutes
+                            );
 
-            escalation.requiredLevel = nextLevel;
+
+            escalation.requiredLevel =
+                    nextLevel;
+
             escalation.assignedApproverId =
                     nextApprover;
 
             escalation.action =
                     AUTO_ESCALATED;
+
 
             escalation.remark =
                     "Automatic SLA escalation from "
@@ -361,7 +500,28 @@ public class ApprovalSlaEscalationService {
                     + " under "
                     + NEXT_LEVEL_POLICY;
 
-        } else if (previousLevel == ApprovalLevel.L3) {
+
+            log.info(
+                    "Holiday-aware SLA assigned after escalation: "
+                    + "taskId={}, paymentId={}, "
+                    + "level={}, slaMinutes={}, dueAt={}",
+                    task.id,
+                    task.paymentId,
+                    nextLevel,
+                    task.slaMinutes,
+                    task.dueAt
+            );
+
+
+        /*
+         * =====================================================
+         * L3 ESCALATION
+         * =====================================================
+         */
+        } else if (
+                previousLevel == ApprovalLevel.L3
+        ) {
+
 
             /*
              * L3:
@@ -384,6 +544,7 @@ public class ApprovalSlaEscalationService {
                                     task.paymentId
                             );
 
+
             /*
              * Recognize both automatic and
              * existing manual backup assignments.
@@ -393,20 +554,25 @@ public class ApprovalSlaEscalationService {
              */
             boolean backupAlreadyUsed =
                     history.stream()
-                            .anyMatch(record ->
-                                    record.previousLevel
-                                            == ApprovalLevel.L3
-                                    && (
-                                        AUTO_L3_BACKUP.equals(
-                                                record.action
-                                        )
-                                        || "REASSIGNED_TO_BACKUP".equals(
-                                                record.action
-                                        )
-                                    )
+                            .anyMatch(
+                                    record ->
+                                            record.previousLevel
+                                                    == ApprovalLevel.L3
+                                            && (
+                                                AUTO_L3_BACKUP.equals(
+                                                        record.action
+                                                )
+                                                ||
+                                                "REASSIGNED_TO_BACKUP"
+                                                        .equals(
+                                                                record.action
+                                                        )
+                                            )
                             );
 
+
             if (backupAlreadyUsed) {
+
 
                 moveToManualReview(
                         task,
@@ -415,7 +581,9 @@ public class ApprovalSlaEscalationService {
                         + "manual review required"
                 );
 
+
             } else {
+
 
                 var mapping =
                         backupRepository
@@ -424,7 +592,9 @@ public class ApprovalSlaEscalationService {
                                         ApprovalLevel.L3
                                 );
 
+
                 if (mapping.isEmpty()) {
+
 
                     /*
                      * If no L3 backup mapping
@@ -440,10 +610,14 @@ public class ApprovalSlaEscalationService {
                             + "no configured backup approver"
                     );
 
+
                 } else {
 
+
                     Long backupApproverId =
-                            mapping.get().backupApproverId;
+                            mapping.get()
+                                    .backupApproverId;
+
 
                     /*
                      * Verify the exact configured
@@ -453,15 +627,18 @@ public class ApprovalSlaEscalationService {
                      * an exception and rolls back.
                      */
                     boolean eligible =
-                            approverSelector.isEligibleBackup(
-                                    ApprovalLevel.L3,
-                                    backupApproverId,
-                                    task.requesterId,
-                                    previousApproverId,
-                                    authorization
-                            );
+                            approverSelector
+                                    .isEligibleBackup(
+                                            ApprovalLevel.L3,
+                                            backupApproverId,
+                                            task.requesterId,
+                                            previousApproverId,
+                                            authorization
+                                    );
+
 
                     if (!eligible) {
+
 
                         moveToManualReview(
                                 task,
@@ -470,16 +647,21 @@ public class ApprovalSlaEscalationService {
                                 + "configured backup is ineligible"
                         );
 
+
                     } else {
+
 
                         task.requiredLevel =
                                 ApprovalLevel.L3;
 
+
                         task.assignedApproverId =
                                 backupApproverId;
 
+
                         task.status =
                                 ApprovalStatus.ESCALATED;
+
 
                         /*
                          * A same-level L3 backup
@@ -487,21 +669,37 @@ public class ApprovalSlaEscalationService {
                          * L3 SLA duration.
                          */
                         task.slaMinutes =
-                                currentPolicy.durationSeconds() / 60;
+                                currentPolicy.durationSeconds()
+                                        / 60;
 
+
+                        /*
+                         * =================================================
+                         * HOLIDAY-AWARE L3 BACKUP SLA
+                         * =================================================
+                         *
+                         * The backup approver receives a new SLA period,
+                         * but only working time is counted.
+                         */
                         task.dueAt =
-                                now.plusSeconds(
-                                        currentPolicy.durationSeconds()
-                                );
+                                businessCalendarService
+                                        .calculateDueAt(
+                                                now,
+                                                task.slaMinutes
+                                        );
+
 
                         escalation.requiredLevel =
                                 ApprovalLevel.L3;
 
+
                         escalation.assignedApproverId =
                                 backupApproverId;
 
+
                         escalation.action =
                                 AUTO_L3_BACKUP;
+
 
                         escalation.remark =
                                 "L3 SLA expired; "
@@ -509,16 +707,30 @@ public class ApprovalSlaEscalationService {
                                 + "to configured L3 backup "
                                 + "under "
                                 + L3_BACKUP_POLICY;
+
+
+                        log.info(
+                                "Holiday-aware L3 backup SLA assigned: "
+                                + "taskId={}, paymentId={}, "
+                                + "slaMinutes={}, dueAt={}",
+                                task.id,
+                                task.paymentId,
+                                task.slaMinutes,
+                                task.dueAt
+                        );
                     }
                 }
             }
 
+
         } else {
+
 
             throw new IllegalStateException(
                     "Unsupported approval level"
             );
         }
+
 
         /*
          * Save the task transition and the
@@ -528,28 +740,39 @@ public class ApprovalSlaEscalationService {
          * If either write fails, the entire
          * transaction rolls back.
          */
-        taskRepository.save(task);
+        taskRepository.save(
+                task
+        );
 
-        escalationRepository.save(escalation);
+
+        escalationRepository.save(
+                escalation
+        );
+
 
         taskRepository.flush();
+
         escalationRepository.flush();
+
 
         log.info(
                 "Automatic SLA transition: "
                 + "taskId={}, paymentId={}, "
                 + "previousLevel={}, currentLevel={}, "
-                + "status={}, action={}",
+                + "status={}, action={}, dueAt={}",
                 task.id,
                 task.paymentId,
                 previousLevel,
                 task.requiredLevel,
                 task.status,
-                escalation.action
+                escalation.action,
+                task.dueAt
         );
+
 
         return true;
     }
+
 
     /*
      * Reject unsupported or inconsistent
@@ -567,74 +790,102 @@ public class ApprovalSlaEscalationService {
             SlaPolicy policy
     ) {
 
+
         if (policy == null
                 || policy.durationSeconds() <= 0
                 || policy.durationSeconds() % 60 != 0
                 || policy.durationSeconds() / 60 > 525600) {
+
 
             throw new IllegalStateException(
                     "Invalid configured SLA duration"
             );
         }
 
+
         String escalationCode =
                 policy.escalationPolicyCode();
+
 
         String terminalCode =
                 policy.terminalLevelPolicyCode();
 
+
+        /*
+         * L1 / L2
+         */
         if (level == ApprovalLevel.L1
                 || level == ApprovalLevel.L2) {
 
+
             if (!NEXT_LEVEL_POLICY.equals(
-                    escalationCode)) {
+                    escalationCode
+            )) {
+
 
                 throw new IllegalStateException(
                         "Unsupported L1/L2 escalation policy"
                 );
             }
 
+
             if (terminalCode != null
                     && !terminalCode.isBlank()) {
+
 
                 throw new IllegalStateException(
                         "Unexpected terminal policy at L1/L2"
                 );
             }
 
+
             return;
         }
 
+
+        /*
+         * L3
+         */
         if (level == ApprovalLevel.L3) {
 
+
             if (!L3_BACKUP_POLICY.equals(
-                    escalationCode)) {
+                    escalationCode
+            )) {
+
 
                 throw new IllegalStateException(
                         "Unsupported L3 escalation policy"
                 );
             }
 
+
             if (!MANUAL_REVIEW_POLICY.equals(
-                    terminalCode)) {
+                    terminalCode
+            )) {
+
 
                 throw new IllegalStateException(
                         "Unsupported L3 terminal policy"
                 );
             }
 
+
             return;
         }
+
 
         throw new IllegalStateException(
                 "Unsupported approval level"
         );
     }
 
+
     /*
      * Terminal fallback:
      *
      * Keep the approval level at L3.
+     *
      * Preserve the assigned approver for
      * audit visibility.
      *
@@ -648,17 +899,22 @@ public class ApprovalSlaEscalationService {
             String reason
     ) {
 
+
         task.status =
                 ApprovalStatus.MANUAL_REVIEW;
+
 
         escalation.requiredLevel =
                 ApprovalLevel.L3;
 
+
         escalation.assignedApproverId =
                 task.assignedApproverId;
 
+
         escalation.action =
                 AUTO_MANUAL_REVIEW;
+
 
         escalation.remark =
                 reason;

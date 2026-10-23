@@ -1,7 +1,6 @@
+
 package com.ofss.controller;
 
-import com.ofss.entity.ApprovalDecision;
-import com.ofss.entity.ApprovalEscalation;
 import com.ofss.entity.ApprovalTask;
 import com.ofss.repository.TrustedApprovalDataRepository;
 import com.ofss.security.SecurityConfiguration.JwtPrincipal;
@@ -25,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class PaymentSlaTrackerController {
 
     private final ApprovalService approvalService;
+
     private final TrustedApprovalDataRepository trustedData;
 
     public PaymentSlaTrackerController(
@@ -84,17 +84,22 @@ public class PaymentSlaTrackerController {
             );
         }
 
-        // Look up ownership from trusted Oracle data.
-        // Never accept requesterId from a query parameter.
+        /*
+         * Read payment ownership from trusted Oracle data.
+         * Never accept requester ID from the browser.
+         */
         var payment = trustedData.getPaymentData(paymentId);
 
-        boolean ownsPayment = requester
+        boolean ownsPayment =
+                requester
                 && principal.userId().equals(
                         payment.requesterId()
                 );
 
-        // Avoid retrieving approval history for unrelated
-        // payment requesters.
+        /*
+         * Reject unrelated requesters before retrieving
+         * approval-task history.
+         */
         if (!manager && !approver && !ownsPayment) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
@@ -107,11 +112,18 @@ public class PaymentSlaTrackerController {
 
         ApprovalTask task = history.task();
 
-        boolean assignedApprover = approver
+        boolean assignedApprover =
+                approver
                 && principal.userId().equals(
                         task.assignedApproverId
                 );
 
+        /*
+         * Access is limited to:
+         * 1. Finance Managers.
+         * 2. Payment owners with requester role.
+         * 3. Currently assigned Finance Approvers.
+         */
         if (!manager && !ownsPayment && !assignedApprover) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
@@ -119,14 +131,39 @@ public class PaymentSlaTrackerController {
             );
         }
 
+        /*
+         * Use DTO projections instead of returning
+         * internal JPA entities directly.
+         */
         List<DecisionItem> decisionItems =
-                history.decisions().stream()
-                        .map(this::toDecisionItem)
+                history.decisions()
+                        .stream()
+                        .map(decision -> new DecisionItem(
+                                decision.id,
+                                decision.approverId,
+                                decision.decision,
+                                decision.remark,
+                                decision.decidedAt
+                        ))
                         .toList();
 
         List<EscalationItem> escalationItems =
-                history.escalations().stream()
-                        .map(this::toEscalationItem)
+                history.escalations()
+                        .stream()
+                        .map(escalation -> new EscalationItem(
+                                escalation.id,
+                                escalation.action,
+                                escalation.previousApproverId,
+                                escalation.assignedApproverId,
+                                escalation.previousLevel == null
+                                        ? null
+                                        : escalation.previousLevel.name(),
+                                escalation.requiredLevel == null
+                                        ? null
+                                        : escalation.requiredLevel.name(),
+                                escalation.remark,
+                                escalation.occurredAt
+                        ))
                         .toList();
 
         return new TrackerResponse(
@@ -154,48 +191,20 @@ public class PaymentSlaTrackerController {
             Authentication authentication,
             String role
     ) {
-        String authority = "ROLE_" + role;
 
-        for (GrantedAuthority granted :
+        String requiredAuthority = "ROLE_" + role;
+
+        for (GrantedAuthority authority :
                 authentication.getAuthorities()) {
 
-            if (authority.equals(granted.getAuthority())) {
+            if (requiredAuthority.equals(
+                    authority.getAuthority()
+            )) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    private DecisionItem toDecisionItem(
-            ApprovalDecision decision
-    ) {
-        return new DecisionItem(
-                decision.id,
-                decision.approverId,
-                decision.decision,
-                decision.remark,
-                decision.decidedAt
-        );
-    }
-
-    private EscalationItem toEscalationItem(
-            ApprovalEscalation escalation
-    ) {
-        return new EscalationItem(
-                escalation.id,
-                escalation.action,
-                escalation.previousApproverId,
-                escalation.assignedApproverId,
-                escalation.previousLevel == null
-                        ? null
-                        : escalation.previousLevel.name(),
-                escalation.requiredLevel == null
-                        ? null
-                        : escalation.requiredLevel.name(),
-                escalation.remark,
-                escalation.occurredAt
-        );
     }
 
     public record TrackerResponse(
@@ -205,7 +214,8 @@ public class PaymentSlaTrackerController {
             TaskItem task,
             List<DecisionItem> decisions,
             List<EscalationItem> escalations
-    ) {}
+    ) {
+    }
 
     public record TaskItem(
             Long taskId,
@@ -216,7 +226,8 @@ public class PaymentSlaTrackerController {
             OffsetDateTime createdAt,
             OffsetDateTime dueAt,
             boolean slaExpired
-    ) {}
+    ) {
+    }
 
     public record DecisionItem(
             Long decisionId,
@@ -224,7 +235,8 @@ public class PaymentSlaTrackerController {
             String decision,
             String remark,
             OffsetDateTime decidedAt
-    ) {}
+    ) {
+    }
 
     public record EscalationItem(
             Long escalationId,
@@ -235,5 +247,6 @@ public class PaymentSlaTrackerController {
             String newLevel,
             String remark,
             OffsetDateTime occurredAt
-    ) {}
+    ) {
+    }
 }
